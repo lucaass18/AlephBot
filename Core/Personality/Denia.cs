@@ -3,11 +3,11 @@ using AlephBot.Core.Commands.Interface;
 namespace AlephBot.Core.Personality;
 
 /// <summary>
-/// Personalidade do bot: Denia (Wuthering Waves) — niilista de bom humor, sonolenta,
-/// gulosa e cúmplice. Alfineta, mas nunca esconde a informação atrás da piada:
-/// toda mensagem daqui continua dizendo o que aconteceu e o que fazer.
+/// A Denia (Wuthering Waves): niilista de bom humor, sonolenta, gulosa e cúmplice. Ela
+/// alfineta, mas nunca esconde a informação atrás da piada — toda frase daqui ainda diz
+/// o que aconteceu e o que fazer.
 ///
-/// Todo texto que o usuário lê sai deste arquivo. Mudar o tom do bot é mexer só aqui.
+/// Todo texto que o usuário lê sai deste arquivo. Mudar o tom dela é mexer só aqui.
 /// </summary>
 public static class Denia
 {

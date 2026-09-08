@@ -11,9 +11,8 @@ using NetCord.Services.Commands;
 namespace AlephBot.Core.Commands.Interaction;
 
 /// <summary>
-/// /help — a lista do que existe, agrupada por categoria, e o detalhe de um comando só.
-/// Nada aqui é escrito à mão: quem sabe o que existe é o <see cref="CommandRegistry"/>,
-/// então comando novo aparece sozinho e comando removido some — sem passar por este arquivo.
+/// /help — a lista por categoria, e o detalhe de um comando só. Nada escrito à mão: quem sabe
+/// o que existe é o <see cref="CommandRegistry"/>, então a lista se cuida sozinha.
 /// </summary>
 public sealed class HelpCommand : AlephSlashModule
 {

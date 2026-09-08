@@ -128,10 +128,8 @@ public sealed class AlephBot
     }
 
     /// <summary>
-    /// O áudio não roda dentro do bot: quem decodifica e manda os pacotes pro Discord é um
-    /// servidor Lavalink separado, e o AddLavalink daqui só liga o gateway a ele. Bot de pé
-    /// com o Lavalink fora continua respondendo /ping e /ban — só a música fica indisponível,
-    /// que é o comportamento que se quer de um serviço externo.
+    /// O áudio não roda dentro de mim: quem decodifica é um Lavalink separado, e aqui eu só
+    /// me ligo nele. Com ele fora eu sigo respondendo /ping e /ban — só a música é que falta.
     /// </summary>
     private void ConfigureMusic(IServiceCollection services)
     {

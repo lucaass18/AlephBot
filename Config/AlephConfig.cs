@@ -96,9 +96,8 @@ public sealed class AlephConfig
             : fallback;
 
     /// <summary>
-    /// URI mal escrita no .env é erro de configuração, não motivo pra cair no padrão em
-    /// silêncio: quem trocou o endereço quer saber que errou, não descobrir depois que o
-    /// bot passou o boot inteiro batendo em localhost.
+    /// Endereço torto no .env é erro, não motivo pra cair no padrão calado: quem trocou
+    /// quer saber que errou, não descobrir depois de um boot inteiro batendo em localhost.
     /// </summary>
     private static Uri OptionalUri(string key, string fallback)
     {

@@ -13,9 +13,8 @@ using NetCord.Rest;
 namespace AlephBot.Core.Commands.Music;
 
 /// <summary>
-/// Uma faixa na fila com o nome de quem pediu junto. O <see cref="TrackQueueItem"/> da
-/// biblioteca só carrega a faixa, e sem isto o "pedido por" some assim que a mensagem
-/// do /play rola pra cima.
+/// Uma faixa na fila com o nome de quem pediu. O <see cref="TrackQueueItem"/> da biblioteca
+/// só carrega a faixa, e aí o "pedido por" some quando a mensagem do /play rola pra cima.
 /// </summary>
 public sealed class FaixaPedida : ITrackQueueItem
 {
@@ -30,10 +29,8 @@ public sealed class FaixaPedida : ITrackQueueItem
     public string QuemPediu { get; }
 
     /// <summary>
-    /// O comando que enfileirou esta faixa já mostrou ela na resposta, então o anúncio
-    /// automático fica quieto quando ela começar — senão o canal leva duas mensagens
-    /// iguais em sequência. Vale uma vez só: se a faixa voltar a tocar no loop, o
-    /// anúncio volta a valer.
+    /// Quem enfileirou já mostrou a faixa na resposta, então eu fico quieta quando ela
+    /// começar. Vale uma vez só — se ela voltar no loop, eu anuncio de novo.
     /// </summary>
     public bool JáAnunciada { get; set; }
 }
@@ -48,9 +45,8 @@ public sealed record AlephPlayerOptions : QueuedLavalinkPlayerOptions
 }
 
 /// <summary>
-/// O player da fila com duas coisas a mais: ele anuncia sozinho a faixa que começou —
-/// é o que faz a fila andar sem ninguém digitando nada — e se despede antes de sair
-/// quando o rastreador de inatividade desiste do canal.
+/// O player da fila com duas manias minhas: anuncio sozinha a faixa que começou — é o que
+/// faz a fila andar sem ninguém digitar nada — e me despeço antes de sair do canal.
 /// </summary>
 public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListener
 {

@@ -57,9 +57,8 @@ public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCom
         }, ephemeral: true);
 
     /// <summary>
-    /// Fecha um <see cref="DeferAsync"/>. O "pensando..." já é uma mensagem publicada, e é
-    /// ela que tem que ser editada: mandar followup criaria uma segunda mensagem e deixaria
-    /// a primeira carregando pra sempre.
+    /// Fecha um <see cref="DeferAsync"/>. O "pensando..." já é mensagem publicada e tem que
+    /// ser editada: followup criaria uma segunda e deixaria a primeira carregando pra sempre.
     /// </summary>
     protected Task<RestMessage> EditarRespostaAsync(EmbedProperties embed) =>
         Context.Interaction.ModifyResponseAsync(mensagem => mensagem.Embeds = [embed]);

@@ -55,9 +55,8 @@ public static class EnvLoader
     }
 
     /// <summary>
-    /// Cria o arquivo com o template se ele não existir.
-    /// Retorna o caminho criado, ou null se já existia ou se não é um checkout
-    /// do projeto (container publicado, por exemplo).
+    /// Cria o arquivo com o template, se faltar. Devolve o caminho, ou null quando já
+    /// existia ou não é um checkout do projeto (container publicado, por exemplo).
     /// </summary>
     public static string? CreateIfMissing(string fileName = ".env")
     {

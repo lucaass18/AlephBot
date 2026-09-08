@@ -90,9 +90,8 @@ public sealed class UnMuteCommand : AlephSlashModule
     }
 
     /// <summary>
-    /// Quanto ainda faltava do castigo, ou null se o usuário não está calado.
-    /// O Discord mantém a data preenchida mesmo depois de expirar, por isso a
-    /// comparação com o agora — sem ela, todo mundo já silenciado um dia parece mudo.
+    /// Quanto faltava do castigo, ou null se ele não está calado. O Discord deixa a data lá
+    /// mesmo depois de expirar, então comparo com o agora — senão todo mundo parece mudo.
     /// </summary>
     internal static TimeSpan? RestoAtéSoltar(GuildUser alvo)
     {

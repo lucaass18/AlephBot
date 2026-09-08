@@ -21,9 +21,8 @@ public sealed record CommandInfo(
     public bool IsTexto => typeof(AlephTextModule).IsAssignableFrom(Type);
 
     /// <summary>
-    /// O Usage pronto pra mostrar, com o sinal na frente: "/mute ..." ou "!mute ...".
-    /// O prefixo vem da configuração, então trocar PREFIX no .env muda tudo que o
-    /// usuário lê — ajuda, mensagens de erro e o log do boot.
+    /// O Usage pronto, com o sinal na frente: "/mute ..." ou "!mute ...". O prefixo vem da
+    /// config, então mexer no PREFIX muda a ajuda, os erros e o log de uma vez.
     /// </summary>
     public string Uso(string prefixo) =>
         $"{(IsTexto ? prefixo : "/")}{Usage ?? Name}";

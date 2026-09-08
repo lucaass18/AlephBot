@@ -10,8 +10,7 @@ namespace AlephBot.Core.Commands.Music;
 
 /// <summary>
 /// Os comandos que só mexem no que já está tocando: pular, parar, sair, pausar e voltar.
-/// Cada ação existe uma vez só aqui; as classes abaixo são as duas portas de entrada
-/// (/comando e !comando) pra ela.
+/// Cada ação mora aqui uma vez só; as classes abaixo são as duas portas de entrada pra ela.
 /// </summary>
 internal static class Playback
 {
