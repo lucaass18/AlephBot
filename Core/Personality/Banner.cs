@@ -12,9 +12,9 @@ public static class Banner
         █▀█ █▄▄ ██▄ █▀▀ █▀█   █▄█ █▄█ ░█░
         """;
 
-    private const string Roxo = "\e[38;5;141m";
-    private const string Cinza = "\e[38;5;245m";
-    private const string Fim = "\e[0m";
+    internal const string Roxo = "\e[38;5;141m";
+    internal const string Cinza = "\e[38;5;245m";
+    internal const string Fim = "\e[0m";
 
     public static void Print(TextWriter saida, string prefixo, string modo, string versao, string runtime)
     {
@@ -41,7 +41,7 @@ public static class Banner
     /// Sem cor quando a saída é redirecionada (arquivo, `docker logs`, pipe) ou quando
     /// o ambiente pede NO_COLOR — senão o log vira sopa de escape.
     /// </summary>
-    private static bool UsaCor() =>
+    internal static bool UsaCor() =>
         !Console.IsOutputRedirected
         && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NO_COLOR"));
 }

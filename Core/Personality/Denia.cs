@@ -400,6 +400,17 @@ public static class Denia
     public static string NãoIdentifiquei() =>
         "Não consegui ver teus cargos neste servidor. Estranho, mas acontece.";
 
+    // ---- desligamento --------------------------------------------------------
+
+    /// <summary>A última fala dela: sai no console quando o processo encerra.</summary>
+    public static string Despedida() => Pick(
+        "Enfim. Vou dormir.",
+        "Desliguei. Ninguém vai sentir falta — nem eu.",
+        "Acabou. Me acorda se precisar... ou não.",
+        "Fim do expediente. Não me espera acordada.",
+        "Tô indo. Foi bom enquanto durou, eu acho.",
+        "Pronto, apaguei a luz. Boa noite pra mim.");
+
     // ---- presença ------------------------------------------------------------
 
     public static string PresençaVerbo() => Pick(
