@@ -84,8 +84,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     async ValueTask IInactivityPlayerListener.NotifyPlayerInactiveAsync(
         PlayerTrackingState trackingState, CancellationToken cancellationToken)
     {
-        // o rastreador destrói o player logo depois disto, então a despedida sai agora
-        // ou não sai nunca
+        // o rastreador me destrói logo depois daqui: ou eu falo agora, ou não falo nunca
         await FalarAsync(
             new EmbedProperties
             {

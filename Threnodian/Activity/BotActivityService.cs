@@ -111,8 +111,8 @@ public sealed class BotActivityService : BackgroundService
                     continue;
                 }
 
-                // dedupe antes de classificar: cada usuário é avaliado uma única vez,
-                // então um bot não escapa por estar sem cache numa das guilds
+                // dedupe antes de classificar, senão um bot escapa por não estar em cache
+                // numa das guilds e acaba entrando na conta
                 if (!seen.Add(userId))
                 {
                     count.Duplicates++;

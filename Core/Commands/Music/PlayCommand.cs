@@ -28,8 +28,7 @@ public sealed class PlayCommand : MusicSlashModule
     public async Task PlayAsync(
         [SlashCommandParameter(Name = "busca", Description = "Nome da música, link do YouTube/SoundCloud, ou uma playlist.")] string busca)
     {
-        // entrar no canal e buscar no Lavalink passa fácil dos 3 segundos que o Discord
-        // dá pra responder uma interação, então aqui a resposta vem por followup
+        // entrar no canal e buscar passa fácil dos 3 segundos que o Discord dá; peço tempo
         await DeferAsync();
 
         var (player, erro) = await Music.PlayerAsync(Áudio, Context, Context.Channel, conectar: true);
@@ -105,9 +104,8 @@ internal static class Play
     private static async Task<Music.Resposta> UmaFaixaAsync(
         AlephPlayer player, LavalinkTrack faixa, string quemPediu, CancellationToken cancellationToken)
     {
-        // a marca vai antes do PlayAsync de propósito: o evento de início chega pelo
-        // websocket e pode ganhar a corrida da linha seguinte — se ele chegasse primeiro
-        // com a marca ainda em falso, o canal receberia o mesmo embed duas vezes
+        // marco antes do PlayAsync de propósito: o evento de início vem pelo websocket e
+        // pode ganhar a corrida da linha seguinte, e aí o canal levava o embed duas vezes
         var item = new FaixaPedida(new TrackReference(faixa), quemPediu) { JáAnunciada = true };
 
         var posição = await player.PlayAsync(item, enqueue: true, cancellationToken: cancellationToken);
@@ -130,8 +128,7 @@ internal static class Play
             .Select(faixa => (ITrackQueueItem)new FaixaPedida(new TrackReference(faixa), quemPediu))
             .ToArray();
 
-        // nenhuma faixa vem marcada como já anunciada: a resposta aqui fala da playlist,
-        // e quem apresenta a primeira faixa é o anúncio do player
+        // não marco nenhuma: aqui eu falo da playlist, e quem apresenta a primeira é o player
         if (player.CurrentTrack is null)
         {
             await player.PlayAsync(itens[0], enqueue: true, cancellationToken: cancellationToken);
@@ -144,8 +141,7 @@ internal static class Play
             await player.Queue.AddRangeAsync(itens, cancellationToken);
         }
 
-        // o Lavalink devolve a playlist sem nome de vez em quando; aí o que o usuário
-        // digitou identifica melhor do que um rótulo genérico
+        // playlist às vezes vem sem nome; aí o que a pessoa digitou diz mais que um rótulo vazio
         var nome = resultado.Playlist?.Name is { Length: > 0 } título ? título : busca;
 
         return Music.Resposta.Ok(Music.EmbedPlaylist(nome, faixas, quemPediu));

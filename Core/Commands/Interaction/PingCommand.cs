@@ -20,8 +20,7 @@ public sealed class PingCommand : AlephSlashModule
     public Task PingAsync() =>
         RespondAsync(BuildEmbed(Context.Client.Latency));
 
-    // a barra enche no mesmo ponto em que a cor fica vermelha, pra não contarem
-    // histórias diferentes
+    // a barra enche onde a cor fica vermelha, senão as duas contam histórias diferentes
     private const int GaugeLength = 8;
     private const double SlowMs = 300;
 

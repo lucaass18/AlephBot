@@ -15,9 +15,8 @@ using Lavalink4NET.InactivityTracking.Trackers.Idle;
 using Lavalink4NET.InactivityTracking.Trackers.Users;
 using Lavalink4NET.NetCord;
 
-// AddLavalink existe nos dois namespaces: o do Lavalink4NET.NetCord registra o wrapper do
-// gateway e chama o do core; o do core, sozinho, deixaria o Lavalink sem saber falar com o
-// Discord. Importar os dois deixaria a chamada ambígua, então o core entra por apelido.
+// existe AddLavalink nos dois namespaces, e importar os dois deixa a chamada ambígua.
+// o do NetCord é o que serve; o core entra por apelido só pra eu alcançar o Configure
 using LavalinkCore = Lavalink4NET.Extensions.ServiceCollectionExtensions;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -144,14 +143,12 @@ public sealed class AlephBot
             options.Passphrase = _config.LavalinkPassword;
             options.Label = "aleph";
 
-            // o container do Lavalink demora mais que o do bot pra aceitar conexão;
-            // este é o tempo que eu espero antes de desistir da primeira tentativa
+            // o container do Lavalink sobe mais devagar que o meu; espero por ele
             options.ReadyTimeout = TimeSpan.FromSeconds(20);
         });
 
-        // sozinha num canal eu ficaria conectada pra sempre, gastando voz do servidor:
-        // os dois rastreadores cobrem os dois jeitos de isso acontecer — todo mundo saiu
-        // (Users) e ninguém mandou tocar mais nada (Idle)
+        // sozinha num canal eu ficaria ali pra sempre. os dois rastreadores cobrem os dois
+        // jeitos de isso acontecer: todo mundo saiu (Users) e ninguém pediu mais nada (Idle)
         services
             .AddInactivityTracking()
             .ConfigureInactivityTracking(options =>
@@ -162,10 +159,8 @@ public sealed class AlephBot
                 // eu quero sair do canal, não pausar e ficar lá parada
                 options.InactivityBehavior = PlayerInactivityBehavior.None;
 
-                // os padrões da biblioteca só entram quando ninguém registra rastreador
-                // nenhum — eles não se somam aos meus. Desligo mesmo assim pra que a lista
-                // abaixo seja a única resposta: se alguém apagar uma linha de lá, o
-                // rastreamento fica de fora, em vez de voltar calado pro padrão de outra versão
+                // desligo pra lista abaixo ser a única resposta: apagou uma linha de lá, o
+                // rastreamento sai — em vez de voltar calado pro padrão de outra versão
                 options.UseDefaultTrackers = false;
             })
             .AddInactivityTracker<UsersInactivityTracker>()
