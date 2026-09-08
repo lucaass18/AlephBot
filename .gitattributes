@@ -16,3 +16,6 @@ Dockerfile text eol=lf
 *.png binary
 *.jpg binary
 *.ico binary
+
+# schema do proprio NLog, nao e codigo do projeto: fora das estatisticas de linguagem
+NLog.xsd linguist-vendored
