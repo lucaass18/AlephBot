@@ -411,6 +411,13 @@ public static class Denia
         "Tô indo. Foi bom enquanto durou, eu acho.",
         "Pronto, apaguei a luz. Boa noite pra mim.");
 
+    /// <summary>Quando o encerramento não foi escolha dela.</summary>
+    public static string DespedidaComErro() => Pick(
+        "Caí. Não foi por querer.",
+        "Alguma coisa quebrou e eu fui junto.",
+        "Isso não era pra ter acontecido. Olha o log.",
+        "Bom, isso doeu. Boa sorte aí.");
+
     // ---- presença ------------------------------------------------------------
 
     public static string PresençaVerbo() => Pick(
