@@ -34,7 +34,7 @@ public sealed class KickCommand : AlephSlashModule
             return;
         }
 
-        // em interação de servidor o usuário vem como GuildInteractionUser, que é um GuildUser
+        // dentro de servidor isso sempre passa; o cast é só pra eu enxergar os cargos dele
         if (Context.User is not GuildUser moderador)
         {
             await ErrorAsync(Denia.NãoIdentifiquei());

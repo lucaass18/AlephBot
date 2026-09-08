@@ -67,9 +67,8 @@ public sealed class UnBanCommand : AlephSlashModule
             return;
         }
 
-        // desbanido não compartilha servidor comigo, então a DM quase sempre falha —
-        // TryNotifyAsync engole isso. Vale a tentativa: se tivermos outro servidor
-        // em comum, o aviso chega.
+        // desbanido não divide servidor comigo, então a DM quase sempre falha — e tudo bem.
+        // se por acaso a gente tiver outro servidor em comum, o aviso chega
         await Moderation.TryNotifyAsync(Context.Client, guild, ban.User, moderador, motivo, Ação);
 
         await RespondAsync(Moderation.BuildEmbed(Ação, ban.User, moderador, motivo, MotivoOriginal(ban)));

@@ -97,8 +97,8 @@ public sealed class CommandFailureHandler : ICommandResultHandler<CommandContext
         var fim = conteúdo.IndexOf(' ');
         var nome = (fim < 0 ? conteúdo : conteúdo[..fim]).ToString();
 
-        // o mesmo nome existe no slash e no prefixo — a falha veio da versão com prefixo,
-        // então é o uso dela que ajuda quem digitou errado
+        // o nome existe nas duas formas, mas quem falhou foi a de prefixo — é o uso dela
+        // que ajuda quem digitou errado
         var info = _registry.All.FirstOrDefault(c =>
             c.IsTexto && string.Equals(c.Name, nome, StringComparison.OrdinalIgnoreCase));
 

@@ -65,8 +65,7 @@ public sealed class UnMuteCommand : AlephSlashModule
             return;
         }
 
-        // aqui a DM vai depois: o alvo continua no servidor, e não faz sentido
-        // avisar que soltei antes de ter soltado de verdade
+        // aviso depois: não faz sentido dizer que soltei antes de ter soltado
         await Moderation.TryNotifyAsync(Context.Client, guild, alvo, moderador, motivo, Ação, extra);
 
         await RespondAsync(Moderation.BuildEmbed(Ação, alvo, moderador, motivo, extra));
@@ -77,8 +76,7 @@ public sealed class UnMuteCommand : AlephSlashModule
     {
         try
         {
-            // TimeOutAsync só aceita DateTimeOffset não-nulo, então não dá pra
-            // "desligar" por ali: quem zera o timeout é o ModifyAsync
+            // o TimeOutAsync não aceita nulo, então não dá pra desligar por ele: quem zera é este
             await alvo.ModifyAsync(
                 opções => opções.TimeOutUntil = null,
                 Moderation.AuditLog(moderador, motivo));

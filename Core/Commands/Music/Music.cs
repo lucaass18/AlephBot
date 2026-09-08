@@ -7,8 +7,7 @@ using AlephBot.Core.Personality;
 using Lavalink4NET;
 using Lavalink4NET.Clients;
 
-// é daqui que vem o RetrieveAsync que aceita o contexto do comando; sem este using a
-// chamada cai no método da interface, que só sabe receber IDs crus
+// sem este using o RetrieveAsync cai no da interface, que só sabe receber IDs crus
 using Lavalink4NET.NetCord;
 
 using Lavalink4NET.Players;
@@ -112,9 +111,8 @@ internal static class Music
         }
         catch (TimeoutException) when (conectar)
         {
-            // entrar num canal depende do Discord confirmar a mudança de voz. Quando ele
-            // não confirma, o motivo quase sempre é permissão de Conectar faltando — culpar
-            // o Lavalink aqui mandaria quem chamou procurar defeito no lugar errado
+            // o Discord não confirmou a entrada, e quase sempre é permissão de Conectar
+            // faltando. culpar o Lavalink aqui manda o cara procurar no lugar errado
             return (null, Denia.MúsicaNãoConsegui());
         }
         catch (Exception ex) when (ÉServidorFora(ex))
@@ -250,8 +248,8 @@ internal static class Music
                 ? $"`{i + 1}.` —\n"
                 : $"`{i + 1}.` {Link(faixa)} · `{DuraçãoDe(faixa)}`\n";
 
-            // dez títulos quilométricos passam do teto de descrição do Discord, e embed
-            // recusado não mostra fila nenhuma — melhor listar menos e avisar quantas faltam
+            // dez títulos quilométricos estouram o teto do embed, e embed recusado não
+            // mostra fila nenhuma. melhor listar menos e avisar quantas ficaram de fora
             if (linhas.Length + linha.Length > MaxDescrição)
                 break;
 

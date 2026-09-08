@@ -41,8 +41,7 @@ public sealed class AlephConfig
 
     private const string EnvFile = "Config/.env";
 
-    // o mesmo padrão do docker-compose oficial do Lavalink; serve pro dev que sobe
-    // o servidor com o application.yml deste repositório e não mexe em nada
+    // o padrão do Lavalink, pra quem sobe o application.yml daqui e não mexe em nada
     private const string LavalinkPadrão = "http://localhost:2333/";
     private const string SenhaPadrão = "youshallnotpass";
 
@@ -50,7 +49,7 @@ public sealed class AlephConfig
     {
         EnvLoader.Load(EnvFile);
 
-        // sem TOKEN no ambiente e sem arquivo: cria o template e para com instrução clara
+        // sem TOKEN e sem arquivo: deixo o template pronto e paro, dizendo o que fazer
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOKEN")))
         {
             var created = EnvLoader.CreateIfMissing(EnvFile);

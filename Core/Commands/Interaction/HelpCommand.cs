@@ -26,8 +26,8 @@ public sealed class HelpCommand : AlephSlashModule
     private readonly CommandRegistry _registry;
     private readonly AlephConfig _config;
 
-    // o registry cria uma instância de cada ICommand pra ler os metadados, e cai aqui
-    // pedindo ele mesmo — só guardo a referência, não leio nada no construtor
+    // o registry me instancia pra ler meus metadados e acaba pedindo ele mesmo aqui.
+    // por isso só guardo a referência — ler qualquer coisa dele agora seria dar a volta
     public HelpCommand(CommandRegistry registry, AlephConfig config)
     {
         _registry = registry;
@@ -75,8 +75,8 @@ public sealed class HelpCommand : AlephSlashModule
     {
         var busca = Normaliza(comando, prefixo);
 
-        // slash e prefixo são classes separadas com o mesmo Name: as duas entram aqui,
-        // e é assim que o campo "Como chamar" mostra as duas formas juntas
+        // slash e prefixo são classes separadas com o mesmo Name; pego as duas, e é
+        // por isso que o "Como chamar" mostra as duas formas juntas
         var entradas = registry.All
             .Where(c => string.Equals(c.Name, busca, StringComparison.OrdinalIgnoreCase))
             .ToList();
@@ -102,8 +102,7 @@ public sealed class HelpCommand : AlephSlashModule
         [
             new()
             {
-                // Uso sempre devolve alguma coisa (cai no nome do comando), então
-                // não existe o caso "sem manual"
+                // Uso nunca vem vazio (no pior caso cai no nome), então não trato ausência
                 Name = Denia.HelpCampoUso,
                 Value = Recorta(string.Join('\n', usos.Select(u => $"`{u}`"))),
             },
@@ -155,8 +154,8 @@ public sealed class HelpCommand : AlephSlashModule
         if (limpo.StartsWith(prefixo, StringComparison.Ordinal))
             limpo = limpo[prefixo.Length..];
 
-        // nome de comando não começa com sinal: o que vier antes da primeira letra é
-        // enfeite, mesmo que seja o prefixo de outro bot
+        // nome de comando não começa com sinal — o que vier antes da primeira letra
+        // é enfeite, nem que seja o prefixo de outro bot
         var início = 0;
 
         while (início < limpo.Length && !char.IsLetterOrDigit(limpo[início]))

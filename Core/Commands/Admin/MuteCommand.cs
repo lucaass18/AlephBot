@@ -24,8 +24,7 @@ public sealed class MuteCommand : AlephSlashModule
     // exemplo mostrado quando a duração não faz sentido
     internal const string Exemplo = "30m";
 
-    // teto do parser: acima disso a soma de TimeSpan estoura, e "muito" já é
-    // resposta suficiente — quem pediu tanto vai ouvir que passou do limite
+    // acima disso o TimeSpan estoura — e quem pediu tanto já vai ouvir que passou do limite
     private static readonly TimeSpan Teto = TimeSpan.FromDays(365);
 
     public override string Name => "mute";
@@ -78,8 +77,7 @@ public sealed class MuteCommand : AlephSlashModule
 
         var extra = DescreveSilêncio(tempo, até);
 
-        // a DM vai depois: o alvo continua no servidor, então não corro o risco de
-        // perder o canal — e não aviso de um castigo que ainda podia falhar
+        // aviso depois: ele continua no servidor, e eu não anuncio castigo que ainda podia falhar
         await Moderation.TryNotifyAsync(Context.Client, guild, alvo, moderador, motivo, Ação, extra);
 
         await RespondAsync(Moderation.BuildEmbed(Ação, alvo, moderador, motivo, extra));

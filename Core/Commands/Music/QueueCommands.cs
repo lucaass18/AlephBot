@@ -59,8 +59,7 @@ internal static class Fila
 
         var texto = modo switch
         {
-            // repetir "a faixa" sem faixa nenhuma tocando é um pedido válido: a marcação
-            // vale pra próxima que entrar, então aqui eu só não tenho nome pra dizer
+            // pedir repetição sem nada tocando vale: fica pra próxima. só não tenho nome pra dizer
             ModoDeRepetição.Faixa => Denia.MúsicaLoopFaixa(
                 Music.Escapa(player.CurrentTrack?.Title ?? Denia.MúsicaTítuloTocando)),
             ModoDeRepetição.Fila => Denia.MúsicaLoopFila(),
