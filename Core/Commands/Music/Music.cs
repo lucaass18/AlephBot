@@ -50,12 +50,11 @@ internal static class Music
 
     /// <summary>
     /// O player deste servidor. Com <paramref name="conectar"/> eu entro no canal de quem
-    /// chamou se ainda não estiver em nenhum; sem ele, quem não tem player leva
-    /// <see cref="PlayerRetrieveStatus.BotNotConnected"/> em vez de me arrastar pro canal.
+    /// chamou; sem ele, quem não tem player leva
+    /// <see cref="PlayerRetrieveStatus.BotNotConnected"/> em vez de me arrastar pra voz.
     ///
-    /// <paramref name="exigirMesmoCanal"/> é o que impede alguém de outro canal pausar a
-    /// música dos outros. Fica em falso só pra quem apenas olha — /queue e /nowplaying não
-    /// mexem em nada, e obrigar a entrar na voz pra ler a fila seria implicância.
+    /// <paramref name="exigirMesmoCanal"/> impede alguém de outro canal pausar a música dos
+    /// outros. Fica falso pra quem só olha: exigir voz pra ler a fila seria implicância.
     /// </summary>
     internal static ValueTask<PlayerResult<AlephPlayer>> ObterAsync(
         IAudioService áudio,
@@ -90,9 +89,8 @@ internal static class Music
     }
 
     /// <summary>
-    /// O player pronto pra usar, ou a frase que explica por que não deu — recusa do
-    /// Lavalink e servidor fora do ar chegam pelo mesmo caminho porque, pra quem digitou
-    /// o comando, os dois são "não rolou" e os dois precisam de uma resposta.
+    /// O player pronto, ou a frase que explica por que não deu. Recusa e servidor fora do ar
+    /// saem pelo mesmo caminho: pra quem digitou, os dois são "não rolou".
     /// </summary>
     internal static async Task<(AlephPlayer? Player, string? Erro)> PlayerAsync(
         IAudioService áudio,
@@ -132,9 +130,8 @@ internal static class Music
     };
 
     /// <summary>
-    /// Separa "o Lavalink não está lá" de um erro meu. Conexão recusada, senha errada (401)
-    /// e timeout viram a frase sobre o servidor; qualquer outra exceção sobe e aparece no
-    /// log como erro de verdade, em vez de virar uma desculpa bonita.
+    /// Separa "o Lavalink não está lá" de um erro meu. Conexão recusada, senha errada e
+    /// timeout viram a frase do servidor; o resto sobe pro log, em vez de virar desculpa.
     /// </summary>
     internal static bool ÉServidorFora(Exception ex) =>
         ex is HttpRequestException or TimeoutException or TaskCanceledException or WebSocketException

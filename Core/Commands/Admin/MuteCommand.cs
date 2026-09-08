@@ -108,9 +108,8 @@ public sealed class MuteCommand : AlephSlashModule
         ParseDuração(texto) is null ? Denia.DuraçãoInválida(Exemplo) : Denia.DuraçãoLongaDemais(MaxDias);
 
     /// <summary>
-    /// Lê "30s", "10m", "2h", "7d" e as combinações ("1h30m"). Número solto vira minutos,
-    /// que é o que quase todo mundo quer dizer com "!mute fulano 10".
-    /// Devolve null quando o texto não vira um tempo positivo.
+    /// Lê "30s", "10m", "2h", "7d" e as misturas ("1h30m"). Número solto vira minutos, que é
+    /// o que se quer dizer com "!mute fulano 10". Null quando não vira um tempo positivo.
     /// </summary>
     internal static TimeSpan? ParseDuração(string texto)
     {

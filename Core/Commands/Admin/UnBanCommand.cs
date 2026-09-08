@@ -12,9 +12,8 @@ using NetCord.Services.Commands;
 namespace AlephBot.Core.Commands.Admin;
 
 /// <summary>
-/// /unban — tira alguém da lista de banidos. Aqui o alvo não é GuildUser:
-/// quem está banido não é membro do servidor, então o Discord não resolve menção
-/// nem autocompleta. Só o ID serve.
+/// /unban — tira alguém da lista de banidos. Banido não é membro do servidor, então o
+/// Discord não resolve menção nem autocompleta: só o ID serve.
 /// </summary>
 public sealed class UnBanCommand : AlephSlashModule
 {

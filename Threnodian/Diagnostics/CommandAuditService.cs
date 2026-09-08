@@ -7,9 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace AlephBot.Threnodian.Diagnostics;
 
 /// <summary>
-/// No boot, lista o que foi descoberto (por pasta) e avisa sobre comando que nunca
-/// vai responder. Comando novo em pasta nova entra sozinho — isto aqui só garante
-/// que você fique sabendo quando ele entrar quebrado.
+/// No boot, lista o que foi descoberto por pasta e avisa sobre comando que nunca vai
+/// responder. Comando novo entra sozinho — isto só te conta quando ele entra quebrado.
 /// </summary>
 public sealed class CommandAuditService : IHostedService
 {

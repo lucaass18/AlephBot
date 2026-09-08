@@ -9,11 +9,9 @@ namespace AlephBot.Core.Commands;
 public sealed record CommandProblem(string Command, string Message);
 
 /// <summary>
-/// O <see cref="CommandRegistry"/> encontra qualquer ICommand em qualquer pasta, mas encontrar
-/// não é o mesmo que funcionar: classe sem [SlashCommand]/[Command] entra no /help e nunca é
-/// chamada, e dois comandos podem brigar pelo mesmo nome sem ninguém perceber.
-///
-/// Esta auditoria roda no boot e transforma esses silêncios em aviso no log.
+/// O <see cref="CommandRegistry"/> acha qualquer ICommand, mas achar não é funcionar: sem
+/// [SlashCommand]/[Command] a classe entra no /help e nunca é chamada, e dois comandos podem
+/// brigar pelo mesmo nome sem ninguém notar. Isto roda no boot e vira aviso no log.
 /// </summary>
 public static class CommandAudit
 {
