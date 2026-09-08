@@ -1,57 +1,79 @@
+<div align="center">
+
 # AlephBot
 
-Bot de Discord em C# / .NET 10, com moderação e música. A voz dele é a **Denia**
-(*Wuthering Waves*) — niilista de bom humor, sonolenta e cúmplice.
+**Bot de Discord em C# com moderação e música.**
 
-Construído sobre [NetCord](https://netcord.dev) para o gateway e
-[Lavalink4NET](https://github.com/angelobreuer/Lavalink4NET) para o áudio.
+A voz dele é a **Denia** (*Wuthering Waves*) — niilista de bom humor, sonolenta e cúmplice.
 
----
+<br>
+
+[![C#](https://img.shields.io/badge/C%23-af87ff?style=for-the-badge&logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
+[![.NET 10](https://img.shields.io/badge/.NET%2010-8b5cf6?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/download)
+[![Discord](https://img.shields.io/badge/Discord-6d4aff?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/developers/applications)
+[![Docker](https://img.shields.io/badge/Docker-5b3ecf?style=for-the-badge&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+
+[![NetCord](https://img.shields.io/badge/NetCord-1.0.0--beta.19-af87ff?style=flat-square)](https://netcord.dev)
+[![Lavalink](https://img.shields.io/badge/Lavalink-4.2.2-af87ff?style=flat-square)](https://lavalink.dev)
+[![License](https://img.shields.io/badge/license-MIT-af87ff?style=flat-square)](LICENSE)
+
+</div>
+
+<br>
 
 ## Comandos
 
-Todos funcionam como **slash command** (`/ping`) e como **comando de texto**
-(`!ping`, com o prefixo do `.env`). Os apelidos entre parênteses valem só no modo texto.
+Todos funcionam como **slash command** (`/ping`) e como **comando de texto** (`!ping`, com o
+prefixo do `.env`). Os apelidos entre parênteses valem só no modo texto.
+
+<br>
 
 ### Moderação
 
-| Comando | O que faz |
-| --- | --- |
-| `/ban` (`banir`) | Bane um usuário do servidor |
-| `/unban` (`desbanir`) | Remove o banimento |
-| `/kick` (`expulsar`) | Expulsa um usuário |
-| `/mute` (`mutar`, `silenciar`, `calar`) | Silencia no texto e na voz |
-| `/unmute` (`desmutar`, `dessilenciar`) | Devolve a voz |
+| | Comando | O que faz |
+|:--:|:--|:--|
+| 🔨 | **`/ban`** <sub>· `banir`</sub> | Bane um usuário do servidor |
+| 🕊️ | **`/unban`** <sub>· `desbanir`</sub> | Remove o banimento |
+| 👢 | **`/kick`** <sub>· `expulsar`</sub> | Expulsa um usuário |
+| 🔇 | **`/mute`** <sub>· `mutar` · `silenciar` · `calar`</sub> | Silencia no texto e na voz |
+| 🔉 | **`/unmute`** <sub>· `desmutar` · `dessilenciar`</sub> | Devolve a voz |
+
+<br>
 
 ### Música
 
-| Comando | O que faz |
-| --- | --- |
-| `/play` (`p`, `tocar`) | Toca uma faixa ou põe na fila |
-| `/skip` (`s`, `pular`, `next`) | Pula a faixa atual |
-| `/pause` (`pausar`) · `/resume` (`voltar`) | Pausa e retoma |
-| `/stop` (`parar`) | Para tudo e limpa a fila |
-| `/disconnect` (`leave`, `sair`, `dc`) | Sai do canal de voz |
-| `/queue` (`q`, `fila`) | Mostra a fila |
-| `/nowplaying` (`np`, `agora`) | Faixa atual e progresso |
-| `/shuffle` (`embaralhar`) | Embaralha a fila |
-| `/loop` (`repeat`, `repetir`) | Repete a faixa, a fila, ou nada |
-| `/seek` (`ir`) | Anda para um ponto da faixa |
-| `/volume` (`vol`, `v`) | Mostra ou muda o volume |
+| | Comando | O que faz |
+|:--:|:--|:--|
+| ▶️ | **`/play`** <sub>· `p` · `tocar`</sub> | Toca uma faixa ou põe na fila |
+| ⏭️ | **`/skip`** <sub>· `s` · `pular` · `next`</sub> | Pula a faixa atual |
+| ⏸️ | **`/pause`** <sub>· `pausar`</sub> | Pausa a reprodução |
+| ⏯️ | **`/resume`** <sub>· `voltar` · `continuar`</sub> | Retoma de onde parou |
+| ⏹️ | **`/stop`** <sub>· `parar`</sub> | Para tudo e limpa a fila |
+| 👋 | **`/disconnect`** <sub>· `leave` · `sair` · `dc`</sub> | Sai do canal de voz |
+| 📜 | **`/queue`** <sub>· `q` · `fila`</sub> | Mostra a fila |
+| 💿 | **`/nowplaying`** <sub>· `np` · `agora` · `tocando`</sub> | Faixa atual e progresso |
+| 🔀 | **`/shuffle`** <sub>· `embaralhar`</sub> | Embaralha a fila |
+| 🔁 | **`/loop`** <sub>· `repeat` · `repetir`</sub> | Repete a faixa, a fila, ou nada |
+| ⏩ | **`/seek`** <sub>· `ir` · `pular-para`</sub> | Anda para um ponto da faixa |
+| 🔊 | **`/volume`** <sub>· `vol` · `v`</sub> | Mostra ou muda o volume |
+
+<br>
 
 ### Geral
 
-| Comando | O que faz |
-| --- | --- |
-| `/help` (`ajuda`, `comandos`) | Lista o que o bot sabe fazer |
-| `/ping` | Latência do gateway |
+| | Comando | O que faz |
+|:--:|:--|:--|
+| 📖 | **`/help`** <sub>· `ajuda` · `comandos`</sub> | Lista o que o bot sabe fazer |
+| 📡 | **`/ping`** | Latência do gateway |
+
+<br>
 
 ---
 
 ## Configuração
 
-Toda a configuração vem de variáveis de ambiente. Em desenvolvimento elas são lidas
-de `Config/.env`; em produção, do próprio ambiente do contêiner.
+Toda a configuração vem de variáveis de ambiente. Em desenvolvimento elas são lidas de
+`Config/.env`; em produção, do próprio ambiente do contêiner.
 
 ```bash
 cp Config/.env.example Config/.env
@@ -59,19 +81,24 @@ cp Config/.env.example Config/.env
 
 Depois preencha o `TOKEN`:
 
-| Variável | Obrigatória | Padrão | Descrição |
-| --- | --- | --- | --- |
-| `TOKEN` | **sim** | — | Token do bot no [Discord Developer Portal](https://discord.com/developers/applications) |
-| `PREFIX` | não | `!` | Prefixo dos comandos de texto |
-| `DEV_GUILD_ID` | não | *(vazio)* | ID do servidor de testes: registra os slash commands nele na hora. Vazio = registro global (~1h para propagar) |
-| `LOG_LEVEL` | não | `Information` | `Trace`, `Debug`, `Information`, `Warning`, `Error`, `Critical` |
-| `LAVALINK_URI` | não | `http://localhost:2333/` | Endereço REST do servidor Lavalink |
-| `LAVALINK_PASSWORD` | não | `youshallnotpass` | Senha do Lavalink |
-| `MUSIC_IDLE_MINUTES` | não | `2` | Minutos parado (canal vazio ou nada tocando) antes de sair da voz |
+| Variável | | Padrão | Descrição |
+|:--|:--:|:--|:--|
+| **`TOKEN`** | ✅ | — | Token do bot no [Discord Developer Portal](https://discord.com/developers/applications) |
+| `PREFIX` | | `!` | Prefixo dos comandos de texto |
+| `DEV_GUILD_ID` | | *vazio* | ID do servidor de testes: registra os slash commands nele na hora.<br>Vazio = registro global (~1h para propagar) |
+| `LOG_LEVEL` | | `Information` | `Trace` · `Debug` · `Information` · `Warning` · `Error` · `Critical` |
+| `LAVALINK_URI` | | `http://localhost:2333/` | Endereço REST do servidor Lavalink |
+| `LAVALINK_PASSWORD` | | `youshallnotpass` | Senha do Lavalink |
+| `MUSIC_IDLE_MINUTES` | | `2` | Minutos parado (canal vazio ou nada tocando) antes de sair da voz |
 
-> `Config/.env` está no `.gitignore` e no `.dockerignore` — ele nunca entra no
-> repositório nem na imagem. Se o bot subir sem `TOKEN`, ele cria o arquivo a partir
-> do template e para com a instrução na tela.
+<sub>✅ = obrigatória</sub>
+
+> [!IMPORTANT]
+> `Config/.env` está no `.gitignore` e no `.dockerignore` — ele nunca entra no repositório
+> nem na imagem. Se o bot subir sem `TOKEN`, ele cria o arquivo a partir do template e para
+> com a instrução na tela.
+
+<br>
 
 ### Intents privilegiadas
 
@@ -81,11 +108,13 @@ No Developer Portal, aba **Bot**, ligue:
 - **Server Members Intent**
 - **Presence Intent** — usada para contar quem está online
 
+<br>
+
 ---
 
 ## Rodando
 
-### Docker (recomendado)
+### 🐳 Docker <sub>recomendado</sub>
 
 Sobe o bot e o Lavalink juntos, já ligados pela rede interna do compose:
 
@@ -94,13 +123,16 @@ docker compose up -d --build
 docker compose logs -f alephbot
 ```
 
-O `compose.yaml` injeta `LAVALINK_URI` e `LAVALINK_PASSWORD` nos dois contêineres, então
-o que estiver no `Config/.env` para essas duas chaves é ignorado — trocar a senha do
-Lavalink é mexer em `LAVALINK_PASSWORD` no `.env` da raiz do projeto.
+O `compose.yaml` injeta `LAVALINK_URI` e `LAVALINK_PASSWORD` nos dois contêineres, então o
+que estiver no `Config/.env` para essas duas chaves é ignorado — trocar a senha do Lavalink
+é mexer em `LAVALINK_PASSWORD` no `.env` da raiz do projeto.
 
-A porta `2333` do Lavalink não é publicada: ele só existe dentro da rede do compose.
+> [!NOTE]
+> A porta `2333` do Lavalink não é publicada: ele só existe dentro da rede do compose.
 
-### Local
+<br>
+
+### 💻 Local
 
 Precisa de um Lavalink de pé. O `Lavalink/application.yml` do repositório já está
 configurado com os padrões que o bot espera:
@@ -112,6 +144,8 @@ java -jar Lavalink.jar
 # em outro
 dotnet run
 ```
+
+<br>
 
 ---
 
@@ -126,11 +160,24 @@ Threnodian/      Bootstrap: host, DI, logging, gateway, serviços de fundo
 Lavalink/        application.yml do servidor de áudio
 ```
 
-Comandos são descobertos por reflection: qualquer classe que implemente `ICommand`
-entra no `/help` sozinha, sem registro manual em lugar nenhum.
+> [!TIP]
+> Comandos são descobertos por reflection: qualquer classe que implemente `ICommand` entra
+> no `/help` sozinha, sem registro manual em lugar nenhum.
+
+<br>
 
 ## Requisitos
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- Docker (opcional, para o compose)
-- Java 17+ (só se for rodar o Lavalink na mão)
+| | |
+|:--|:--|
+| [.NET 10 SDK](https://dotnet.microsoft.com/download) | obrigatório |
+| [Docker](https://docs.docker.com/get-docker/) | opcional — para o compose |
+| Java 17+ | só para rodar o Lavalink na mão |
+
+<br>
+
+---
+
+<div align="center">
+<sub>Distribuído sob a licença <a href="LICENSE">MIT</a>.</sub>
+</div>
