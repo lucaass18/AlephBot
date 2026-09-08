@@ -1,0 +1,94 @@
+services:
+  alephbot:
+    image: alephbot:latest
+    container_name: alephbot
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_CONFIGURATION: Release
+
+    # o bot precisa voltar sozinho depois de reboot da VPS
+    restart: unless-stopped
+
+    # PID 1 de verdade: repassa SIGTERM e recolhe processos órfãos
+    init: true
+
+    # tempo pro gateway fechar a conexão com o Discord antes do SIGKILL
+    stop_grace_period: 20s
+
+    # TOKEN, PREFIX, DEV_GUILD_ID, LOG_LEVEL — mesmo arquivo do dev,
+    # que já está no .gitignore e no .dockerignore (não entra na imagem)
+    env_file:
+      - Config/.env
+
+    environment:
+      DOTNET_ENVIRONMENT: Production
+      # o banner desliga cor sozinho quando a saída é redirecionada,
+      # o NLog não — sem isso o `docker logs` vem cheio de escape ANSI
+      NO_COLOR: "1"
+      TZ: America/Sao_Paulo
+
+      # dentro da rede do compose o Lavalink atende pelo nome do serviço, não por
+      # localhost; isto vence o que estiver no Config/.env (environment > env_file)
+      LAVALINK_URI: http://lavalink:2333/
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-youshallnotpass}
+
+    # só ordem de partida: se o Lavalink demorar a aceitar conexão o bot sobe assim
+    # mesmo e reconecta sozinho — /ping e /ban não dependem de música pra funcionar
+    depends_on:
+      - lavalink
+
+    # os logs em arquivo do NLog (${basedir}/logs) sobrevivem ao recreate
+    volumes:
+      - aleph-logs:/app/logs
+
+    # o stdout do container também rotaciona, senão enche o disco da VPS
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # quem decodifica o áudio e fala com a voz do Discord. Fica só na rede interna do
+  # compose: sem `ports`, nada de fora alcança a porta 2333.
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4.2.2
+    container_name: alephbot-lavalink
+
+    restart: unless-stopped
+    init: true
+
+    environment:
+      # o application.yml lê esta variável; a mesma vai pro bot logo acima, então
+      # trocar a senha é mexer num lugar só (o .env da raiz)
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-youshallnotpass}
+      TZ: America/Sao_Paulo
+      # decodificar áudio é o trabalho dele; o resto do limite fica pro heap nativo
+      _JAVA_OPTIONS: -Xmx700m
+
+    volumes:
+      - ./Lavalink/application.yml:/opt/Lavalink/application.yml:ro
+      # sem isto o plugin do YouTube é baixado de novo a cada recreate
+      - lavalink-plugins:/opt/Lavalink/plugins
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+volumes:
+  aleph-logs:
+  lavalink-plugins:
