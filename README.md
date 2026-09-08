@@ -4,7 +4,6 @@
 
 **Bot de Discord em C# com moderação e música.**
 
-A voz dele é a **Denia** (*Wuthering Waves*) — niilista de bom humor, sonolenta e cúmplice.
 
 <br>
 
