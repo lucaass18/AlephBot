@@ -152,12 +152,12 @@ dotnet run
 ## Estrutura
 
 ```
-Config/          Carregamento do .env e o objeto de configuração
+Config/        Carregamento do .env e o objeto de configuração
 Core/
 Commands/      Um arquivo por comando, agrupados por categoria
 Personality/   Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
-Threnodian/      Bootstrap: host, DI, logging, gateway, serviços de fundo
-Lavalink/        application.yml do servidor de áudio
+Threnodian/    Bootstrap: host, DI, logging, gateway, serviços de fundo
+Lavalink/      application.yml do servidor de áudio
 ```
 
 > [!TIP]
