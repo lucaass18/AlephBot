@@ -12,6 +12,7 @@
 [![Discord](https://img.shields.io/badge/Discord-6d4aff?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/developers/applications)
 [![Docker](https://img.shields.io/badge/Docker-5b3ecf?style=for-the-badge&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 
+[![Versão](https://img.shields.io/badge/dynamic/xml?url=https%3A//raw.githubusercontent.com/lucaass18/AlephBot/main/AlephBot.csproj&query=//Version&prefix=v&label=vers%C3%A3o&color=af87ff&style=flat-square)](AlephBot.csproj)
 [![NetCord](https://img.shields.io/badge/NetCord-1.0.0--beta.19-af87ff?style=flat-square)](https://netcord.dev)
 [![Lavalink](https://img.shields.io/badge/Lavalink-4.2.2-af87ff?style=flat-square)](https://lavalink.dev)
 [![License](https://img.shields.io/badge/license-MIT-af87ff?style=flat-square)](LICENSE)
