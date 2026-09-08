@@ -1,0 +1,86 @@
+server:
+  address: 0.0.0.0
+  port: 2333
+
+lavalink:
+  plugins:
+    # o Lavalink 4 tirou o YouTube nativo; sem este plugin /play não acha vídeo nenhum
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
+      repository: "https://maven.lavalink.dev/releases"
+      snapshot: false
+
+  server:
+    # o docker compose injeta LAVALINK_PASSWORD nos dois contêineres a partir do .env
+    # da raiz; o padrão aqui é só pra quem sobe o servidor na mão pra testar
+    password: "${LAVALINK_PASSWORD:youshallnotpass}"
+
+    sources:
+      # desligado de propósito: quem responde por YouTube agora é o plugin acima, e
+      # deixar os dois ligados faz a fonte velha (quebrada) ganhar
+      youtube: false
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      nico: false
+      http: true
+      local: false
+
+    filters:
+      volume: true
+      equalizer: true
+      karaoke: false
+      timescale: false
+      tremolo: false
+      vibrato: false
+      distortion: false
+      rotation: false
+      channelMix: false
+      lowPass: false
+
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    opusEncodingQuality: 10
+    resamplingQuality: LOW
+    trackStuckThresholdMs: 10000
+    useSeekGhosting: true
+
+    # playlist gigante trava o /play por segundos e enche a fila de coisa que ninguém
+    # vai ouvir; 6 páginas (600 faixas) já é mais do que qualquer servidor precisa
+    youtubePlaylistLoadLimit: 6
+
+    playerUpdateInterval: 5
+    youtubeSearchEnabled: true
+    soundcloudSearchEnabled: true
+    gc-warnings: true
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+
+    # a ordem importa: o Lavalink tenta um cliente por vez até algum entregar o áudio.
+    # Se o YouTube apertar e as buscas começarem a falhar, é esta lista que se mexe —
+    # o README do plugin mantém a ordem recomendada do momento.
+    clients:
+      - MUSIC
+      - ANDROID_VR
+      - WEB
+      - WEBEMBEDDED
+
+metrics:
+  prometheus:
+    enabled: false
+
+logging:
+  file:
+    path: ./logs/
+  level:
+    root: INFO
+    lavalink: INFO
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 5

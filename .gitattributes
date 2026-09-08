@@ -1,0 +1,18 @@
+# normaliza tudo pra LF no repositorio; o checkout no Windows fica a cargo do git
+* text=auto
+
+*.cs      text diff=csharp
+*.csproj  text
+*.sln     text eol=crlf
+*.yml     text
+*.yaml    text
+*.config  text
+*.md      text
+.env*     text
+
+Dockerfile text eol=lf
+*.sh       text eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
