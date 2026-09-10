@@ -4,6 +4,8 @@ using Lavalink4NET.InactivityTracking.Players;
 using Lavalink4NET.InactivityTracking.Trackers;
 using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
+using Lavalink4NET.Protocol.Payloads.Events;
+using Lavalink4NET.Rest.Entities.Tracks;
 
 using Microsoft.Extensions.Logging;
 
@@ -50,8 +52,20 @@ public sealed record AlephPlayerOptions : QueuedLavalinkPlayerOptions
 /// </summary>
 public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListener
 {
+    /// <summary>
+    /// Quantas faixas seguidas podem falhar antes de eu desistir da fila inteira.
+    ///
+    /// Faixa que falha não interrompe nada: a fila anda, a próxima começa, e o anúncio de
+    /// início sai. Com uma playlist onde a fonte está barrada, isso vira uma mensagem por
+    /// faixa em rajada — o Discord começa a limitar e o canal fica ilegível. Três seguidas
+    /// já são prova suficiente de que o problema é a fonte, não a faixa.
+    /// </summary>
+    private const int FalhasSeguidasAtéDesistir = 3;
+
     private readonly TextChannel? _canal;
     private readonly ILogger<AlephPlayer> _logger;
+
+    private int _falhasSeguidas;
 
     public AlephPlayer(IPlayerProperties<AlephPlayer, AlephPlayerOptions> properties)
         : base(properties)
@@ -77,6 +91,57 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         await FalarAsync(Music.EmbedTocando(faixa, Music.QuemPediu(track), Volume), cancellationToken);
     }
 
+    /// <summary>
+    /// A faixa começou e morreu no meio do caminho — fonte bloqueada, vídeo restrito, região.
+    /// Uma eu pulo calada, que é o comportamento de sempre; a sequência delas eu corto.
+    /// </summary>
+    protected override async ValueTask NotifyTrackExceptionAsync(
+        ITrackQueueItem track, TrackException exception, CancellationToken cancellationToken = default)
+    {
+        await base.NotifyTrackExceptionAsync(track, exception, cancellationToken);
+
+        _falhasSeguidas++;
+
+        _logger.LogWarning(
+            "Faixa falhou ({Falhas} seguidas): {Faixa} — {Erro}",
+            _falhasSeguidas,
+            track.Track?.Title ?? "sem título",
+            Motivo(exception));
+
+        if (_falhasSeguidas < FalhasSeguidasAtéDesistir)
+            return;
+
+        // a fila toda veio da mesma fonte: insistir só rende mais anúncio e mais rate limit
+        await Queue.ClearAsync(cancellationToken);
+        await StopAsync(cancellationToken);
+
+        await FalarAsync(
+            new EmbedProperties
+            {
+                Description = $"⛔ {Denia.MúsicaDesisti(_falhasSeguidas, Motivo(exception))}",
+                Color = new Color(Music.Roxo),
+            },
+            cancellationToken);
+
+        _falhasSeguidas = 0;
+    }
+
+    /// <summary>
+    /// Qualquer fim que não seja falha zera a contagem: o que me interessa é sequência de
+    /// falhas, não o total desde que o player nasceu.
+    ///
+    /// Zerar no início da faixa não serviria — o início da faixa que falha vem antes da
+    /// falha dela, e a contagem nunca sairia de um.
+    /// </summary>
+    protected override ValueTask NotifyTrackEndedAsync(
+        ITrackQueueItem track, TrackEndReason endReason, CancellationToken cancellationToken = default)
+    {
+        if (endReason is not TrackEndReason.LoadFailed)
+            _falhasSeguidas = 0;
+
+        return base.NotifyTrackEndedAsync(track, endReason, cancellationToken);
+    }
+
     async ValueTask IInactivityPlayerListener.NotifyPlayerInactiveAsync(
         PlayerTrackingState trackingState, CancellationToken cancellationToken)
     {
@@ -95,6 +160,10 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
 
     ValueTask IInactivityPlayerListener.NotifyPlayerTrackedAsync(
         PlayerTrackingState trackingState, CancellationToken cancellationToken) => default;
+
+    /// <summary>O Lavalink pode mandar a falha sem texto nenhum; aí eu digo isso mesmo.</summary>
+    private static string Motivo(TrackException exception) =>
+        exception.Message is { Length: > 0 } texto ? texto : "sem motivo";
 
     /// <summary>
     /// Fala no canal onde o player nasceu. Canal apagado ou permissão retirada não pode

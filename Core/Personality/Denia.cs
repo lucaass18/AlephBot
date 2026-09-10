@@ -278,6 +278,9 @@ public static class Denia
     public static string MúsicaBuscaFalhou(string motivo) =>
         $"A busca falhou: {motivo}. Se for link de playlist privada ou vídeo com restrição, não tem jeito.";
 
+    public static string MúsicaDesisti(int quantas, string motivo) =>
+        $"{quantas} faixas seguidas falharam, então parei e limpei a fila — não vou anunciar uma por uma até acabar. O servidor de áudio disse: `{motivo}`";
+
     public static string MúsicaNãoConsegui() =>
         "Não consegui entrar no canal. Confere se eu tenho permissão de conectar e falar aí.";
 
