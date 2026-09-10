@@ -158,7 +158,7 @@ Ela pede o código na saudação dela:
 ```
 
 Depois que você autoriza, o refresh token sai no mesmo console, já no formato do arquivo.
-Guarde no `.env` da **raiz** (o que o compose lê), recrie o áudio e desligue o `YOUTUBE_LOGIN`:
+Guarde no `.env` da **raiz** (o que o compose lê) e recrie o áudio:
 
 ```bash
 YOUTUBE_REFRESH_TOKEN=1//0e...
@@ -167,6 +167,11 @@ YOUTUBE_REFRESH_TOKEN=1//0e...
 ```bash
 docker compose up -d lavalink
 ```
+
+O token não vence quando o bot desliga: guardado no `.env`, ele vale até você revogar o
+acesso na conta Google. Com ele presente o bot não pede login de novo, mesmo com
+`YOUTUBE_LOGIN=true` — para refazer o login (trocar de conta, por exemplo), apague o
+`YOUTUBE_REFRESH_TOKEN` e suba de novo.
 
 > [!NOTE]
 > Use uma **conta Google descartável**: o padrão de acesso de um bot pode fazer o YouTube

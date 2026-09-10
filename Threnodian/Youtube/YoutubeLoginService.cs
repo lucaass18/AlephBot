@@ -36,15 +36,27 @@ public sealed class YoutubeLoginService : BackgroundService
     // o Google manda o intervalo na resposta; isto é só o piso de quando ele vem zerado
     private static readonly TimeSpan IntervaloMínimo = TimeSpan.FromSeconds(5);
 
+    private readonly AlephConfig _config;
     private readonly ILogger<YoutubeLoginService> _logger;
 
-    public YoutubeLoginService(ILogger<YoutubeLoginService> logger)
+    public YoutubeLoginService(AlephConfig config, ILogger<YoutubeLoginService> logger)
     {
+        _config = config;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // token guardado é login já feito: o refresh token não vence quando o bot desliga,
+        // e pedir outro a cada boot só rende código que ninguém vai digitar. Quem quiser
+        // trocar de conta apaga o YOUTUBE_REFRESH_TOKEN e me sobe de novo
+        if (_config.YoutubeRefreshToken is not null)
+        {
+            _logger.LogInformation(
+                "Login do YouTube já feito, token veio no ambiente. Apague o YOUTUBE_REFRESH_TOKEN se quiser refazer.");
+            return;
+        }
+
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
         try
