@@ -43,6 +43,12 @@ internal static class Music
     /// <summary>O teto do Discord é 4096; a folga é pra linha de resumo do fim.</summary>
     private const int MaxDescrição = 3800;
 
+    /// <summary>
+    /// Quanto eu espero o servidor de áudio ficar pronto antes de desistir. Ele sobe mais
+    /// devagar que eu, e comando dado nos primeiros segundos pegava o nó no meio da conexão.
+    /// </summary>
+    private static readonly TimeSpan EsperaPeloServidor = TimeSpan.FromSeconds(10);
+
     private static readonly PlayerFactory<AlephPlayer, AlephPlayerOptions> Fábrica =
         PlayerFactory.Create<AlephPlayer, AlephPlayerOptions>(propriedades => new AlephPlayer(propriedades));
 
@@ -102,6 +108,21 @@ internal static class Music
     {
         try
         {
+            // sem esperar, o comando dado logo depois do boot morria com "session identifier
+            // is not available" — erro interno pra quem só chegou dois segundos cedo demais
+            using var espera = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            espera.CancelAfter(EsperaPeloServidor);
+
+            try
+            {
+                await áudio.WaitForReadyAsync(espera.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // esperei o que dava; a essa altura é o servidor que não está lá
+                return (null, Denia.MúsicaServidorFora());
+            }
+
             var resultado = await ObterAsync(
                 áudio, contexto, canal, conectar, exigirMesmoCanal, cancellationToken);
 
@@ -135,6 +156,8 @@ internal static class Music
     /// </summary>
     internal static bool ÉServidorFora(Exception ex) =>
         ex is HttpRequestException or TimeoutException or TaskCanceledException or WebSocketException
+        // nó ainda conectando: o Lavalink4NET avisa por texto, não tem exceção própria pra isso
+        || (ex is InvalidOperationException && ex.Message.Contains("session identifier", StringComparison.OrdinalIgnoreCase))
         || (ex.InnerException is { } dentro && ÉServidorFora(dentro));
 
     /// <summary>O que um comando de música devolve: o embed pronto, ou a recusa em texto.</summary>
