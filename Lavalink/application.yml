@@ -4,10 +4,17 @@ server:
 
 lavalink:
   plugins:
-    # o Lavalink 4 tirou o YouTube nativo; sem este plugin /play não acha vídeo nenhum
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
-      repository: "https://maven.lavalink.dev/releases"
-      snapshot: false
+    # o Lavalink 4 tirou o YouTube nativo; sem este plugin /play não acha vídeo nenhum.
+    #
+    # Snapshot, e não release, de propósito: em 18/08/2026 o YouTube passou a recusar o
+    # User-Agent (família Cobalt) que o client TV manda, e o playback morre com "The page
+    # needs to be reloaded" — issue #226. A correção troca o UA por um de PlayStation 4
+    # (PR #233) e ainda não saiu em versão estável: a 1.18.2 é de 27/07, o fix é de 19/08.
+    # Este hash é o topo da main com ela dentro. Quando sair a 1.18.3, dá pra voltar
+    # pro repositório de releases e usar o número da versão.
+    - dependency: "dev.lavalink.youtube:youtube-plugin:f45bbb7aebfcbc1c553769e04af6cd43afa8b7c3"
+      repository: "https://maven.lavalink.dev/snapshots"
+      snapshot: true
 
   server:
     # o docker compose injeta LAVALINK_PASSWORD nos dois contêineres a partir do .env
