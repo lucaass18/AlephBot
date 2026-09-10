@@ -373,6 +373,36 @@ public static class Denia
     public static string MúsicaFilaSobra(int quantas) =>
         $"…e mais {quantas}.";
 
+    // ---- login do YouTube ----------------------------------------------------
+    //
+    // sai no console, no boot, quando YOUTUBE_LOGIN está ligado
+
+    public const string YoutubeTítulo = "login do YouTube";
+
+    public static string YoutubeAbertura() => Pick(
+        "O YouTube não acredita que um servidor escuta música. Faz o login que eu espero.",
+        "Daqui de dentro o YouTube me trata como robô. Ele não está errado, mas atrapalha.");
+
+    public static string YoutubeEsperando() => Pick(
+        "esperando você... sem pressa, eu ia cochilar mesmo",
+        "esperando. Eu aviso quando ele liberar.");
+
+    public static string YoutubePronto() => Pick(
+        "Pronto. Guarda esse token — ele não aparece de novo.",
+        "Deu certo. Anota antes que suma, eu não repito.");
+
+    public static string YoutubeOndeColar() =>
+        "cola no .env da raiz e sobe o áudio de novo: docker compose up -d lavalink";
+
+    public static string YoutubeNegado() =>
+        "Você recusou o acesso. Sem login, o YouTube continua fechado pra mim.";
+
+    public static string YoutubeExpirou() =>
+        "O código expirou esperando você. Me sobe de novo que eu peço outro.";
+
+    public static string YoutubeFalhou(string motivo) =>
+        $"O login não foi: {motivo}. Fica pro áudio o que não vem do YouTube.";
+
     // ---- erros gerais --------------------------------------------------------
 
     public static string FaltouArgumento(string uso) =>
