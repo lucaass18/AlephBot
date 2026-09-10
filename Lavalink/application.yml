@@ -69,6 +69,11 @@ plugins:
       # token vazio até você fazer o login; preenchido, ele é usado no boot sem perguntar nada
       refreshToken: "${YOUTUBE_REFRESH_TOKEN:}"
 
+    # quem decifra as assinaturas é o serviço yt-cipher do compose. O decifrador local
+    # do plugin quebra a cada mudança do base.js do YouTube; este acompanha
+    remoteCipher:
+      url: "http://yt-cipher:8001"
+
     allowSearch: true
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
@@ -84,6 +89,7 @@ plugins:
     clients:
       - MUSIC
       - TV
+      - TVHTML5_SIMPLY
       - ANDROID_VR
       - WEB
       - WEBEMBEDDED

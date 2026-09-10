@@ -69,6 +69,10 @@ services:
     restart: unless-stopped
     init: true
 
+    # o cipher precisa estar de pé antes: é ele que decifra as assinaturas do player
+    depends_on:
+      - yt-cipher
+
     environment:
       # o application.yml lê esta variável; a mesma vai pro bot logo acima, então
       # trocar a senha é mexer num lugar só (o .env da raiz)
@@ -96,6 +100,36 @@ services:
       resources:
         limits:
           memory: 1G
+
+  # Decifra as assinaturas do player do YouTube pro plugin do Lavalink.
+  #
+  # O YouTube troca o base.js toda hora, e o decifrador local do plugin quebra junto
+  # ("Must find sig function from script"). Este serviço roda o JS de verdade e devolve a
+  # assinatura resolvida, então mudança de player vira problema dele, não nosso.
+  #
+  # Sem `ports`: só o Lavalink alcança, pela rede interna do compose.
+  yt-cipher:
+    image: ghcr.io/kikkia/yt-cipher:master
+    container_name: alephbot-yt-cipher
+
+    restart: unless-stopped
+    init: true
+
+    environment:
+      TZ: America/Sao_Paulo
+      # variante de player que o plugin espera; é a que o projeto recomenda
+      OVERRIDE_PLAYER_VARIANT: IAS
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
 volumes:
   aleph-logs:
