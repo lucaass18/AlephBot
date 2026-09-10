@@ -62,9 +62,11 @@ plugins:
     # em vídeo público: a busca passa, o áudio não. Logado, ele volta a entregar o stream.
     oauth:
       enabled: true
-      # vazio = o Lavalink imprime no log a URL do google.com/device e um código; depois
-      # do login ele imprime o refresh token, que vai pro YOUTUBE_REFRESH_TOKEN no .env
-      # da raiz. Use uma conta Google descartável, não a principal.
+      # quem pede o login é o bot (YOUTUBE_LOGIN no Config/.env), pra o código sair no
+      # console dele e não aqui. Sem isto o Lavalink abriria um segundo fluxo, com outro
+      # código, e sobrariam dois pedidos de login pro mesmo servidor
+      skipInitialization: true
+      # token vazio até você fazer o login; preenchido, ele é usado no boot sem perguntar nada
       refreshToken: "${YOUTUBE_REFRESH_TOKEN:}"
 
     allowSearch: true

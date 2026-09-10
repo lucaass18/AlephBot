@@ -8,6 +8,7 @@ using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Activity;
 using AlephBot.Threnodian.Diagnostics;
 using AlephBot.Threnodian.Handlers;
+using AlephBot.Threnodian.Youtube;
 
 using Lavalink4NET.InactivityTracking;
 using Lavalink4NET.InactivityTracking.Extensions;
@@ -93,6 +94,10 @@ public sealed class AlephBot
 
         builder.Services.AddHostedService<BotActivityService>();
         builder.Services.AddHostedService<CommandAuditService>();
+
+        // só quando pedido: em casa a música toca sem login nenhum
+        if (_config.YoutubeLogin)
+            builder.Services.AddHostedService<YoutubeLoginService>();
 
         ConfigureMusic(builder.Services);
 

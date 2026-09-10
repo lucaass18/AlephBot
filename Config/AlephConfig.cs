@@ -13,7 +13,8 @@ public sealed class AlephConfig
         LogLevel logLevel,
         Uri lavalinkUri,
         string lavalinkPassword,
-        TimeSpan musicIdleTimeout)
+        TimeSpan musicIdleTimeout,
+        bool youtubeLogin)
     {
         Token = token;
         Prefix = prefix;
@@ -22,6 +23,7 @@ public sealed class AlephConfig
         LavalinkUri = lavalinkUri;
         LavalinkPassword = lavalinkPassword;
         MusicIdleTimeout = musicIdleTimeout;
+        YoutubeLogin = youtubeLogin;
     }
 
     public string Token { get; }
@@ -36,6 +38,12 @@ public sealed class AlephConfig
 
     /// <summary>Quanto tempo parado — sem ninguém no canal ou sem tocar — antes de eu sair.</summary>
     public TimeSpan MusicIdleTimeout { get; }
+
+    /// <summary>
+    /// Pede o login do YouTube no console durante o boot. Só faz sentido em servidor, onde
+    /// o YouTube barra o IP; em casa a música toca sem isso.
+    /// </summary>
+    public bool YoutubeLogin { get; }
 
     public bool IsDevelopment => DevGuildId is not null;
 
@@ -68,7 +76,8 @@ public sealed class AlephConfig
             logLevel: OptionalEnum("LOG_LEVEL", LogLevel.Information),
             lavalinkUri: OptionalUri("LAVALINK_URI", LavalinkPadrão),
             lavalinkPassword: Optional("LAVALINK_PASSWORD", SenhaPadrão),
-            musicIdleTimeout: OptionalMinutes("MUSIC_IDLE_MINUTES", TimeSpan.FromMinutes(2)));
+            musicIdleTimeout: OptionalMinutes("MUSIC_IDLE_MINUTES", TimeSpan.FromMinutes(2)),
+            youtubeLogin: OptionalBool("YOUTUBE_LOGIN"));
     }
 
     private static string Required(string key)
@@ -86,6 +95,11 @@ public sealed class AlephConfig
         var value = Environment.GetEnvironmentVariable(key);
         return string.IsNullOrWhiteSpace(value) ? fallback : value;
     }
+
+    /// <summary>Aceita o que alguém escreveria sem pensar: 1, true, yes, sim, on.</summary>
+    private static bool OptionalBool(string key) =>
+        Environment.GetEnvironmentVariable(key)?.Trim().ToLowerInvariant()
+            is "1" or "true" or "yes" or "sim" or "on";
 
     private static ulong? OptionalUlong(string key) =>
         ulong.TryParse(Environment.GetEnvironmentVariable(key), out var parsed) ? parsed : null;

@@ -90,6 +90,7 @@ Depois preencha o `TOKEN`:
 | `LAVALINK_URI` | | `http://localhost:2333/` | Endereço REST do servidor Lavalink |
 | `LAVALINK_PASSWORD` | | `youshallnotpass` | Senha do Lavalink |
 | `MUSIC_IDLE_MINUTES` | | `2` | Minutos parado (canal vazio ou nada tocando) antes de sair da voz |
+| `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console durante o boot.<br>Só faz sentido em servidor — veja [Login do YouTube](#login-do-youtube-só-em-servidor) |
 
 <sub>✅ = obrigatória</sub>
 
@@ -135,23 +136,42 @@ que estiver no `Config/.env` para essas duas chaves é ignorado — trocar a sen
 #### Login do YouTube <sub>só em servidor</sub>
 
 De um IP de datacenter (EC2, DigitalOcean e afins) o YouTube responde *"This video requires
-login"* mesmo em vídeo público: a busca funciona, o áudio não. O Lavalink já sobe com o OAuth
-do plugin ligado — na primeira vez ele imprime no log uma URL e um código:
+login"* mesmo em vídeo público: a busca funciona, o áudio não. Quem usa o token é o Lavalink,
+mas quem pede o login é o bot — assim o código aparece no console dele, junto do resto.
+
+Ligue `YOUTUBE_LOGIN=true` no `Config/.env`, suba e acompanhe:
 
 ```bash
-docker compose logs -f lavalink
+docker compose up -d --build
+docker compose logs -f alephbot
 ```
 
-Autorize em [google.com/device](https://www.google.com/device) com uma **conta Google
-descartável** (o padrão de acesso de um bot pode fazer o YouTube sinalizar a conta). Logo
-depois o log imprime o refresh token; guarde ele no `.env` da raiz:
+Ela pede o código na saudação dela:
+
+```
+  Denia · login do YouTube
+  O YouTube não acredita que um servidor escuta música. Faz o login que eu espero.
+
+  1. abre https://www.google.com/device
+  2. entra com uma conta descartável (não a sua principal)
+  3. digita o código ABC-DEF-GHI
+```
+
+Depois que você autoriza, o refresh token sai no mesmo console, já no formato do arquivo.
+Guarde no `.env` da **raiz** (o que o compose lê), recrie o áudio e desligue o `YOUTUBE_LOGIN`:
 
 ```bash
 YOUTUBE_REFRESH_TOKEN=1//0e...
 ```
 
-E recrie o contêiner com `docker compose up -d lavalink`. Em casa, com IP residencial, nada
-disso é necessário — a variável fica vazia e o plugin nem pede login.
+```bash
+docker compose up -d lavalink
+```
+
+> [!NOTE]
+> Use uma **conta Google descartável**: o padrão de acesso de um bot pode fazer o YouTube
+> sinalizar a conta. Em casa, com IP residencial, nada disso é necessário — a variável fica
+> vazia e o plugin nem pede login.
 
 <br>
 
