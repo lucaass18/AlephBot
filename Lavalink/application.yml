@@ -74,10 +74,16 @@ plugins:
     allowDirectPlaylistIds: true
 
     # a ordem importa: o Lavalink tenta um cliente por vez até algum entregar o áudio.
-    # Se o YouTube apertar e as buscas começarem a falhar, é esta lista que se mexe —
-    # o README do plugin mantém a ordem recomendada do momento.
+    #
+    # O TV é o único que sabe usar o OAuth — sem ele na lista o token é renovado e nunca
+    # usado, e de IP de datacenter todos os outros levam "This video requires login". O
+    # MUSIC fica na frente porque é ele quem responde busca; pra tocar ele nem é tentado.
+    #
+    # Se as buscas começarem a falhar, é esta lista que se mexe — o README do plugin mantém
+    # a ordem recomendada do momento.
     clients:
       - MUSIC
+      - TV
       - ANDROID_VR
       - WEB
       - WEBEMBEDDED
