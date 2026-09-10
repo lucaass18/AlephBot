@@ -75,7 +75,7 @@ internal static class Play
         string quemPediu,
         CancellationToken cancellationToken = default)
     {
-        busca = busca.Trim();
+        busca = Music.SemRádio(busca.Trim());
 
         TrackLoadResult resultado;
 

@@ -151,6 +151,58 @@ internal static class Music
     /// Link vai cru pro Lavalink, que resolve a fonte sozinho; texto solto vira busca no
     /// YouTube, que é o que quem digita o nome da música espera.
     /// </summary>
+    /// <summary>
+    /// Tira a rádio automática de um link de vídeo.
+    ///
+    /// Quem copia o link direto do player do YouTube leva junto <c>&amp;list=RD...</c> — a
+    /// rádio que ele monta sozinho a partir da faixa. O Lavalink obedece e carrega as cem
+    /// faixas dela, então um "toca essa música" vira uma fila que ninguém pediu.
+    ///
+    /// Só a rádio sai. Playlist de verdade (<c>list=PL...</c>) continua entrando inteira:
+    /// aquela a pessoa escolheu, esta o YouTube inventou.
+    /// </summary>
+    internal static string SemRádio(string busca)
+    {
+        if (!Uri.TryCreate(busca, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return busca;
+        }
+
+        var lista = Parâmetro(uri.Query, "list");
+
+        // "RD" é o prefixo das mixes; start_radio=1 aparece quando o link nasce do autoplay
+        var éRádio = lista?.StartsWith("RD", StringComparison.Ordinal) is true
+            || Parâmetro(uri.Query, "start_radio") is "1";
+
+        if (!éRádio)
+            return busca;
+
+        // no link normal o vídeo é o ?v=; no encurtado (youtu.be/ID) ele é o caminho
+        var vídeo = Parâmetro(uri.Query, "v")
+            ?? (uri.Host.EndsWith("youtu.be", StringComparison.OrdinalIgnoreCase)
+                ? uri.AbsolutePath.Trim('/')
+                : null);
+
+        // rádio sem vídeo identificável não tem o que salvar; deixo passar como veio
+        return vídeo is { Length: > 0 }
+            ? $"https://www.youtube.com/watch?v={vídeo}"
+            : busca;
+    }
+
+    private static string? Parâmetro(string query, string nome)
+    {
+        foreach (var parte in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var igual = parte.IndexOf('=');
+
+            if (igual > 0 && parte.AsSpan(0, igual).SequenceEqual(nome))
+                return Uri.UnescapeDataString(parte[(igual + 1)..]);
+        }
+
+        return null;
+    }
+
     internal static TrackSearchMode ModoDeBusca(string busca) =>
         Uri.TryCreate(busca, UriKind.Absolute, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
