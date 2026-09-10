@@ -57,6 +57,16 @@ lavalink:
 plugins:
   youtube:
     enabled: true
+
+    # de IP de datacenter (EC2 e afins) o YouTube responde "This video requires login"
+    # em vídeo público: a busca passa, o áudio não. Logado, ele volta a entregar o stream.
+    oauth:
+      enabled: true
+      # vazio = o Lavalink imprime no log a URL do google.com/device e um código; depois
+      # do login ele imprime o refresh token, que vai pro YOUTUBE_REFRESH_TOKEN no .env
+      # da raiz. Use uma conta Google descartável, não a principal.
+      refreshToken: "${YOUTUBE_REFRESH_TOKEN:}"
+
     allowSearch: true
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
