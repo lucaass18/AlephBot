@@ -85,6 +85,14 @@ services:
       # e devolve o refresh token pra colar aqui no .env da raiz
       YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
 
+      # "Sign in to confirm you're not a bot": o par abaixo é a resposta documentada pra
+      # isso, e vale só pros clients WEB e WEBEMBEDDED. Gere os dois com
+      #   docker run --rm quay.io/invidious/youtube-trusted-session-generator
+      # e guarde no .env da raiz. Vazio = sem poToken, como antes.
+      # (Spring mapeia PLUGINS_YOUTUBE_* por cima do application.yml montado)
+      PLUGINS_YOUTUBE_POT_TOKEN: ${YOUTUBE_PO_TOKEN:-}
+      PLUGINS_YOUTUBE_POT_VISITORDATA: ${YOUTUBE_VISITOR_DATA:-}
+
     volumes:
       - ./Lavalink/application.yml:/opt/Lavalink/application.yml:ro
       # sem isto o plugin do YouTube é baixado de novo a cada recreate
