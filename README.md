@@ -132,6 +132,29 @@ que estiver no `Config/.env` para essas duas chaves é ignorado — trocar a sen
 
 <br>
 
+#### Login do YouTube <sub>só em servidor</sub>
+
+De um IP de datacenter (EC2, DigitalOcean e afins) o YouTube responde *"This video requires
+login"* mesmo em vídeo público: a busca funciona, o áudio não. O Lavalink já sobe com o OAuth
+do plugin ligado — na primeira vez ele imprime no log uma URL e um código:
+
+```bash
+docker compose logs -f lavalink
+```
+
+Autorize em [google.com/device](https://www.google.com/device) com uma **conta Google
+descartável** (o padrão de acesso de um bot pode fazer o YouTube sinalizar a conta). Logo
+depois o log imprime o refresh token; guarde ele no `.env` da raiz:
+
+```bash
+YOUTUBE_REFRESH_TOKEN=1//0e...
+```
+
+E recrie o contêiner com `docker compose up -d lavalink`. Em casa, com IP residencial, nada
+disso é necessário — a variável fica vazia e o plugin nem pede login.
+
+<br>
+
 ### 💻 Local
 
 Precisa de um Lavalink de pé. O `Lavalink/application.yml` do repositório já está
