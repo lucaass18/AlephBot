@@ -35,6 +35,10 @@ services:
       LAVALINK_URI: http://lavalink:2333/
       LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-youshallnotpass}
 
+      # o bot não usa o token (quem toca é o Lavalink); ele só olha pra não pedir login
+      # de novo a cada boot quando o login já foi feito
+      YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
+
     # só ordem de partida: se o Lavalink demorar a aceitar conexão o bot sobe assim
     # mesmo e reconecta sozinho — /ping e /ban não dependem de música pra funcionar
     depends_on:

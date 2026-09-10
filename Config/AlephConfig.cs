@@ -14,7 +14,8 @@ public sealed class AlephConfig
         Uri lavalinkUri,
         string lavalinkPassword,
         TimeSpan musicIdleTimeout,
-        bool youtubeLogin)
+        bool youtubeLogin,
+        string? youtubeRefreshToken)
     {
         Token = token;
         Prefix = prefix;
@@ -24,6 +25,7 @@ public sealed class AlephConfig
         LavalinkPassword = lavalinkPassword;
         MusicIdleTimeout = musicIdleTimeout;
         YoutubeLogin = youtubeLogin;
+        YoutubeRefreshToken = youtubeRefreshToken;
     }
 
     public string Token { get; }
@@ -44,6 +46,12 @@ public sealed class AlephConfig
     /// o YouTube barra o IP; em casa a música toca sem isso.
     /// </summary>
     public bool YoutubeLogin { get; }
+
+    /// <summary>
+    /// O token do login do YouTube, quando já existe. Quem usa ele é o Lavalink; eu só olho
+    /// pra saber que o login já foi feito e não pedir de novo a cada boot.
+    /// </summary>
+    public string? YoutubeRefreshToken { get; }
 
     public bool IsDevelopment => DevGuildId is not null;
 
@@ -77,7 +85,8 @@ public sealed class AlephConfig
             lavalinkUri: OptionalUri("LAVALINK_URI", LavalinkPadrão),
             lavalinkPassword: Optional("LAVALINK_PASSWORD", SenhaPadrão),
             musicIdleTimeout: OptionalMinutes("MUSIC_IDLE_MINUTES", TimeSpan.FromMinutes(2)),
-            youtubeLogin: OptionalBool("YOUTUBE_LOGIN"));
+            youtubeLogin: OptionalBool("YOUTUBE_LOGIN"),
+            youtubeRefreshToken: OptionalOuNulo("YOUTUBE_REFRESH_TOKEN"));
     }
 
     private static string Required(string key)
@@ -100,6 +109,13 @@ public sealed class AlephConfig
     private static bool OptionalBool(string key) =>
         Environment.GetEnvironmentVariable(key)?.Trim().ToLowerInvariant()
             is "1" or "true" or "yes" or "sim" or "on";
+
+    /// <summary>Vazio e ausente são a mesma coisa aqui: os dois querem dizer "não tenho".</summary>
+    private static string? OptionalOuNulo(string key)
+    {
+        var value = Environment.GetEnvironmentVariable(key);
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
 
     private static ulong? OptionalUlong(string key) =>
         ulong.TryParse(Environment.GetEnvironmentVariable(key), out var parsed) ? parsed : null;
