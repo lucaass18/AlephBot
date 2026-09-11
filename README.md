@@ -95,7 +95,7 @@ Depois preencha o `TOKEN`:
 | `LAVALINK_URI` | | `http://localhost:2333/` | Endereço REST do servidor Lavalink |
 | `LAVALINK_PASSWORD` | | `youshallnotpass` | Senha do Lavalink |
 | `MUSIC_IDLE_MINUTES` | | `2` | Minutos parado (canal vazio ou nada tocando) antes de sair da voz |
-| `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console durante o boot.<br>Só faz sentido em servidor — veja [Login do YouTube](#login-do-youtube-só-em-servidor) |
+| `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console quando não há token guardado.<br>Só faz sentido em servidor — veja [Login do YouTube](#login-do-youtube-só-em-servidor) |
 
 <sub>✅ = obrigatória</sub>
 
@@ -122,16 +122,31 @@ No Developer Portal, aba **Bot**, ligue:
 
 ### 🐳 Docker <sub>recomendado</sub>
 
-Sobe o bot e o Lavalink juntos, já ligados pela rede interna do compose:
+Sobe três contêineres na rede interna do compose: o bot, o Lavalink (áudio) e o
+`yt-cipher`, que decifra as assinaturas do player do YouTube — o decifrador embutido no
+plugin quebra a cada mudança do YouTube; esse acompanha.
 
 ```bash
 docker compose up -d --build
 docker compose logs -f alephbot
 ```
 
-O `compose.yaml` injeta `LAVALINK_URI` e `LAVALINK_PASSWORD` nos dois contêineres, então o
-que estiver no `Config/.env` para essas duas chaves é ignorado — trocar a senha do Lavalink
-é mexer em `LAVALINK_PASSWORD` no `.env` da raiz do projeto.
+O bot só é iniciado depois que o Lavalink responde ao healthcheck, então o primeiro `up`
+pode levar um minuto: o plugin do YouTube é baixado antes do servidor abrir a porta.
+
+O `compose.yaml` injeta `LAVALINK_URI` e `LAVALINK_PASSWORD` nos contêineres, então o que
+estiver no `Config/.env` para essas duas chaves é ignorado. O que o compose lê é o `.env`
+da **raiz** do projeto — um arquivo diferente do `Config/.env`:
+
+| Variável | Padrão | Descrição |
+|:--|:--|:--|
+| `LAVALINK_PASSWORD` | `youshallnotpass` | Senha do Lavalink, nos dois lados |
+| `YOUTUBE_REFRESH_TOKEN` | *vazio* | Semente do login do YouTube — veja [abaixo](#login-do-youtube-só-em-servidor) |
+| `YOUTUBE_PO_TOKEN`<br>`YOUTUBE_VISITOR_DATA` | *vazio* | Par que responde ao *"Sign in to confirm you're not a bot"* nos clients WEB.<br>Gere os dois com `docker run --rm quay.io/invidious/youtube-trusted-session-generator` |
+
+Três volumes sobrevivem ao `docker compose down`: `aleph-logs` (logs em arquivo),
+`aleph-data` (o token do YouTube e o que cada servidor estava tocando) e `lavalink-plugins`
+(o plugin baixado). `down -v` apaga os três — o login do YouTube tem que ser refeito.
 
 > [!NOTE]
 > A porta `2333` do Lavalink não é publicada: ele só existe dentro da rede do compose.
@@ -186,13 +201,18 @@ diferente ali (trocar de conta, por exemplo). Fora isso a variável pode ficar v
 ### 💻 Local
 
 Precisa de um Lavalink de pé. O `Lavalink/application.yml` do repositório já está
-configurado com os padrões que o bot espera:
+configurado com os padrões que o bot espera, com uma ressalva: ele aponta o decifrador de
+assinaturas para `http://yt-cipher:8001`, um nome que só existe na rede do compose. Fora
+dele, suba o serviço à parte e troque o `remoteCipher.url` para `http://localhost:8001`:
 
 ```bash
-# em um terminal, com o application.yml deste repositório ao lado do jar
+# o decifrador, em um terminal
+docker run --rm -p 8001:8001 -e OVERRIDE_PLAYER_VARIANT=IAS ghcr.io/kikkia/yt-cipher:master
+
+# o Lavalink em outro, com o application.yml deste repositório ao lado do jar
 java -jar Lavalink.jar
 
-# em outro
+# e o bot num terceiro
 dotnet run
 ```
 
@@ -203,12 +223,14 @@ dotnet run
 ## Estrutura
 
 ```
-Config/        Carregamento do .env e o objeto de configuração
+Config/           Carregamento do .env e o objeto de configuração
 Core/
-Commands/      Um arquivo por comando, agrupados por categoria
-Personality/   Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
-Threnodian/    Bootstrap: host, DI, logging, gateway, serviços de fundo
-Lavalink/      application.yml do servidor de áudio
+  Commands/       Um arquivo por comando, agrupados por categoria
+  Personality/    Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
+Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
+  Youtube/        Login (o token guardado e entregue ao Lavalink) e a busca de playlist
+  Players/        A foto de cada player e a volta depois de um restart
+Lavalink/         application.yml do servidor de áudio
 ```
 
 > [!TIP]
