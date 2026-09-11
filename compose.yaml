@@ -41,10 +41,14 @@ services:
       # com YOUTUBE_LOGIN ligado o bot pede o código no log e guarda sozinho
       YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
 
-    # só ordem de partida: se o Lavalink demorar a aceitar conexão o bot sobe assim
-    # mesmo e reconecta sozinho — /ping e /ban não dependem de música pra funcionar
+    # espera o Lavalink responder antes de me criar: só ordenar a partida me fazia subir
+    # uns 15 s antes dele aceitar conexão, e o boot abria com um stack trace de "connection
+    # refused" antes da reconexão automática. Depois de reboot da VPS é o daemon quem sobe
+    # os dois (restart policy), sem esta ordem — aí a reconexão sozinha continua valendo,
+    # e /ping e /ban não dependem de música pra funcionar
     depends_on:
-      - lavalink
+      lavalink:
+        condition: service_healthy
 
     # os logs em arquivo do NLog (${basedir}/logs) e o token do YouTube sobrevivem ao recreate
     volumes:
@@ -99,6 +103,16 @@ services:
       - ./Lavalink/application.yml:/opt/Lavalink/application.yml:ro
       # sem isto o plugin do YouTube é baixado de novo a cada recreate
       - lavalink-plugins:/opt/Lavalink/plugins
+
+    # o /version é a única rota sem senha; a imagem (eclipse-temurin) já traz o curl.
+    # start_period folgado de propósito: no primeiro boot o plugin do YouTube ainda
+    # é baixado antes do servidor abrir a porta
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:2333/version"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 90s
 
     logging:
       driver: json-file
