@@ -140,6 +140,9 @@ public sealed class AlephBot
     {
         services.AddLavalink();
 
+        // o /playlist add procura playlist pelo nome, coisa que o Lavalink não sabe fazer
+        services.AddSingleton<YoutubeSearch>();
+
         LavalinkCore.ConfigureLavalink(services, options =>
         {
             options.BaseAddress = _config.LavalinkUri;

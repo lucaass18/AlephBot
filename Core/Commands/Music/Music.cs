@@ -227,10 +227,40 @@ internal static class Music
     }
 
     internal static TrackSearchMode ModoDeBusca(string busca) =>
-        Uri.TryCreate(busca, UriKind.Absolute, out var uri)
-        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-            ? TrackSearchMode.None
-            : TrackSearchMode.YouTube;
+        ÉLink(busca) ? TrackSearchMode.None : TrackSearchMode.YouTube;
+
+    internal static bool ÉLink(string texto) =>
+        Uri.TryCreate(texto, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
+    /// <summary>
+    /// Pede ao Lavalink e traduz o que deu errado. Servidor fora e busca recusada viram
+    /// frase; o que passa daqui ainda pode vir vazio, e o que dizer nesse caso depende de
+    /// quem pediu — por isso o <see cref="TrackLoadResult.HasMatches"/> fica com o chamador.
+    /// </summary>
+    internal static async Task<(TrackLoadResult Resultado, string? Erro)> CarregarAsync(
+        IAudioService áudio, string busca, CancellationToken cancellationToken = default)
+    {
+        TrackLoadResult resultado;
+
+        try
+        {
+            resultado = await áudio.Tracks.LoadTracksAsync(
+                busca, ModoDeBusca(busca), cancellationToken: cancellationToken);
+        }
+        catch (Exception ex) when (ÉServidorFora(ex))
+        {
+            return (default, Denia.MúsicaServidorFora());
+        }
+
+        if (resultado.IsFailed)
+        {
+            return (default, Denia.MúsicaBuscaFalhou(
+                resultado.Exception?.Message ?? "o servidor não disse por quê"));
+        }
+
+        return (resultado, null);
+    }
 
     // ---- embeds --------------------------------------------------------------
 

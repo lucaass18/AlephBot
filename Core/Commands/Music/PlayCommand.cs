@@ -77,28 +77,17 @@ internal static class Play
     {
         busca = Music.SemRádio(busca.Trim());
 
-        TrackLoadResult resultado;
+        var (resultado, erro) = await Music.CarregarAsync(áudio, busca, cancellationToken);
 
-        try
-        {
-            resultado = await áudio.Tracks.LoadTracksAsync(
-                busca, Music.ModoDeBusca(busca), cancellationToken: cancellationToken);
-        }
-        catch (Exception ex) when (Music.ÉServidorFora(ex))
-        {
-            return Music.Resposta.Falha(Denia.MúsicaServidorFora());
-        }
+        if (erro is not null)
+            return Music.Resposta.Falha(erro);
 
-        if (resultado.IsFailed)
-            return Music.Resposta.Falha(
-                Denia.MúsicaBuscaFalhou(resultado.Exception?.Message ?? "o servidor não disse por quê"));
-
-        if (!resultado.HasMatches)
+        if (!resultado.HasMatches || resultado.Track is not { } faixa)
             return Music.Resposta.Falha(Denia.MúsicaNãoAchei(busca));
 
         return resultado.IsPlaylist
             ? await PlaylistAsync(player, resultado, busca, quemPediu, cancellationToken)
-            : await UmaFaixaAsync(player, resultado.Track, quemPediu, cancellationToken);
+            : await UmaFaixaAsync(player, faixa, quemPediu, cancellationToken);
     }
 
     private static async Task<Music.Resposta> UmaFaixaAsync(
@@ -119,7 +108,11 @@ internal static class Play
         return Music.Resposta.Ok(Music.EmbedNaFila(faixa, posição, quemPediu));
     }
 
-    private static async Task<Music.Resposta> PlaylistAsync(
+    /// <summary>
+    /// Põe a playlist inteira na fila e anuncia ela de uma vez. Interna porque o /playlist
+    /// add chega no mesmo ponto por outro caminho.
+    /// </summary>
+    internal static async Task<Music.Resposta> PlaylistAsync(
         AlephPlayer player, TrackLoadResult resultado, string busca, string quemPediu, CancellationToken cancellationToken)
     {
         var faixas = resultado.Tracks;

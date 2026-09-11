@@ -278,6 +278,19 @@ public static class Denia
     public static string MúsicaBuscaFalhou(string motivo) =>
         $"A busca falhou: {motivo}. Se for link de playlist privada ou vídeo com restrição, não tem jeito.";
 
+    public static string MúsicaPlaylistNãoAchei(string busca) => Pick(
+        $"Procurei playlist com `{busca}` e não veio nenhuma. Tenta outro nome, ou cola o link dela.",
+        $"Nenhuma playlist pra `{busca}`. O YouTube tem quase tudo — quase.");
+
+    public static string MúsicaPlaylistBuscaFalhou() =>
+        "O YouTube não respondeu a busca de playlist. Tenta de novo daqui a pouco, ou cola o link direto.";
+
+    public static string MúsicaNãoÉPlaylist() =>
+        "Isso aí é um vídeo só, não uma playlist. Pra uma faixa, o `/play` resolve.";
+
+    public static string MúsicaPlaylistAçãoDesconhecida(string ação, string uso) =>
+        $"Não sei fazer `{ação}` com playlist. Por enquanto é só `{uso}`.";
+
     public static string MúsicaDesisti(int quantas, string motivo) =>
         $"{quantas} faixas seguidas falharam, então parei e limpei a fila — não vou anunciar uma por uma até acabar. O servidor de áudio disse: `{motivo}`";
 
