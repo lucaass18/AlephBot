@@ -157,26 +157,24 @@ Ela pede o código na saudação dela:
   3. digita o código ABC-DEF-GHI
 ```
 
-Depois que você autoriza, o refresh token sai no mesmo console, já no formato do arquivo.
-Guarde no `.env` da **raiz** (o que o compose lê) e recrie o áudio:
+Depois que você autoriza, acabou: o bot guarda o refresh token no volume `aleph-data`
+(`/app/data/youtube-token.json`) e entrega ele ao Lavalink toda vez que os dois se
+conectam — boot, queda de rede ou restart só do áudio. Nada de colar em arquivo nem recriar
+container.
 
-```bash
-YOUTUBE_REFRESH_TOKEN=1//0e...
-```
+O token não tem prazo, mas o Google invalida quando cisma com a conta. Quando isso
+acontece o Lavalink recusa a entrega e o bot pede um login novo sozinho, no mesmo log —
+digite o código e a música volta, sem restart. Se o Google trocar o token por um novo
+durante uma renovação, o bot guarda o novo ao desligar.
 
-```bash
-docker compose up -d lavalink
-```
-
-O token não vence quando o bot desliga: guardado no `.env`, ele vale até você revogar o
-acesso na conta Google. Com ele presente o bot não pede login de novo, mesmo com
-`YOUTUBE_LOGIN=true` — para refazer o login (trocar de conta, por exemplo), apague o
-`YOUTUBE_REFRESH_TOKEN` e suba de novo.
+Já tem um token de antes? Ponha em `YOUTUBE_REFRESH_TOKEN` no `.env` da **raiz** (o que o
+compose lê): ele é a semente do primeiro boot, e também vale quando você cola um token
+diferente ali (trocar de conta, por exemplo). Fora isso a variável pode ficar vazia.
 
 > [!NOTE]
 > Use uma **conta Google descartável**: o padrão de acesso de um bot pode fazer o YouTube
-> sinalizar a conta. Em casa, com IP residencial, nada disso é necessário — a variável fica
-> vazia e o plugin nem pede login.
+> sinalizar a conta — e é isso, não o tempo, que mata o token. Em casa, com IP residencial,
+> nada disso é necessário — sem `YOUTUBE_LOGIN` e sem token, o bot nem toca no assunto.
 
 <br>
 

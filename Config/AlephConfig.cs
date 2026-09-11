@@ -48,8 +48,9 @@ public sealed class AlephConfig
     public bool YoutubeLogin { get; }
 
     /// <summary>
-    /// O token do login do YouTube, quando já existe. Quem usa ele é o Lavalink; eu só olho
-    /// pra saber que o login já foi feito e não pedir de novo a cada boot.
+    /// Semente do token do YouTube: vale no primeiro boot, ou quando alguém cola um token
+    /// novo no .env. Depois disso quem guarda o token em uso é o <c>YoutubeTokenStore</c>,
+    /// porque o Google pode trocar ele sem avisar, e o .env não acompanharia.
     /// </summary>
     public string? YoutubeRefreshToken { get; }
 

@@ -391,7 +391,8 @@ public static class Denia
 
     // ---- login do YouTube ----------------------------------------------------
     //
-    // sai no console, no boot, quando YOUTUBE_LOGIN está ligado
+    // sai no console: no primeiro boot com YOUTUBE_LOGIN ligado, e de novo se o Google
+    // invalidar o token que eu guardava
 
     public const string YoutubeTítulo = "login do YouTube";
 
@@ -404,17 +405,21 @@ public static class Denia
         "esperando. Eu aviso quando ele liberar.");
 
     public static string YoutubePronto() => Pick(
-        "Pronto. Guarda esse token — ele não aparece de novo.",
-        "Deu certo. Anota antes que suma, eu não repito.");
+        "Pronto. Guardei o token comigo — daqui em diante quem cuida dele sou eu.",
+        "Deu certo. Já guardei o token; não precisa anotar nada.");
 
-    public static string YoutubeOndeColar() =>
-        "cola no .env da raiz e sobe o áudio de novo: docker compose up -d lavalink";
+    public static string YoutubeOndeEstá(string caminho) =>
+        $"ele fica em {caminho} — só precisa dele se for me levar pra outro servidor";
+
+    public static string YoutubeTokenMorreu() => Pick(
+        "O Google invalidou o token que eu tinha. Não fui eu — ele faz isso quando cisma com a conta. Vou pedir outro login:",
+        "Meu token do YouTube morreu. O Google não avisa por quê; só peço de novo:");
 
     public static string YoutubeNegado() =>
         "Você recusou o acesso. Sem login, o YouTube continua fechado pra mim.";
 
     public static string YoutubeExpirou() =>
-        "O código expirou esperando você. Me sobe de novo que eu peço outro.";
+        "O código expirou esperando você. Na próxima conexão do Lavalink (ou se me subir de novo) eu peço outro.";
 
     public static string YoutubeFalhou(string motivo) =>
         $"O login não foi: {motivo}. Fica pro áudio o que não vem do YouTube.";

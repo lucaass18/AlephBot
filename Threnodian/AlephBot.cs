@@ -95,10 +95,6 @@ public sealed class AlephBot
         builder.Services.AddHostedService<BotActivityService>();
         builder.Services.AddHostedService<CommandAuditService>();
 
-        // só quando pedido: em casa a música toca sem login nenhum
-        if (_config.YoutubeLogin)
-            builder.Services.AddHostedService<YoutubeLoginService>();
-
         ConfigureMusic(builder.Services);
 
         builder.Services
@@ -142,6 +138,13 @@ public sealed class AlephBot
 
         // o /playlist add procura playlist pelo nome, coisa que o Lavalink não sabe fazer
         services.AddSingleton<YoutubeSearch>();
+
+        // o login do YouTube: o token fica comigo, e sou eu quem entrega ele ao Lavalink a
+        // cada conexão. Registrado sempre — em casa, sem token e sem YOUTUBE_LOGIN, ele
+        // vê que não tem o que fazer e sai
+        services.AddSingleton<YoutubeTokenStore>();
+        services.AddSingleton<LavalinkYoutube>();
+        services.AddHostedService<YoutubeLoginService>();
 
         LavalinkCore.ConfigureLavalink(services, options =>
         {
