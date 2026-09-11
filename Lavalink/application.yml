@@ -73,8 +73,9 @@ plugins:
       # console dele e não aqui. Sem isto o Lavalink abriria um segundo fluxo, com outro
       # código, e sobrariam dois pedidos de login pro mesmo servidor
       skipInitialization: true
-      # token vazio até você fazer o login; preenchido, ele é usado no boot sem perguntar nada
-      refreshToken: "${YOUTUBE_REFRESH_TOKEN:}"
+      # sem refreshToken de propósito: o bot guarda o token e entrega pelo POST /youtube a
+      # cada conexão. Token aqui seria testado no Google durante o boot, e um token que o
+      # Google já invalidou derrubava o Lavalink inteiro antes de qualquer música
 
     # quem decifra as assinaturas é o serviço yt-cipher do compose. O decifrador local
     # do plugin quebra a cada mudança do base.js do YouTube; este acompanha

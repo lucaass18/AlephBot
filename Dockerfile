@@ -1,8 +1,8 @@
 ﻿FROM mcr.microsoft.com/dotnet/runtime:10.0 AS base
 WORKDIR /app
-# o volume de logs precisa existir e ser do usuario do app antes do USER,
-# senao o Docker cria o mount como root e o target File do NLog nao escreve
-RUN mkdir -p /app/logs && chown -R $APP_UID /app/logs
+# os volumes de logs e de dados precisam existir e ser do usuario do app antes do USER,
+# senao o Docker cria o mount como root e nem o NLog nem o token do YouTube escrevem
+RUN mkdir -p /app/logs /app/data && chown -R $APP_UID /app/logs /app/data
 USER $APP_UID
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build

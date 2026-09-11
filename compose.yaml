@@ -35,8 +35,10 @@ services:
       LAVALINK_URI: http://lavalink:2333/
       LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-youshallnotpass}
 
-      # o bot não usa o token (quem toca é o Lavalink); ele só olha pra não pedir login
-      # de novo a cada boot quando o login já foi feito
+      # semente do login do YouTube: só é lida no primeiro boot (ou quando você cola um
+      # token novo aqui). Depois disso o token em uso mora no volume aleph-data, porque
+      # o Google pode trocar ele sem avisar e o .env não acompanharia. Pode ficar vazio:
+      # com YOUTUBE_LOGIN ligado o bot pede o código no log e guarda sozinho
       YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
 
     # só ordem de partida: se o Lavalink demorar a aceitar conexão o bot sobe assim
@@ -44,9 +46,10 @@ services:
     depends_on:
       - lavalink
 
-    # os logs em arquivo do NLog (${basedir}/logs) sobrevivem ao recreate
+    # os logs em arquivo do NLog (${basedir}/logs) e o token do YouTube sobrevivem ao recreate
     volumes:
       - aleph-logs:/app/logs
+      - aleph-data:/app/data
 
     # o stdout do container também rotaciona, senão enche o disco da VPS
     logging:
@@ -81,9 +84,8 @@ services:
       # decodificar áudio é o trabalho dele; o resto do limite fica pro heap nativo
       _JAVA_OPTIONS: -Xmx700m
 
-      # login do YouTube. Vazio na primeira vez: o log pede o código do google.com/device
-      # e devolve o refresh token pra colar aqui no .env da raiz
-      YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
+      # o token do YouTube não entra aqui: quem entrega é o bot, a cada conexão, pela
+      # REST do plugin — assim um token invalidado não derruba o Lavalink no boot
 
       # "Sign in to confirm you're not a bot": o par abaixo é a resposta documentada pra
       # isso, e vale só pros clients WEB e WEBEMBEDDED. Gere os dois com
@@ -141,4 +143,5 @@ services:
 
 volumes:
   aleph-logs:
+  aleph-data:
   lavalink-plugins:
