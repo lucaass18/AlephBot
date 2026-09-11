@@ -228,6 +228,7 @@ public static class Denia
     public const string MúsicaTítuloNaFila = "➕ Entrou na fila";
     public const string MúsicaTítuloPlaylist = "📚 Playlist na fila";
     public const string MúsicaTítuloFila = "📋 A fila";
+    public const string MúsicaTítuloVoltei = "🔌 De volta";
 
     public const string MúsicaCampoArtista = "🎤 Artista";
     public const string MúsicaCampoDuração = "⏱️ Duração";
@@ -388,6 +389,24 @@ public static class Denia
 
     public static string MúsicaFilaSobra(int quantas) =>
         $"…e mais {quantas}.";
+
+    // ---- música: a volta depois de um restart --------------------------------
+
+    public static string MúsicaVoltei(string faixa, string posição) => Pick(
+        $"Reiniciei no meio de **{faixa}**. Voltei pra onde parou: `{posição}`.",
+        $"Caí, levantei. **{faixa}** continua de `{posição}`.");
+
+    public static string MúsicaVolteiDoComeço(string faixa) => Pick(
+        $"Reiniciei e perdi o ponto de **{faixa}**. Vai do começo de novo.",
+        $"Caí, levantei. **{faixa}** de novo, do começo — o ponto ficou pra trás.");
+
+    public static string MúsicaVolteiPausada() =>
+        "Estava em pausa; deixei como estava.";
+
+    public static string MúsicaFilaVeioJunto(int quantas) =>
+        quantas == 1
+            ? "A fila veio junto: mais uma faixa."
+            : $"A fila veio junto: mais {quantas} faixas.";
 
     // ---- login do YouTube ----------------------------------------------------
     //

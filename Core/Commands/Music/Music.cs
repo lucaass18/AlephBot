@@ -15,6 +15,8 @@ using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Rest.Entities.Tracks;
 using Lavalink4NET.Tracks;
 
+using Microsoft.Extensions.Options;
+
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services;
@@ -79,19 +81,47 @@ internal static class Music
         return áudio.Players.RetrieveAsync<AlephPlayer, AlephPlayerOptions>(
             contexto,
             playerFactory: Fábrica,
-            configure: player =>
-            {
-                player.Canal = canal;
-
-                // surdo desde o começo: eu não escuto ninguém, e o Discord mostra isso
-                player.SelfDeaf = true;
-
-                // sem isto o /stop me tira do canal junto, e aí não sobra o que /resume
-                // ou /play possa reaproveitar — quem me tira do canal é o /disconnect
-                player.DisconnectOnStop = false;
-            },
+            configure: player => Configurar(player, canal),
             retrieveOptions: opções,
             cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// O mesmo player, sem ninguém ter pedido: é como eu volto pro canal depois de um
+    /// restart. Sem contexto de comando, o canal de voz vem de quem lembra dele.
+    /// </summary>
+    internal static ValueTask<PlayerResult<AlephPlayer>> VoltarAsync(
+        IAudioService áudio,
+        ulong guildId,
+        ulong canalDeVoz,
+        TextChannel? canal,
+        CancellationToken cancellationToken = default)
+    {
+        var opções = new PlayerRetrieveOptions(
+            ChannelBehavior: PlayerChannelBehavior.Join,
+            VoiceStateBehavior: MemberVoiceStateBehavior.Ignore);
+
+        return áudio.Players.RetrieveAsync(
+            guildId,
+            canalDeVoz,
+            playerFactory: Fábrica,
+            options: Options.Create(Configurar(new AlephPlayerOptions(), canal)),
+            retrieveOptions: opções,
+            cancellationToken: cancellationToken);
+    }
+
+    private static AlephPlayerOptions Configurar(AlephPlayerOptions player, TextChannel? canal)
+    {
+        player.Canal = canal;
+
+        // surdo desde o começo: eu não escuto ninguém, e o Discord mostra isso
+        player.SelfDeaf = true;
+
+        // sem isto o /stop me tira do canal junto, e aí não sobra o que /resume
+        // ou /play possa reaproveitar — quem me tira do canal é o /disconnect
+        player.DisconnectOnStop = false;
+
+        return player;
     }
 
     /// <summary>
@@ -300,6 +330,34 @@ internal static class Music
             embed.Thumbnail = new EmbedThumbnailProperties(capa.ToString());
 
         return quemPediu is null ? embed : embed.ComRodapé(quemPediu);
+    }
+
+    /// <summary>O aviso de que voltei depois de um restart, no lugar do "tocando agora".</summary>
+    internal static EmbedProperties EmbedVoltei(LavalinkTrack faixa, TimeSpan? posição, bool pausada, int naFila)
+    {
+        var texto = new StringBuilder(
+            posição is { } de
+                ? Denia.MúsicaVoltei(Escapa(faixa.Title), Duração(de))
+                : Denia.MúsicaVolteiDoComeço(Escapa(faixa.Title)));
+
+        if (pausada)
+            texto.Append(' ').Append(Denia.MúsicaVolteiPausada());
+
+        if (naFila > 0)
+            texto.Append(' ').Append(Denia.MúsicaFilaVeioJunto(naFila));
+
+        var embed = new EmbedProperties
+        {
+            Title = Denia.MúsicaTítuloVoltei,
+            Description = $"{texto}\n{Link(faixa)}",
+            Color = new Color(Roxo),
+            Timestamp = DateTimeOffset.UtcNow,
+        };
+
+        if (faixa.ArtworkUri is { } capa)
+            embed.Thumbnail = new EmbedThumbnailProperties(capa.ToString());
+
+        return embed;
     }
 
     /// <summary>O /nowplaying: a mesma faixa do anúncio, com a barra de progresso viva.</summary>

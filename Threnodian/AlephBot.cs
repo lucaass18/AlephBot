@@ -8,6 +8,7 @@ using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Activity;
 using AlephBot.Threnodian.Diagnostics;
 using AlephBot.Threnodian.Handlers;
+using AlephBot.Threnodian.Players;
 using AlephBot.Threnodian.Youtube;
 
 using Lavalink4NET.InactivityTracking;
@@ -120,6 +121,10 @@ public sealed class AlephBot
                 options.ResultHandler = provider.GetRequiredService<CommandFailureHandler>();
             });
 
+        // depois do gateway de propósito: os serviços param na ordem inversa, e este precisa
+        // tirar a última foto dos players — com a posição exata — enquanto tudo ainda está de pé
+        builder.Services.AddHostedService<PlayerResumeService>();
+
         var host = builder.Build();
 
         // registra os módulos ([SlashCommand], [Command], [ComponentInteraction]) do assembly
@@ -145,6 +150,10 @@ public sealed class AlephBot
         services.AddSingleton<YoutubeTokenStore>();
         services.AddSingleton<LavalinkYoutube>();
         services.AddHostedService<YoutubeLoginService>();
+
+        // a foto de cada player, pra eu voltar ao mesmo ponto depois de um restart. quem tira
+        // é o player; quem revela é o PlayerResumeService, registrado lá no fim do BuildHost
+        services.AddSingleton<PlayerSnapshotStore>();
 
         LavalinkCore.ConfigureLavalink(services, options =>
         {

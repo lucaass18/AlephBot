@@ -41,6 +41,9 @@ public abstract class MusicSlashModule : AlephSlashModule
 
         var resposta = await ação(player!);
 
+        // a ação pode ter mexido em fila, pausa, volume ou loop: a foto é o que sobrevive a restart
+        player!.Fotografar();
+
         if (resposta.Erro is { } falha)
             await ErrorAsync(falha);
         else
@@ -78,6 +81,8 @@ public abstract class MusicTextModule : AlephTextModule
         }
 
         var resposta = await ação(player!);
+
+        player!.Fotografar();
 
         if (resposta.Erro is { } falha)
             await ErrorAsync(falha);
