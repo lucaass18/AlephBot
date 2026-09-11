@@ -104,11 +104,13 @@ services:
       # sem isto o plugin do YouTube é baixado de novo a cada recreate
       - lavalink-plugins:/opt/Lavalink/plugins
 
-    # o /version é a única rota sem senha; a imagem (eclipse-temurin) já traz o curl.
-    # start_period folgado de propósito: no primeiro boot o plugin do YouTube ainda
-    # é baixado antes do servidor abrir a porta
+    # toda rota do Lavalink pede a senha, /version inclusive — sem ela o check leva 401 e
+    # o container fica "unhealthy" pra sempre. O $$ é pra o compose não interpolar: quem
+    # expande é o shell dentro do container, que já tem a variável. A imagem
+    # (eclipse-temurin) traz o curl. start_period folgado de propósito: no primeiro boot
+    # o plugin do YouTube ainda é baixado antes do servidor abrir a porta
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:2333/version"]
+      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: $$LAVALINK_PASSWORD\" http://127.0.0.1:2333/version"]
       interval: 10s
       timeout: 3s
       retries: 12
