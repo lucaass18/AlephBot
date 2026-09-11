@@ -49,6 +49,9 @@ public sealed class PlaylistCommand : MusicSlashModule
 
         var resposta = await Playlist.AdicionarAsync(Áudio, _youtube, player!, busca, Context.User.Username);
 
+        // fora do ExecutarAsync da base por causa do defer; a foto continua sendo minha responsabilidade
+        player!.Fotografar();
+
         if (resposta.Erro is { } falha)
             await EditarComErroAsync(falha);
         else

@@ -1,4 +1,5 @@
 using AlephBot.Core.Personality;
+using AlephBot.Threnodian.Players;
 
 using Lavalink4NET.InactivityTracking.Players;
 using Lavalink4NET.InactivityTracking.Trackers;
@@ -6,7 +7,9 @@ using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Protocol.Payloads.Events;
 using Lavalink4NET.Rest.Entities.Tracks;
+using Lavalink4NET.Tracks;
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using NetCord;
@@ -20,7 +23,7 @@ namespace AlephBot.Core.Commands.Music;
 /// </summary>
 public sealed class FaixaPedida : ITrackQueueItem
 {
-    public FaixaPedida(TrackReference reference, string quemPediu)
+    public FaixaPedida(TrackReference reference, string? quemPediu)
     {
         Reference = reference;
         QuemPediu = quemPediu;
@@ -28,7 +31,7 @@ public sealed class FaixaPedida : ITrackQueueItem
 
     public TrackReference Reference { get; }
 
-    public string QuemPediu { get; }
+    public string? QuemPediu { get; }
 
     /// <summary>
     /// Quem enfileirou já mostrou a faixa na resposta, então eu fico quieta quando ela
@@ -47,8 +50,9 @@ public sealed record AlephPlayerOptions : QueuedLavalinkPlayerOptions
 }
 
 /// <summary>
-/// O player da fila com duas manias minhas: anuncio sozinha a faixa que começou — é o que
-/// faz a fila andar sem ninguém digitar nada — e me despeço antes de sair do canal.
+/// O player da fila com três manias minhas: anuncio sozinha a faixa que começou — é o que
+/// faz a fila andar sem ninguém digitar nada —, me despeço antes de sair do canal, e deixo
+/// uma foto de mim guardada pra voltar ao mesmo ponto se eu reiniciar.
 /// </summary>
 public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListener
 {
@@ -63,6 +67,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     private const int FalhasSeguidasAtéDesistir = 3;
 
     private readonly TextChannel? _canal;
+    private readonly PlayerSnapshotStore _fotos;
     private readonly ILogger<AlephPlayer> _logger;
 
     private int _falhasSeguidas;
@@ -71,6 +76,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         : base(properties)
     {
         _canal = properties.Options.Value.Canal;
+        _fotos = properties.ServiceProvider!.GetRequiredService<PlayerSnapshotStore>();
         _logger = properties.Logger;
     }
 
@@ -78,6 +84,8 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         ITrackQueueItem track, CancellationToken cancellationToken = default)
     {
         await base.NotifyTrackStartedAsync(track, cancellationToken);
+
+        Fotografar();
 
         if (track is FaixaPedida { JáAnunciada: true } pedida)
         {
@@ -90,6 +98,51 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
 
         await FalarAsync(Music.EmbedTocando(faixa, Music.QuemPediu(track), Volume), cancellationToken);
     }
+
+    /// <summary>
+    /// Guarda a foto de agora. Eu mesma chamo quando a faixa muda; os comandos chamam
+    /// depois de mexer em fila, pausa, volume ou loop — é a única forma de eu saber, porque
+    /// a biblioteca não me avisa do que fazem com a fila. E o desligamento chama por último,
+    /// pela posição exata: fora dele, um crash volta a faixa pro ponto da última foto.
+    /// </summary>
+    internal void Fotografar()
+    {
+        try
+        {
+            _fotos.Guardar(Foto());
+        }
+        catch (Exception erro)
+        {
+            // foto que falha é restart sem retomada — nunca música interrompida agora
+            _logger.LogWarning(erro, "Não consegui fotografar o player da guild {Guild}", GuildId);
+        }
+    }
+
+    private PlayerSnapshot Foto()
+    {
+        var fila = new List<FaixaGuardada>(Queue.Count);
+
+        foreach (var item in Queue)
+        {
+            if (item.Track is { } faixa)
+                fila.Add(Guardada(faixa, Music.QuemPediu(item)));
+        }
+
+        return new PlayerSnapshot(
+            GuildId,
+            VoiceChannelId,
+            _canal?.Id,
+            CurrentItem?.Track is { } atual ? Guardada(atual, Music.QuemPediu(CurrentItem)) : null,
+            Position?.Position ?? TimeSpan.Zero,
+            IsPaused,
+            fila,
+            Volume,
+            RepeatMode,
+            DateTimeOffset.UtcNow);
+    }
+
+    private static FaixaGuardada Guardada(LavalinkTrack faixa, string? quemPediu) =>
+        new(faixa.ToString(), quemPediu);
 
     /// <summary>
     /// A faixa começou e morreu no meio do caminho — fonte bloqueada, vídeo restrito, região.
@@ -133,13 +186,26 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     /// Zerar no início da faixa não serviria — o início da faixa que falha vem antes da
     /// falha dela, e a contagem nunca sairia de um.
     /// </summary>
-    protected override ValueTask NotifyTrackEndedAsync(
+    protected override async ValueTask NotifyTrackEndedAsync(
         ITrackQueueItem track, TrackEndReason endReason, CancellationToken cancellationToken = default)
     {
         if (endReason is not TrackEndReason.LoadFailed)
             _falhasSeguidas = 0;
 
-        return base.NotifyTrackEndedAsync(track, endReason, cancellationToken);
+        await base.NotifyTrackEndedAsync(track, endReason, cancellationToken);
+
+        // a fila andou (ou acabou): a foto anterior ainda mostrava esta faixa como atual
+        Fotografar();
+    }
+
+    /// <summary>
+    /// Saí do canal — por comando, por inatividade ou porque me tiraram. Não tem o que
+    /// retomar depois disso; a foto só serve pra restart no meio da música.
+    /// </summary>
+    protected override ValueTask DisposeAsyncCore()
+    {
+        _fotos.Esquecer(GuildId);
+        return base.DisposeAsyncCore();
     }
 
     async ValueTask IInactivityPlayerListener.NotifyPlayerInactiveAsync(
@@ -169,7 +235,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     /// Fala no canal onde o player nasceu. Canal apagado ou permissão retirada não pode
     /// derrubar a música: o erro vira log e a faixa segue tocando.
     /// </summary>
-    private async ValueTask FalarAsync(EmbedProperties embed, CancellationToken cancellationToken)
+    internal async ValueTask FalarAsync(EmbedProperties embed, CancellationToken cancellationToken)
     {
         if (_canal is null)
             return;

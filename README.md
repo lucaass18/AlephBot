@@ -45,6 +45,7 @@ prefixo do `.env`). Os apelidos entre parênteses valem só no modo texto.
 | | Comando | O que faz |
 |:--:|:--|:--|
 | ▶️ | **`/play`** <sub>· `p` · `tocar`</sub> | Toca uma faixa ou põe na fila |
+| 📚 | **`/playlist add`** <sub>· `pl add`</sub> | Acha uma playlist do YouTube pelo nome (ou link) e põe inteira na fila |
 | ⏭️ | **`/skip`** <sub>· `s` · `pular` · `next`</sub> | Pula a faixa atual |
 | ⏸️ | **`/pause`** <sub>· `pausar`</sub> | Pausa a reprodução |
 | ⏯️ | **`/resume`** <sub>· `voltar` · `continuar`</sub> | Retoma de onde parou |
@@ -56,6 +57,10 @@ prefixo do `.env`). Os apelidos entre parênteses valem só no modo texto.
 | 🔁 | **`/loop`** <sub>· `repeat` · `repetir`</sub> | Repete a faixa, a fila, ou nada |
 | ⏩ | **`/seek`** <sub>· `ir` · `pular-para`</sub> | Anda para um ponto da faixa |
 | 🔊 | **`/volume`** <sub>· `vol` · `v`</sub> | Mostra ou muda o volume |
+
+Restart no meio da música não perde nada: o bot guarda o que cada servidor estava tocando
+(faixa, posição, fila, volume, loop) no volume `aleph-data` e, ao voltar, entra de novo no
+canal e continua de onde parou — desde que ainda tenha alguém lá e faça menos de 30 minutos.
 
 <br>
 
