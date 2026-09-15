@@ -1,4 +1,7 @@
+using System.Globalization;
+
 using AlephBot.Core.Commands.Interface;
+using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Core.Personality;
 
@@ -201,6 +204,7 @@ public static class Denia
         CommandCategory.Moderation => "🔨 Moderação",
         CommandCategory.Utility => "🔧 Utilidades",
         CommandCategory.Music => "🎧 Música",
+        CommandCategory.Anime => "🎌 Anime",
         CommandCategory.Fun => "🎲 Distração",
         CommandCategory.Owner => "👑 Só pro dono",
         _ => "🫧 Geral",
@@ -442,6 +446,263 @@ public static class Denia
 
     public static string YoutubeFalhou(string motivo) =>
         $"O login não foi: {motivo}. Fica pro áudio o que não vem do YouTube.";
+
+    // ---- MyAnimeList: a ficha ------------------------------------------------
+
+    public static string MalTítulo(TipoDeObra tipo, string título) =>
+        $"{(tipo == TipoDeObra.Anime ? "📺" : "📖")} {título}";
+
+    public const string MalCampoNota = "⭐ Nota";
+    public const string MalCampoRanking = "🏆 Ranking";
+    public const string MalCampoSituação = "📡 Situação";
+    public const string MalCampoGêneros = "🏷️ Gêneros";
+
+    public static string MalCampoFormato(TipoDeObra tipo) =>
+        tipo == TipoDeObra.Anime ? "📺 Formato" : "📖 Formato";
+
+    public static string MalCampoPeríodo(TipoDeObra tipo) =>
+        tipo == TipoDeObra.Anime ? "📅 Exibição" : "📅 Publicação";
+
+    public static string MalCampoAutoria(TipoDeObra tipo) =>
+        tipo == TipoDeObra.Anime ? "🎬 Estúdio" : "✍️ Autoria";
+
+    /// <summary>Os outros nomes da obra, na linha de cima da sinopse. Eles já vêm em negrito.</summary>
+    public static string MalTambémConhecida(string nomes) =>
+        $"Também conhecido como {nomes}";
+
+    public static string MalNota(double? nota, int? votos)
+    {
+        if (nota is not { } valor)
+            return "Sem nota ainda. Ninguém se animou a votar.";
+
+        // ponto e não vírgula: é a nota como o MAL mostra, e é assim que todo mundo cita ela
+        var linha = $"**{valor.ToString("0.00", CultureInfo.InvariantCulture)}** / 10";
+
+        return votos is > 0
+            ? $"{linha}\n{votos.Value.ToString("N0", PtBr)} votos"
+            : linha;
+    }
+
+    public static string MalRanking(int? posição, int? popularidade)
+    {
+        var nota = posição is { } p ? $"#{p.ToString("N0", PtBr)} em nota" : "Sem posição em nota";
+        var gente = popularidade is { } g ? $"#{g.ToString("N0", PtBr)} em popularidade" : "Sem posição em popularidade";
+
+        return $"{nota}\n{gente}";
+    }
+
+    public static string MalSituação(TipoDeObra tipo, Situação situação) => (tipo, situação) switch
+    {
+        (TipoDeObra.Anime, Situação.EmAndamento) => "Em exibição",
+        (TipoDeObra.Manga, Situação.EmAndamento) => "Em publicação",
+        (_, Situação.Concluída) => "Concluído",
+        (TipoDeObra.Anime, Situação.NãoLançada) => "Ainda não estreou",
+        (TipoDeObra.Manga, Situação.NãoLançada) => "Ainda não publicado",
+        (_, Situação.EmHiato) => "Em hiato",
+        (_, Situação.Cancelada) => "Cancelado",
+        _ => "Ninguém sabe",
+    };
+
+    /// <summary>O formato do MAL ("tv", "movie", "light novel") em português; o que eu não conheço passa como veio.</summary>
+    public static string? MalFormato(string? formato) => formato switch
+    {
+        null => null,
+        "tv" => "TV",
+        "movie" => "Filme",
+        "ova" => "OVA",
+        "ona" => "ONA",
+        "special" => "Especial",
+        "tv special" => "Especial de TV",
+        "music" => "Clipe musical",
+        "cm" => "Comercial",
+        "pv" => "Trailer (PV)",
+        "manga" => "Mangá",
+        "novel" => "Novel",
+        "light novel" => "Light novel",
+        "one shot" => "One-shot",
+        "doujinshi" => "Doujinshi",
+        "manhwa" => "Manhwa",
+        "manhua" => "Manhua",
+        "oel" => "OEL (mangá ocidental)",
+        "unknown" => null,
+        _ => formato,
+    };
+
+    /// <summary>Quantos episódios, ou capítulos e volumes. O que o MAL ainda não sabe fica de fora.</summary>
+    public static string? MalQuantidade(TipoDeObra tipo, int? episódios, int? capítulos, int? volumes)
+    {
+        if (tipo == TipoDeObra.Anime)
+            return episódios is { } ep ? Plural(ep, "episódio") : null;
+
+        var partes = new List<string>(2);
+
+        if (capítulos is { } cap)
+            partes.Add(Plural(cap, "capítulo"));
+
+        if (volumes is { } vol)
+            partes.Add(Plural(vol, "volume"));
+
+        return partes.Count > 0 ? string.Join(" · ", partes) : null;
+    }
+
+    /// <summary>A classificação indicativa do MAL, do jeito que se lê aqui.</summary>
+    public static string? MalClassificação(string? código) => código switch
+    {
+        "g" => "Livre",
+        "pg" => "Infantil",
+        "pg 13" => "13+",
+        "r" => "17+",
+        "r+" => "17+ (nudez leve)",
+        "rx" => "18+ (hentai)",
+        _ => null,
+    };
+
+    public static string MalPeríodo(DataParcial início, DataParcial fim, Situação situação)
+    {
+        if (início.ÉVazia)
+            return "Sem data";
+
+        if (situação == Situação.NãoLançada)
+            return $"A partir de {início}";
+
+        // sem fim porque ainda não acabou — diferente de filme, que tem um dia só
+        if (fim.ÉVazia && situação == Situação.EmAndamento)
+            return $"Desde {início}";
+
+        // filme e one-shot têm um dia só; repetir ele dos dois lados não diz nada
+        if (fim.ÉVazia || fim == início)
+            return início.ToString();
+
+        return $"{início} → {fim}";
+    }
+
+    /// <summary>O gênero do MAL em português. Os que o Brasil usa em japonês ou inglês ficam como estão.</summary>
+    public static string MalGênero(string nome) =>
+        Gêneros.TryGetValue(nome, out var traduzido) ? traduzido : nome;
+
+    public static string MalSemSinopse() => Pick(
+        "Sem sinopse no MAL. Ou ninguém escreveu, ou não tem o que contar.",
+        "O MAL não tem sinopse pra esse. Vai ter que descobrir por conta própria.");
+
+    /// <summary>Quando o tradutor não respondeu e a sinopse ficou como o MAL guarda: em inglês.</summary>
+    public static string MalSinopseEmInglês() =>
+        "*(o tradutor cochilou — a sinopse ficou em inglês)*";
+
+    /// <summary>Sinopse maior que o embed aguenta: o resto fica no MAL, que o título já aponta.</summary>
+    public static string MalSinopseCortada() =>
+        "*(…continua no MyAnimeList — o título leva lá)*";
+
+    /// <summary>Quem forneceu os dados e, quando houve tradução, o aviso de que foi máquina.</summary>
+    public static string MalRodapé(string fonte, string quem, bool sinopseTraduzida) =>
+        sinopseTraduzida
+            ? $"{Assinatura} · dados do {fonte}, sinopse traduzida por máquina · pedido por {quem}"
+            : $"{Assinatura} · dados do {fonte} · pedido por {quem}";
+
+    // ---- MyAnimeList: recusas ------------------------------------------------
+
+    public static string MalNãoAchei(TipoDeObra tipo, string busca)
+    {
+        var coisa = tipo == TipoDeObra.Anime ? "anime" : "mangá";
+
+        return Pick(
+            $"Procurei `{busca}` e o MAL não devolveu {coisa} nenhum. Confere a grafia, ou tenta o título original em romaji.",
+            $"`{busca}`? Nenhum {coisa} com esse nome no MAL. Nem eu conheço, e olha que eu não durmo.");
+    }
+
+    public static string MalFora() => Pick(
+        "O MyAnimeList não respondeu. Ele faz isso de vez em quando — tenta de novo daqui a pouco.",
+        "O MAL tá fora do ar, ou fingindo que tá. Tenta mais tarde.");
+
+    public static string MalCredencialRecusada() =>
+        "O MyAnimeList recusou meu Client ID. Confere o `MAL_CLIENT_ID` no `.env` — ou apaga ele, que eu me viro pelo Jikan.";
+
+    public static string MalTipoDesconhecido(string tipo, string uso) =>
+        $"Não sei o que é `{tipo}`. É `anime` ou `mangá` — uso: `{uso}`";
+
+    public static string MalBuscaCurta(int mínimo) =>
+        $"O MAL não procura por menos de {mínimo} letras. Escreve mais um pouco.";
+
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+
+    private static string Plural(int quantos, string singular) =>
+        quantos == 1 ? $"1 {singular}" : $"{quantos.ToString("N0", PtBr)} {singular}s";
+
+    // os nomes que o MAL usa, do jeito que ele escreve; o que não está aqui sai em inglês
+    private static readonly Dictionary<string, string> Gêneros = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // gêneros
+        ["Action"] = "Ação",
+        ["Adventure"] = "Aventura",
+        ["Avant Garde"] = "Vanguarda",
+        ["Award Winning"] = "Premiado",
+        ["Comedy"] = "Comédia",
+        ["Drama"] = "Drama",
+        ["Fantasy"] = "Fantasia",
+        ["Gourmet"] = "Gastronomia",
+        ["Horror"] = "Terror",
+        ["Mystery"] = "Mistério",
+        ["Romance"] = "Romance",
+        ["Sci-Fi"] = "Ficção científica",
+        ["Slice of Life"] = "Cotidiano",
+        ["Sports"] = "Esporte",
+        ["Supernatural"] = "Sobrenatural",
+        ["Suspense"] = "Suspense",
+        ["Erotica"] = "Erótico",
+
+        // temas
+        ["Adult Cast"] = "Elenco adulto",
+        ["Anthropomorphic"] = "Antropomórfico",
+        ["Childcare"] = "Cuidado infantil",
+        ["Combat Sports"] = "Esporte de combate",
+        ["Delinquents"] = "Delinquentes",
+        ["Detective"] = "Detetive",
+        ["Educational"] = "Educativo",
+        ["Gag Humor"] = "Humor pastelão",
+        ["Harem"] = "Harém",
+        ["High Stakes Game"] = "Jogo de alto risco",
+        ["Historical"] = "Histórico",
+        ["Idols (Female)"] = "Idols (feminino)",
+        ["Idols (Male)"] = "Idols (masculino)",
+        ["Love Polygon"] = "Triângulo amoroso",
+        ["Martial Arts"] = "Artes marciais",
+        ["Medical"] = "Medicina",
+        ["Military"] = "Militar",
+        ["Music"] = "Música",
+        ["Mythology"] = "Mitologia",
+        ["Organized Crime"] = "Crime organizado",
+        ["Otaku Culture"] = "Cultura otaku",
+        ["Parody"] = "Paródia",
+        ["Performing Arts"] = "Artes cênicas",
+        ["Psychological"] = "Psicológico",
+        ["Racing"] = "Corrida",
+        ["Reincarnation"] = "Reencarnação",
+        ["Reverse Harem"] = "Harém reverso",
+        ["Romantic Subtext"] = "Romance nas entrelinhas",
+        ["School"] = "Escolar",
+        ["Space"] = "Espaço",
+        ["Strategy Game"] = "Jogo de estratégia",
+        ["Super Power"] = "Superpoderes",
+        ["Survival"] = "Sobrevivência",
+        ["Team Sports"] = "Esporte coletivo",
+        ["Time Travel"] = "Viagem no tempo",
+        ["Urban Fantasy"] = "Fantasia urbana",
+        ["Vampire"] = "Vampiros",
+        ["Video Game"] = "Videogame",
+        ["Villainess"] = "Vilã",
+        ["Visual Arts"] = "Artes visuais",
+        ["Workplace"] = "Trabalho",
+
+        // demografia
+        ["Kids"] = "Infantil",
+
+        // gêneros que o MAL aposentou, mas que o Jikan ainda devolve em obra antiga
+        ["Cars"] = "Carros",
+        ["Demons"] = "Demônios",
+        ["Game"] = "Jogos",
+        ["Magic"] = "Magia",
+        ["Police"] = "Polícia",
+        ["Thriller"] = "Suspense",
+    };
 
     // ---- erros gerais --------------------------------------------------------
 

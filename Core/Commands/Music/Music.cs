@@ -505,23 +505,9 @@ internal static class Music
             ? $"[{Escapa(faixa.Title)}]({uri})"
             : $"**{Escapa(faixa.Title)}**";
 
-    internal static string Escapa(string? texto)
-    {
-        if (string.IsNullOrEmpty(texto))
-            return "?";
-
-        var saída = new StringBuilder(texto.Length + 8);
-
-        foreach (var c in texto)
-        {
-            if (c is '[' or ']' or '(' or ')' or '*' or '_' or '~' or '`' or '\\' or '|' or '>')
-                saída.Append('\\');
-
-            saída.Append(c);
-        }
-
-        return saída.ToString();
-    }
+    /// <summary>O <see cref="Markdown.Escapa"/> de quem não tem título: faixa sem nome vira "?".</summary>
+    internal static string Escapa(string? texto) =>
+        string.IsNullOrEmpty(texto) ? "?" : Markdown.Escapa(texto);
 
     internal static string DuraçãoDe(LavalinkTrack faixa) =>
         faixa.IsLiveStream ? Denia.MúsicaAoVivo : Duração(faixa.Duration);

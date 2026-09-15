@@ -64,6 +64,24 @@ canal e continua de onde parou — desde que ainda tenha alguém lá e faça men
 
 <br>
 
+### Anime
+
+| | Comando | O que faz |
+|:--:|:--|:--|
+| 📺 | **`/ma anime <nome>`** <sub>· `mal` · `myanimelist`</sub> | Ficha do anime no MyAnimeList |
+| 📖 | **`/ma manga <nome>`** <sub>· `mal` · `myanimelist`</sub> | Ficha do mangá no MyAnimeList |
+
+A ficha vem em embed com a capa, a nota do MAL e quantos votos ela tem, ranking, formato,
+situação, período, estúdio (ou autor), gêneros e a sinopse inteira — traduzida pro português
+na hora (via Google), com aviso quando o tradutor não respondeu e ela ficou em inglês. No modo
+texto o tipo é a primeira palavra: `!ma anime Naruto`, `!ma mangá Berserk`.
+
+Sem configurar nada os dados vêm do [Jikan](https://jikan.moe), a API não-oficial do MAL, que
+cai junto com o humor do site. Com um `MAL_CLIENT_ID` no `.env` a busca vai pela
+[API oficial](https://myanimelist.net/apiconfig) — veja [Configuração](#configuração).
+
+<br>
+
 ### Geral
 
 | | Comando | O que faz |
@@ -96,6 +114,7 @@ Depois preencha o `TOKEN`:
 | `LAVALINK_PASSWORD` | | `youshallnotpass` | Senha do Lavalink |
 | `MUSIC_IDLE_MINUTES` | | `2` | Minutos parado (canal vazio ou nada tocando) antes de sair da voz |
 | `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console quando não há token guardado.<br>Só faz sentido em servidor — veja [Login do YouTube](#login-do-youtube-só-em-servidor) |
+| `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma`.<br>Vazio = usa o Jikan, sem chave. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 
 <sub>✅ = obrigatória</sub>
 
