@@ -8,7 +8,9 @@ using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Activity;
 using AlephBot.Threnodian.Diagnostics;
 using AlephBot.Threnodian.Handlers;
+using AlephBot.Threnodian.MyAnimeList;
 using AlephBot.Threnodian.Players;
+using AlephBot.Threnodian.Translation;
 using AlephBot.Threnodian.Youtube;
 
 using Lavalink4NET.InactivityTracking;
@@ -97,6 +99,7 @@ public sealed class AlephBot
         builder.Services.AddHostedService<CommandAuditService>();
 
         ConfigureMusic(builder.Services);
+        ConfigureAnime(builder.Services);
 
         builder.Services
             .AddDiscordGateway(options =>
@@ -183,6 +186,21 @@ public sealed class AlephBot
             })
             .AddInactivityTracker<UsersInactivityTracker>()
             .AddInactivityTracker<IdleInactivityTracker>();
+    }
+
+    /// <summary>
+    /// O /ma: quem procura no MyAnimeList e quem traduz a sinopse. A fonte é escolhida aqui,
+    /// uma vez — com Client ID no .env vai pela API oficial; sem ele, pelo Jikan, que não
+    /// pede chave mas só enxerga o MAL quando o MAL deixa.
+    /// </summary>
+    private void ConfigureAnime(IServiceCollection services)
+    {
+        services.AddSingleton<GoogleTranslator>();
+
+        services.AddSingleton<IMyAnimeList>(_ =>
+            _config.MalClientId is { } clientId
+                ? new MalApi(clientId)
+                : new Jikan());
     }
 
     private void ConfigureLogging(HostApplicationBuilder builder)

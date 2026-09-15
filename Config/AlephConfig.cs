@@ -15,7 +15,8 @@ public sealed class AlephConfig
         string lavalinkPassword,
         TimeSpan musicIdleTimeout,
         bool youtubeLogin,
-        string? youtubeRefreshToken)
+        string? youtubeRefreshToken,
+        string? malClientId)
     {
         Token = token;
         Prefix = prefix;
@@ -26,6 +27,7 @@ public sealed class AlephConfig
         MusicIdleTimeout = musicIdleTimeout;
         YoutubeLogin = youtubeLogin;
         YoutubeRefreshToken = youtubeRefreshToken;
+        MalClientId = malClientId;
     }
 
     public string Token { get; }
@@ -53,6 +55,13 @@ public sealed class AlephConfig
     /// porque o Google pode trocar ele sem avisar, e o .env não acompanharia.
     /// </summary>
     public string? YoutubeRefreshToken { get; }
+
+    /// <summary>
+    /// Client ID da API oficial do MyAnimeList. Opcional: sem ele o /ma pergunta ao Jikan,
+    /// que não pede chave mas só enxerga o MAL quando o MAL deixa. Com ele a busca vai
+    /// direto na fonte.
+    /// </summary>
+    public string? MalClientId { get; }
 
     public bool IsDevelopment => DevGuildId is not null;
 
@@ -87,7 +96,8 @@ public sealed class AlephConfig
             lavalinkPassword: Optional("LAVALINK_PASSWORD", SenhaPadrão),
             musicIdleTimeout: OptionalMinutes("MUSIC_IDLE_MINUTES", TimeSpan.FromMinutes(2)),
             youtubeLogin: OptionalBool("YOUTUBE_LOGIN"),
-            youtubeRefreshToken: OptionalOuNulo("YOUTUBE_REFRESH_TOKEN"));
+            youtubeRefreshToken: OptionalOuNulo("YOUTUBE_REFRESH_TOKEN"),
+            malClientId: OptionalOuNulo("MAL_CLIENT_ID"));
     }
 
     private static string Required(string key)

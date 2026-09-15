@@ -6,6 +6,7 @@ public enum CommandCategory
     Moderation,
     Utility,
     Music,
+    Anime,
     Fun,
     Owner
 }
