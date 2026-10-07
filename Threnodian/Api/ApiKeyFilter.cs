@@ -11,7 +11,8 @@ namespace AlephBot.Threnodian.Api;
 
 /// <summary>
 /// A porta da API: sem a chave certa no header, nada passa. Fica num filtro do grupo /api e
-/// não num middleware pra o /api/health, que mora fora do grupo, continuar aberto.
+/// não num middleware pro /api/health e o /api/status, que moram fora do grupo, continuarem
+/// abertos.
 /// </summary>
 public sealed class ApiKeyFilter : IEndpointFilter
 {
