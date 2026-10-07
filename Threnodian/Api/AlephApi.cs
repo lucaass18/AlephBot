@@ -85,6 +85,7 @@ public static class AlephApi
         builder.Services.AddHostedService(provider => provider.GetRequiredService<LavalinkMonitor>());
 
         ApiDocs.Configure(builder.Services);
+        ProteçãoDeFora.Configure(builder.Services);
     }
 
     public static void Map(WebApplication app)
@@ -92,6 +93,7 @@ public static class AlephApi
         app.UseForwardedHeaders();
         app.UseExceptionHandler();
         app.UseStatusCodePages();
+        ProteçãoDeFora.Use(app, app.Services.GetRequiredService<ApiConfig>());
 
         // aberta de propósito: é o que monitor de uptime chama, e não conta nada além de
         // "estou de pé". 503 quando o Discord caiu — aí eu não respondo comando nenhum.

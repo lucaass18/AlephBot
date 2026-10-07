@@ -119,7 +119,7 @@ public static class ApiDocs
 
         // a IA do Scalar não lê o formulário da página: ela só usa a chave que já estiver
         // guardada no navegador pro documento dela, e essa guarda começa vazia. Este módulo
-        // carrega antes do Scalar e preenche a guarda com a API_KEY
+        // carrega antes do Scalar e preenche a guarda com a API_KEY — só pra quem está dentro
         if (api.ScalarAgentKey is not null)
         {
             app.MapGet(Módulo, (HttpContext http) =>
@@ -127,7 +127,7 @@ public static class ApiDocs
                 http.Response.Headers.CacheControl = "no-store";
 
                 return Results.Text(
-                    PodeLevarAChave(http) ? MóduloDaChave(api.Key) : "export default {};",
+                    RedeDeDentro.ÉDeDentro(http) ? MóduloDaChave(api.Key) : "export default {};",
                     "text/javascript");
             })
             .ExcludeFromDescription();
@@ -135,20 +135,18 @@ public static class ApiDocs
 
         app.MapScalarApiReference(Página, (scalar, http) =>
         {
-            var deFora = PeloFunnel(http);
+            var deDentro = RedeDeDentro.ÉDeDentro(http);
 
-            // a IA do Scalar mora no navegador: a chave dela vai no HTML de quem abre a página, e
-            // cada mensagem é cobrada. Em localhost ela vem com uma cota grátis; na rede de casa,
-            // com a chave. Pelo Funnel a página abre sem IA — quem achar o link não leva chave
-            // nenhuma nem gasta as suas mensagens
-            if (deFora)
-            {
-                scalar.DisableAgent();
-            }
-            else if (api.ScalarAgentKey is { } chave)
+            // a IA do Scalar mora no navegador: a chave dela vai no HTML de quem abre a página.
+            // Em localhost ela vem com uma cota grátis; com a chave, pra todo mundo. A API_KEY é
+            // que não sai daqui: de fora a IA conversa e chama o que é aberto (health e status),
+            // e o resto leva 401. Quem guarda as mensagens pagas é a senha dos docs
+            if (api.ScalarAgentKey is { } chave)
             {
                 scalar.WithAgentKey(chave);
-                scalar.JavaScriptConfiguration = Módulo;
+
+                if (deDentro)
+                    scalar.JavaScriptConfiguration = Módulo;
             }
 
             scalar.Title = Título;
@@ -156,7 +154,7 @@ public static class ApiDocs
 
             // em casa a chave fica guardada no navegador, porque colar de novo a cada F5 cansa.
             // Em máquina dos outros ela não fica pra trás: some quando a aba fecha
-            scalar.PersistentAuthentication = !deFora;
+            scalar.PersistentAuthentication = deDentro;
             scalar.AddPreferredSecuritySchemes([Esquema]);
 
             // a página é pra uso da casa: sem telemetria do Scalar e sem fonte vinda de CDN
@@ -164,20 +162,6 @@ public static class ApiDocs
             scalar.DefaultFonts = false;
         });
     }
-
-    /// <summary>O Tailscale marca tudo o que entra pela internet, pelo Funnel.</summary>
-    private static bool PeloFunnel(HttpContext http) =>
-        http.Request.Headers.ContainsKey("Tailscale-Funnel-Request");
-
-    /// <summary>
-    /// A chave só vai pra quem já está do lado de dentro. Pelo Funnel o pedido vem marcado e
-    /// leva o módulo vazio; e com a porta aberta direto pra internet (API_BIND=0.0.0.0) quem
-    /// chega tem IP público e também não leva.
-    /// </summary>
-    private static bool PodeLevarAChave(HttpContext http) =>
-        !PeloFunnel(http)
-        && http.Connection.RemoteIpAddress is { } ip
-        && RedeDeDentro.Contém(ip);
 
     /// <summary>
     /// O Scalar guarda a autenticação de cada documento no localStorage, em

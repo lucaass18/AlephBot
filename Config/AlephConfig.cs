@@ -103,106 +103,125 @@ public sealed class AlephConfig
             }
         }
 
-        return new AlephConfig(
-            token: Required("TOKEN"),
-            prefix: Optional("PREFIX", "!"),
-            devGuildId: OptionalUlong("DEV_GUILD_ID"),
-            logLevel: OptionalEnum("LOG_LEVEL", LogLevel.Information),
-            lavalinkUri: OptionalUri("LAVALINK_URI", LavalinkPadrão),
-            lavalinkPassword: Optional("LAVALINK_PASSWORD", SenhaPadrão),
-            musicIdleTimeout: OptionalMinutes("MUSIC_IDLE_MINUTES", TimeSpan.FromMinutes(2)),
-            youtubeLogin: OptionalBool("YOUTUBE_LOGIN"),
-            youtubeRefreshToken: OptionalOuNulo("YOUTUBE_REFRESH_TOKEN"),
-            malClientId: OptionalOuNulo("MAL_CLIENT_ID"),
-            api: OptionalApi());
+        return De(Environment.GetEnvironmentVariable);
     }
 
     /// <summary>
-    /// Sem API_KEY a API não existe. Chave curta é erro, não aviso: subir com ela seria
-    /// trancar a porta com um barbante e não contar pra ninguém.
+    /// Monta a config a partir de uma fonte de variáveis: o ambiente do processo no boot, um
+    /// dicionário nos testes — que assim não dependem do .env de quem roda nem mexem no
+    /// ambiente uns dos outros.
     /// </summary>
-    private static ApiConfig? OptionalApi()
+    internal static AlephConfig De(Func<string, string?> variável)
     {
-        if (OptionalOuNulo("API_KEY") is not { } chave)
-            return null;
+        var env = new Variáveis(variável);
 
-        if (chave.Length < ChaveMínima)
+        return new AlephConfig(
+            token: env.Required("TOKEN"),
+            prefix: env.Optional("PREFIX", "!"),
+            devGuildId: env.OptionalUlong("DEV_GUILD_ID"),
+            logLevel: env.OptionalEnum("LOG_LEVEL", LogLevel.Information),
+            lavalinkUri: env.OptionalUri("LAVALINK_URI", LavalinkPadrão),
+            lavalinkPassword: env.Optional("LAVALINK_PASSWORD", SenhaPadrão),
+            musicIdleTimeout: env.OptionalMinutes("MUSIC_IDLE_MINUTES", TimeSpan.FromMinutes(2)),
+            youtubeLogin: env.OptionalBool("YOUTUBE_LOGIN"),
+            youtubeRefreshToken: env.OptionalOuNulo("YOUTUBE_REFRESH_TOKEN"),
+            malClientId: env.OptionalOuNulo("MAL_CLIENT_ID"),
+            api: env.OptionalApi());
+    }
+
+    /// <summary>Lê cada variável da fonte e converte; o que vem torto vira erro com o nome dela.</summary>
+    private sealed class Variáveis(Func<string, string?> ler)
+    {
+        /// <summary>
+        /// Sem API_KEY a API não existe. Chave curta é erro, não aviso: subir com ela seria
+        /// trancar a porta com um barbante e não contar pra ninguém.
+        /// </summary>
+        public ApiConfig? OptionalApi()
         {
-            throw new InvalidOperationException(
-                $"API_KEY curta demais ({chave.Length} caracteres): use pelo menos {ChaveMínima}. " +
-                "`openssl rand -hex 32` gera uma boa.");
+            if (OptionalOuNulo("API_KEY") is not { } chave)
+                return null;
+
+            if (chave.Length < ChaveMínima)
+            {
+                throw new InvalidOperationException(
+                    $"API_KEY curta demais ({chave.Length} caracteres): use pelo menos {ChaveMínima}. " +
+                    "`openssl rand -hex 32` gera uma boa.");
+            }
+
+            return new ApiConfig(
+                chave,
+                OptionalPort("API_PORT", PortaDaApiPadrão),
+                OptionalOuNulo("SCALAR_AGENT_KEY"),
+                OptionalOuNulo("API_DOCS_PASSWORD"));
         }
 
-        return new ApiConfig(chave, OptionalPort("API_PORT", PortaDaApiPadrão), OptionalOuNulo("SCALAR_AGENT_KEY"));
-    }
+        public string Required(string key)
+        {
+            var value = ler(key);
 
-    private static string Required(string key)
-    {
-        var value = Environment.GetEnvironmentVariable(key);
+            if (string.IsNullOrWhiteSpace(value))
+                throw new InvalidOperationException($"Variável de ambiente obrigatória ausente: {key}");
 
-        if (string.IsNullOrWhiteSpace(value))
-            throw new InvalidOperationException($"Variável de ambiente obrigatória ausente: {key}");
+            return value;
+        }
 
-        return value;
-    }
+        public string Optional(string key, string fallback)
+        {
+            var value = ler(key);
+            return string.IsNullOrWhiteSpace(value) ? fallback : value;
+        }
 
-    private static string Optional(string key, string fallback)
-    {
-        var value = Environment.GetEnvironmentVariable(key);
-        return string.IsNullOrWhiteSpace(value) ? fallback : value;
-    }
+        /// <summary>Aceita o que alguém escreveria sem pensar: 1, true, yes, sim, on.</summary>
+        public bool OptionalBool(string key) =>
+            ler(key)?.Trim().ToLowerInvariant() is "1" or "true" or "yes" or "sim" or "on";
 
-    /// <summary>Aceita o que alguém escreveria sem pensar: 1, true, yes, sim, on.</summary>
-    private static bool OptionalBool(string key) =>
-        Environment.GetEnvironmentVariable(key)?.Trim().ToLowerInvariant()
-            is "1" or "true" or "yes" or "sim" or "on";
+        /// <summary>Vazio e ausente são a mesma coisa aqui: os dois querem dizer "não tenho".</summary>
+        public string? OptionalOuNulo(string key)
+        {
+            var value = ler(key);
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
 
-    /// <summary>Vazio e ausente são a mesma coisa aqui: os dois querem dizer "não tenho".</summary>
-    private static string? OptionalOuNulo(string key)
-    {
-        var value = Environment.GetEnvironmentVariable(key);
-        return string.IsNullOrWhiteSpace(value) ? null : value;
-    }
+        public ulong? OptionalUlong(string key) =>
+            ulong.TryParse(ler(key), out var parsed) ? parsed : null;
 
-    private static ulong? OptionalUlong(string key) =>
-        ulong.TryParse(Environment.GetEnvironmentVariable(key), out var parsed) ? parsed : null;
+        public TEnum OptionalEnum<TEnum>(string key, TEnum fallback) where TEnum : struct, Enum =>
+            Enum.TryParse<TEnum>(ler(key), ignoreCase: true, out var parsed)
+                ? parsed
+                : fallback;
 
-    private static TEnum OptionalEnum<TEnum>(string key, TEnum fallback) where TEnum : struct, Enum =>
-        Enum.TryParse<TEnum>(Environment.GetEnvironmentVariable(key), ignoreCase: true, out var parsed)
-            ? parsed
-            : fallback;
+        /// <summary>
+        /// Endereço torto no .env é erro, não motivo pra cair no padrão calado: quem trocou
+        /// quer saber que errou, não descobrir depois de um boot inteiro batendo em localhost.
+        /// </summary>
+        public Uri OptionalUri(string key, string fallback)
+        {
+            var value = Optional(key, fallback);
 
-    /// <summary>
-    /// Endereço torto no .env é erro, não motivo pra cair no padrão calado: quem trocou
-    /// quer saber que errou, não descobrir depois de um boot inteiro batendo em localhost.
-    /// </summary>
-    private static Uri OptionalUri(string key, string fallback)
-    {
-        var value = Optional(key, fallback);
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+                throw new InvalidOperationException($"{key} não é um endereço válido: '{value}'");
 
-        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
-            throw new InvalidOperationException($"{key} não é um endereço válido: '{value}'");
+            return uri;
+        }
 
-        return uri;
-    }
+        public TimeSpan OptionalMinutes(string key, TimeSpan fallback) =>
+            double.TryParse(ler(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var minutos) && minutos > 0
+                ? TimeSpan.FromMinutes(minutos)
+                : fallback;
 
-    private static TimeSpan OptionalMinutes(string key, TimeSpan fallback) =>
-        double.TryParse(Environment.GetEnvironmentVariable(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var minutos) && minutos > 0
-            ? TimeSpan.FromMinutes(minutos)
-            : fallback;
+        /// <summary>Porta torta é erro pelo mesmo motivo do endereço torto: cair no padrão calado esconde o engano.</summary>
+        public int OptionalPort(string key, int fallback)
+        {
+            var value = ler(key);
 
-    /// <summary>Porta torta é erro pelo mesmo motivo do endereço torto: cair no padrão calado esconde o engano.</summary>
-    private static int OptionalPort(string key, int fallback)
-    {
-        var value = Environment.GetEnvironmentVariable(key);
+            if (string.IsNullOrWhiteSpace(value))
+                return fallback;
 
-        if (string.IsNullOrWhiteSpace(value))
-            return fallback;
+            if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var porta) || porta is < 1 or > 65535)
+                throw new InvalidOperationException($"{key} não é uma porta válida: '{value}'");
 
-        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var porta) || porta is < 1 or > 65535)
-            throw new InvalidOperationException($"{key} não é uma porta válida: '{value}'");
-
-        return porta;
+            return porta;
+        }
     }
 }
 
@@ -212,11 +231,12 @@ public sealed class AlephConfig
 /// </summary>
 public sealed class ApiConfig
 {
-    public ApiConfig(string key, int port, string? scalarAgentKey = null)
+    public ApiConfig(string key, int port, string? scalarAgentKey = null, string? docsPassword = null)
     {
         Key = key;
         Port = port;
         ScalarAgentKey = scalarAgentKey;
+        DocsPassword = docsPassword;
     }
 
     /// <summary>O que todo pedido tem que trazer no header X-Api-Key.</summary>
@@ -229,4 +249,11 @@ public sealed class ApiConfig
     /// que é onde o Scalar dá a cota grátis.
     /// </summary>
     public string? ScalarAgentKey { get; }
+
+    /// <summary>
+    /// Senha do /api/docs pra quem vem de fora (Funnel ou IP público). A página leva a chave da
+    /// IA do Scalar no HTML, e sem senha qualquer um com o link usa as suas mensagens. Null =
+    /// página aberta; de dentro ela nunca é pedida.
+    /// </summary>
+    public string? DocsPassword { get; }
 }
