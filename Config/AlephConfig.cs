@@ -16,7 +16,8 @@ public sealed class AlephConfig
         TimeSpan musicIdleTimeout,
         bool youtubeLogin,
         string? youtubeRefreshToken,
-        string? malClientId)
+        string? malClientId,
+        ApiConfig? api)
     {
         Token = token;
         Prefix = prefix;
@@ -28,6 +29,7 @@ public sealed class AlephConfig
         YoutubeLogin = youtubeLogin;
         YoutubeRefreshToken = youtubeRefreshToken;
         MalClientId = malClientId;
+        Api = api;
     }
 
     public string Token { get; }
@@ -63,6 +65,12 @@ public sealed class AlephConfig
     /// </summary>
     public string? MalClientId { get; }
 
+    /// <summary>
+    /// A API HTTP de status. Null quando não há API_KEY: aí nenhuma porta abre — API sem
+    /// chave seria o bot contando a vida dele pra quem passar na rua.
+    /// </summary>
+    public ApiConfig? Api { get; }
+
     public bool IsDevelopment => DevGuildId is not null;
 
     private const string EnvFile = "Config/.env";
@@ -70,6 +78,14 @@ public sealed class AlephConfig
     // o padrão do Lavalink, pra quem sobe o application.yml daqui e não mexe em nada
     private const string LavalinkPadrão = "http://localhost:2333/";
     private const string SenhaPadrão = "youshallnotpass";
+
+    private const int PortaDaApiPadrão = 8080;
+
+    /// <summary>
+    /// Abaixo disso a chave cai pra força bruta. A porta pode acabar aberta na internet, e
+    /// quem bate nela não tem pressa.
+    /// </summary>
+    private const int ChaveMínima = 16;
 
     public static AlephConfig Load()
     {
@@ -97,7 +113,27 @@ public sealed class AlephConfig
             musicIdleTimeout: OptionalMinutes("MUSIC_IDLE_MINUTES", TimeSpan.FromMinutes(2)),
             youtubeLogin: OptionalBool("YOUTUBE_LOGIN"),
             youtubeRefreshToken: OptionalOuNulo("YOUTUBE_REFRESH_TOKEN"),
-            malClientId: OptionalOuNulo("MAL_CLIENT_ID"));
+            malClientId: OptionalOuNulo("MAL_CLIENT_ID"),
+            api: OptionalApi());
+    }
+
+    /// <summary>
+    /// Sem API_KEY a API não existe. Chave curta é erro, não aviso: subir com ela seria
+    /// trancar a porta com um barbante e não contar pra ninguém.
+    /// </summary>
+    private static ApiConfig? OptionalApi()
+    {
+        if (OptionalOuNulo("API_KEY") is not { } chave)
+            return null;
+
+        if (chave.Length < ChaveMínima)
+        {
+            throw new InvalidOperationException(
+                $"API_KEY curta demais ({chave.Length} caracteres): use pelo menos {ChaveMínima}. " +
+                "`openssl rand -hex 32` gera uma boa.");
+        }
+
+        return new ApiConfig(chave, OptionalPort("API_PORT", PortaDaApiPadrão));
     }
 
     private static string Required(string key)
@@ -154,4 +190,36 @@ public sealed class AlephConfig
         double.TryParse(Environment.GetEnvironmentVariable(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var minutos) && minutos > 0
             ? TimeSpan.FromMinutes(minutos)
             : fallback;
+
+    /// <summary>Porta torta é erro pelo mesmo motivo do endereço torto: cair no padrão calado esconde o engano.</summary>
+    private static int OptionalPort(string key, int fallback)
+    {
+        var value = Environment.GetEnvironmentVariable(key);
+
+        if (string.IsNullOrWhiteSpace(value))
+            return fallback;
+
+        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var porta) || porta is < 1 or > 65535)
+            throw new InvalidOperationException($"{key} não é uma porta válida: '{value}'");
+
+        return porta;
+    }
+}
+
+/// <summary>
+/// Como a API escuta. Classe e não record de propósito: o ToString de um record imprimiria a
+/// chave, e um log descuidado da config viraria vazamento.
+/// </summary>
+public sealed class ApiConfig
+{
+    public ApiConfig(string key, int port)
+    {
+        Key = key;
+        Port = port;
+    }
+
+    /// <summary>O que todo pedido tem que trazer no header X-Api-Key.</summary>
+    public string Key { get; }
+
+    public int Port { get; }
 }

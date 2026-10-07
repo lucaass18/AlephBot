@@ -6,6 +6,7 @@ using AlephBot.Config;
 using AlephBot.Core.Commands;
 using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Activity;
+using AlephBot.Threnodian.Api;
 using AlephBot.Threnodian.Diagnostics;
 using AlephBot.Threnodian.Handlers;
 using AlephBot.Threnodian.MyAnimeList;
@@ -23,6 +24,7 @@ using Lavalink4NET.NetCord;
 // o do NetCord é o que serve; o core entra por apelido só pra eu alcançar o Configure
 using LavalinkCore = Lavalink4NET.Extensions.ServiceCollectionExtensions;
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -63,6 +65,9 @@ public sealed class AlephBot
         _config = config;
     }
 
+    /// <summary>A versão do csproj, como sai no banner e na API.</summary>
+    public static string Version => ModulesAssembly.GetName().Version?.ToString(3) ?? "dev";
+
     public async Task RunAsync(string[] args, CancellationToken cancellationToken = default)
     {
         var modo = _config.IsDevelopment ? $"dev (guild {_config.DevGuildId})" : "produção";
@@ -71,7 +76,7 @@ public sealed class AlephBot
             Console.Out,
             _config.Prefix,
             modo,
-            ModulesAssembly.GetName().Version?.ToString(3) ?? "dev",
+            Version,
             RuntimeInformation.FrameworkDescription);
 
         var host = BuildHost(args);
@@ -82,13 +87,49 @@ public sealed class AlephBot
             _config.Prefix,
             modo);
 
+        if (_config.Api is { } api)
+            logger.LogInformation("API ligada | {Endereço}", AlephApi.Endereço(api));
+
         await host.RunAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Com API_KEY o host vira um app web: o mesmo bot, os mesmos serviços, com um Kestrel a
+    /// mais dentro. Sem ela fica o host genérico de sempre — nenhuma porta aberta à toa.
+    /// </summary>
     private IHost BuildHost(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder(args);
+        IHost host;
 
+        if (_config.Api is { } api)
+        {
+            var builder = WebApplication.CreateSlimBuilder(args);
+
+            ConfigureServices(builder);
+            AlephApi.Configure(builder, api);
+
+            var app = builder.Build();
+            AlephApi.Map(app);
+
+            host = app;
+        }
+        else
+        {
+            var builder = Host.CreateApplicationBuilder(args);
+
+            ConfigureServices(builder);
+
+            host = builder.Build();
+        }
+
+        // registra os módulos ([SlashCommand], [Command], [ComponentInteraction]) do assembly
+        host.AddModules(ModulesAssembly);
+
+        return host;
+    }
+
+    private void ConfigureServices(IHostApplicationBuilder builder)
+    {
         ConfigureLogging(builder);
 
         builder.Services.AddSingleton(_config);
@@ -127,13 +168,6 @@ public sealed class AlephBot
         // depois do gateway de propósito: os serviços param na ordem inversa, e este precisa
         // tirar a última foto dos players — com a posição exata — enquanto tudo ainda está de pé
         builder.Services.AddHostedService<PlayerResumeService>();
-
-        var host = builder.Build();
-
-        // registra os módulos ([SlashCommand], [Command], [ComponentInteraction]) do assembly
-        host.AddModules(ModulesAssembly);
-
-        return host;
     }
 
     /// <summary>
@@ -203,7 +237,7 @@ public sealed class AlephBot
                 : new Jikan());
     }
 
-    private void ConfigureLogging(HostApplicationBuilder builder)
+    private void ConfigureLogging(IHostApplicationBuilder builder)
     {
         builder.Logging.ClearProviders();
         builder.Logging.SetMinimumLevel(_config.LogLevel);

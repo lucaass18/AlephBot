@@ -86,72 +86,14 @@ public sealed class BotActivityService : BackgroundService
     private string BuildActivityText(int onlineCount) =>
         $"{Denia.PresençaVerbo()} {onlineCount:N0} online | {_config.Prefix}help";
 
-    private Count CountUsers()
+    private UserCount CountUsers()
     {
-        var selfId = _client.Cache.User?.Id;
-        var count = new Count();
-
-        // o mesmo usuário aparece uma vez por guild compartilhada; só conta distintos
-        var seen = new HashSet<ulong>();
-
-        foreach (var guild in _client.Cache.Guilds.Values)
-        {
-            count.Guilds++;
-            count.CachedUsers += guild.Users.Count;
-            count.TotalUsers += guild.UserCount;
-
-            foreach (var (userId, presence) in guild.Presences)
-            {
-                count.Presences++;
-
-                // Invisible chega como Offline, então não é contado — que é o certo
-                if (presence.Status == UserStatusType.Offline)
-                {
-                    count.Offline++;
-                    continue;
-                }
-
-                // dedupe antes de classificar, senão um bot escapa por não estar em cache
-                // numa das guilds e acaba entrando na conta
-                if (!seen.Add(userId))
-                {
-                    count.Duplicates++;
-                    continue;
-                }
-
-                if (userId == selfId)
-                {
-                    count.Bots++;
-                    continue;
-                }
-
-                // só dá pra saber se é bot se o membro estiver em cache
-                if (guild.Users.TryGetValue(userId, out var user) && user.IsBot)
-                {
-                    count.Bots++;
-                    continue;
-                }
-
-                count.Online++;
-            }
-        }
+        var count = UserCount.Of(_client);
 
         _logger.LogDebug(
             "Contagem | guilds: {Guilds} | presences: {Presences} | membros no cache: {Cached}/{Total} | offline: {Offline} | duplicados: {Duplicates} | bots+self: {Bots} | online: {Online}",
             count.Guilds, count.Presences, count.CachedUsers, count.TotalUsers, count.Offline, count.Duplicates, count.Bots, count.Online);
 
         return count;
-    }
-
-    private struct Count
-    {
-        public int Guilds;
-        public int Presences;
-        public int CachedUsers;
-        public int TotalUsers;
-        public int Offline;
-        public int Duplicates;
-        public int Bots;
-        public int Online;
     }
 }

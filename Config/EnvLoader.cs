@@ -16,6 +16,10 @@ public static class EnvLoader
         LAVALINK_URI=http://localhost:2333/
         LAVALINK_PASSWORD=youshallnotpass
         MUSIC_IDLE_MINUTES=2
+
+        # API de status — vazio = desligada. Gere a chave com: openssl rand -hex 32
+        API_KEY=
+        API_PORT=8080
         """;
 
     public static void Load(string fileName = ".env")
@@ -46,7 +50,7 @@ public static class EnvLoader
                 ((value[0] == '"' && value[^1] == '"') || (value[0] == '\'' && value[^1] == '\'')))
             {
                 value = value[1..^1];
-            }
+            } 
 
             // não sobrescreve o que já veio do ambiente real
             if (Environment.GetEnvironmentVariable(key) is null)

@@ -749,6 +749,17 @@ public static class Denia
         "Isso não era pra ter acontecido. Olha o log.",
         "Bom, isso doeu. Boa sorte aí.");
 
+    // ---- API -----------------------------------------------------------------
+    //
+    // sem sorteio aqui: quem lê primeiro é um programa, e programa estranha resposta que muda
+    // sozinha. A personalidade fica no texto, que é o que chega no humano lá do outro lado
+
+    public static string ApiSemChave(string header) =>
+        $"Sem chave eu não converso. Manda ela no header {header}.";
+
+    public static string ApiChaveErrada() =>
+        "Essa chave não abre nada aqui.";
+
     // ---- presença ------------------------------------------------------------
 
     public static string PresençaVerbo() => Pick(

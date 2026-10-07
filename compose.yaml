@@ -41,6 +41,17 @@ services:
       # com YOUTUBE_LOGIN ligado o bot pede o código no log e guarda sozinho
       YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
 
+      # a API escuta sempre na 8080 do contêiner; quem escolhe a porta de fora é o `ports`
+      # abaixo. Fixo aqui pra um API_PORT esquecido no Config/.env não desencontrar os dois
+      API_PORT: "8080"
+
+    # a API de status (só sobe com API_KEY no Config/.env). Publicada só no localhost da
+    # máquina por padrão: a chave viaja em texto puro no HTTP, então pra abrir pra fora o
+    # certo é um proxy com HTTPS na frente (Caddy, nginx). API_BIND=0.0.0.0 no .env da raiz
+    # abre direto — e o Docker publica por cima do firewall (ufw), então abre mesmo
+    ports:
+      - "${API_BIND:-127.0.0.1}:${API_PORT:-8080}:8080"
+
     # espera o Lavalink responder antes de me criar: só ordenar a partida me fazia subir
     # uns 15 s antes dele aceitar conexão, e o boot abria com um stack trace de "connection
     # refused" antes da reconexão automática. Depois de reboot da VPS é o daemon quem sobe
