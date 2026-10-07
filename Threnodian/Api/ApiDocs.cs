@@ -42,7 +42,7 @@ public static class ApiDocs
                     Title = Título,
                     Version = AlephBot.Version,
                     Description =
-                        "Só leitura: status e estatísticas do bot. Toda rota, menos o `/api/health`, " +
+                        "Só leitura: status e estatísticas do bot. Toda rota, menos o `/api/health` e o `/api/status`, " +
                         $"pede a `API_KEY` do `Config/.env` no header `{ApiKeyFilter.Header}`.",
                 };
 

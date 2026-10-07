@@ -112,15 +112,15 @@ Daí em diante, **http://localhost:8080/api/docs** mostra tudo no navegador.
 | | Rota | O que devolve |
 |:--:|:--|:--|
 | 💓 | **`GET /api/health`** | `ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com **503**).<br>Não pede chave — é a que monitor de uptime chama (aceita `HEAD` também) |
-| 🪪 | **`GET /api/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink |
+| 🪪 | **`GET /api/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink.<br>Não pede chave |
 | 📊 | **`GET /api/stats`** | Servidores, membros, pessoas online, players de música e memória |
 | 📜 | **`GET /api/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
 | 📖 | **`GET /api/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/openapi.json` |
 
-Fora o `/api/health` e a documentação, todo pedido leva a chave no header `X-Api-Key`:
+O `/api/status`, como o `/api/health`, não pede chave:
 
 ```bash
-curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/status
+curl http://localhost:8080/api/status
 ```
 
 ```json
@@ -140,6 +140,8 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/status
   }
 }
 ```
+
+Os outros levam a chave no header `X-Api-Key`:
 
 ```bash
 curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/stats

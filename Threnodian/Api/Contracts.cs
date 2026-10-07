@@ -36,13 +36,13 @@ public enum RunMode
     Development,
 }
 
-/// <summary>GET /api/health — a única rota sem chave.</summary>
+/// <summary>GET /api/health — sem chave: é o que monitor de uptime chama.</summary>
 public sealed record HealthResponse(
     HealthStatus Status,
     ConnectionStatus Discord,
     ConnectionStatus Lavalink);
 
-/// <summary>GET /api/status — quem eu sou e se as minhas conexões estão de pé.</summary>
+/// <summary>GET /api/status — quem eu sou e se as minhas conexões estão de pé. Sem chave.</summary>
 public sealed record StatusResponse(
     BotIdentity? Bot,
     string Version,

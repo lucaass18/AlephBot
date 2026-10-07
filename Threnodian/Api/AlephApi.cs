@@ -114,13 +114,16 @@ public static class AlephApi
         .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable)
         .SemChave();
 
+        // também aberta: quem o bot é e se as conexões dele estão de pé é o que uma página de
+        // status mostraria pra qualquer um. Os números e a lista de comandos seguem com chave
+        app.MapGet("/api/status", (BotStatus bot) => bot.Status())
+            .WithSummary("Quem o bot é e como estão as conexões")
+            .WithDescription("Versão, uptime, latência do gateway e o estado do Lavalink. Não pede chave.")
+            .SemChave();
+
         var api = app.MapGroup("/api")
             .AddEndpointFilter(app.Services.GetRequiredService<ApiKeyFilter>())
             .ProducesProblem(StatusCodes.Status401Unauthorized);
-
-        api.MapGet("/status", (BotStatus bot) => bot.Status())
-            .WithSummary("Quem o bot é e como estão as conexões")
-            .WithDescription("Versão, uptime, latência do gateway e o estado do Lavalink.");
 
         api.MapGet("/stats", (BotStatus bot) => bot.Estatísticas())
             .WithSummary("Os números do bot")
