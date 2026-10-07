@@ -1,6 +1,9 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 using AlephBot.Config;
+
+using Asp.Versioning;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -14,37 +17,41 @@ namespace AlephBot.Threnodian.Api;
 
 /// <summary>
 /// O /api/docs: a API no navegador, pelo Scalar — cada rota, o formato da resposta e um botão
-/// pra testar. O documento por trás (/api/openapi.json) sai das próprias rotas, então não
-/// existe arquivo de documentação pra ficar desatualizado.
+/// pra testar. Os documentos por trás (/api/openapi/v1.json, um por versão) saem das próprias
+/// rotas, então não existe arquivo de documentação pra ficar desatualizado.
 ///
-/// As duas rotas ficam fora da chave de propósito: o navegador não manda header ao abrir uma
+/// Essas rotas ficam fora da chave de propósito: o navegador não manda header ao abrir uma
 /// página, e elas só contam o formato da API, nada de dentro do bot. A chave você cola uma
 /// vez no Scalar, e é ele quem manda o X-Api-Key nos testes.
 /// </summary>
-public static class ApiDocs
+public static partial class ApiDocs
 {
     public const string Página = "/api/docs";
 
-    private const string Documento = "/api/openapi.json";
+    private const string Documento = "/api/openapi/{documentName}.json";
+    private const string DocumentoDeAntes = "/api/openapi.json";
     private const string Módulo = "/api/docs/aleph.js";
     private const string Título = "AlephBot API";
 
     // o nome com que o documento e o Scalar se referem à chave
     private const string Esquema = "ApiKey";
 
-    public static void Configure(IServiceCollection services) =>
-        services.AddOpenApi(options =>
+    /// <summary>
+    /// Um documento por versão da API, todos com o mesmo acabamento: título, servidor sem barra,
+    /// a chave e o nome de cada operação. A versão do documento é a da API (1.0), não a do bot.
+    /// </summary>
+    public static void Configure(IApiVersioningBuilder versões) =>
+        versões.AddOpenApi(versionado =>
         {
+            var options = versionado.Document;
+
             options.AddDocumentTransformer((documento, _, _) =>
             {
-                documento.Info = new OpenApiInfo
-                {
-                    Title = Título,
-                    Version = AlephBot.Version,
-                    Description =
-                        "Só leitura: status e estatísticas do bot. Toda rota, menos o `/api/health` e o `/api/status`, " +
-                        $"pede a `API_KEY` do `Config/.env` no header `{ApiKeyFilter.Header}`.",
-                };
+                documento.Info ??= new OpenApiInfo();
+                documento.Info.Title = Título;
+                documento.Info.Description =
+                    "Só leitura: status e estatísticas do bot. Toda rota, menos `health` e `status`, " +
+                    $"pede a `API_KEY` do `Config/.env` no header `{ApiKeyFilter.Header}`.";
 
                 // "http://aleph/" vira "http://aleph": servidor com barra no fim o linter do Scalar recusa
                 foreach (var servidor in documento.Servers ?? [])
@@ -81,15 +88,13 @@ public static class ApiDocs
         });
 
     /// <summary>
-    /// "GET api/status" vira "getStatus". O /api/health atende GET e HEAD na mesma rota, e
-    /// por isso o método entra no nome: "getHealth" e "headHealth", sem repetir.
+    /// "GET api/v1/status" vira "getStatus": a versão já mora no documento (um por versão). O
+    /// health atende GET e HEAD na mesma rota, e por isso o método entra no nome: "getHealth"
+    /// e "headHealth", sem repetir.
     /// </summary>
     private static string IdDaOperação(ApiDescription rota)
     {
-        var caminho = rota.RelativePath ?? "";
-
-        if (caminho.StartsWith("api/", StringComparison.Ordinal))
-            caminho = caminho["api/".Length..];
+        var caminho = PrefixoDaApi().Replace(rota.RelativePath ?? "", "");
 
         var partes = caminho
             .Split('/', StringSplitOptions.RemoveEmptyEntries)
@@ -98,9 +103,13 @@ public static class ApiDocs
         return (rota.HttpMethod ?? "get").ToLowerInvariant() + string.Concat(partes);
     }
 
+    // "api/" e, se tiver, a versão logo depois: "api/v1/", "api/v2/"
+    [GeneratedRegex("^api/(?:v[^/]+/)?")]
+    private static partial Regex PrefixoDaApi();
+
     /// <summary>
     /// Marca no documento a rota que não pede a chave. Quem decide de verdade é o
-    /// <see cref="ApiKeyFilter"/>, que só vigia o grupo /api; isto é o aviso pro Scalar. O
+    /// <see cref="ApiKeyFilter"/>, que só vigia o grupo com chave; isto é o aviso pro Scalar. O
     /// "[{}]" é "sem autenticação", e não "[]": lista vazia some do documento e a rota herdaria
     /// a chave do documento inteiro.
     /// </summary>
@@ -115,7 +124,13 @@ public static class ApiDocs
     {
         var api = app.Services.GetRequiredService<ApiConfig>();
 
-        app.MapOpenApi(Documento);
+        // /api/openapi/v1.json, e um arquivo novo pra cada versão que nascer
+        app.MapOpenApi(Documento).WithDocumentPerVersion();
+
+        // o endereço de antes da versão manda pro documento da versão atual
+        app.MapGet(DocumentoDeAntes, () => Results.Redirect(
+                Documento.Replace("{documentName}", $"v{AlephApi.VersãoAtual}"), permanent: true))
+            .ExcludeFromDescription();
 
         // a IA do Scalar não lê o formulário da página: ela só usa a chave que já estiver
         // guardada no navegador pro documento dela, e essa guarda começa vazia. Este módulo
@@ -151,6 +166,15 @@ public static class ApiDocs
 
             scalar.Title = Título;
             scalar.OpenApiRoutePattern = Documento;
+
+            // uma entrada por versão; com mais de uma, o Scalar mostra a escolha num menu
+            foreach (var versão in app.DescribeApiVersions())
+            {
+                scalar.AddDocument(
+                    versão.GroupName,
+                    versão.IsDeprecated ? $"{Título} {versão.GroupName} (descontinuada)" : $"{Título} {versão.GroupName}",
+                    isDefault: versão.ApiVersion.MajorVersion == AlephApi.VersãoAtual);
+            }
 
             // em casa a chave fica guardada no navegador, porque colar de novo a cada F5 cansa.
             // Em máquina dos outros ela não fica pra trás: some quando a aba fecha

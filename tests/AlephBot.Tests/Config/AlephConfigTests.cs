@@ -101,6 +101,27 @@ public class AlephConfigTests
         Assert.True(config.IsDevelopment);
     }
 
+    [Theory]
+    [InlineData("Production")]
+    [InlineData("production")]
+    public void Em_produção_DEV_GUILD_ID_não_liga_o_modo_dev(string ambiente)
+    {
+        var config = ComToken(("DEV_GUILD_ID", "1071673946337972307"), ("DOTNET_ENVIRONMENT", ambiente));
+
+        Assert.True(config.IsProduction);
+        Assert.False(config.IsDevelopment);
+        Assert.Equal(1071673946337972307UL, config.DevGuildId);
+    }
+
+    [Fact]
+    public void Fora_de_produção_o_ambiente_não_atrapalha_o_dev()
+    {
+        var config = ComToken(("DEV_GUILD_ID", "1"), ("DOTNET_ENVIRONMENT", "Development"));
+
+        Assert.False(config.IsProduction);
+        Assert.True(config.IsDevelopment);
+    }
+
     [Fact]
     public void DEV_GUILD_ID_torto_fica_de_fora()
     {

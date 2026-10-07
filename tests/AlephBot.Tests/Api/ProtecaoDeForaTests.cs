@@ -22,8 +22,8 @@ public class ProtecaoDeForaTests
 
     [Theory]
     [InlineData("/api/docs/")]
-    [InlineData("/api/status")]
-    [InlineData("/api/health")]
+    [InlineData("/api/v1/status")]
+    [InlineData("/api/v1/health")]
     public async Task Ninguém_embute_a_página_nem_a_API_em_outro_site(string rota)
     {
         await using var api = await ApiDeTeste.SubirAsync();
@@ -44,11 +44,11 @@ public class ProtecaoDeForaTests
 
         for (var i = 0; i < ProteçãoDeFora.PedidosPorMinuto; i++)
         {
-            var (status, _) = await api.GetAsync("/api/status", IpDeFora);
+            var (status, _) = await api.GetAsync("/api/v1/status", IpDeFora);
             Assert.Equal(200, status);
         }
 
-        var (bloqueado, _, headers) = await api.GetComHeadersAsync("/api/status", IpDeFora);
+        var (bloqueado, _, headers) = await api.GetComHeadersAsync("/api/v1/status", IpDeFora);
 
         Assert.Equal(429, bloqueado);
         Assert.Equal("60", headers.RetryAfter);
@@ -60,9 +60,9 @@ public class ProtecaoDeForaTests
         await using var api = await ApiDeTeste.SubirAsync();
 
         for (var i = 0; i <= ProteçãoDeFora.PedidosPorMinuto; i++)
-            await api.GetAsync("/api/status", IpDeFora);
+            await api.GetAsync("/api/v1/status", IpDeFora);
 
-        var (outroIp, _) = await api.GetAsync("/api/status", IPAddress.Parse("198.51.100.1"));
+        var (outroIp, _) = await api.GetAsync("/api/v1/status", IPAddress.Parse("198.51.100.1"));
 
         Assert.Equal(200, outroIp);
     }
@@ -74,7 +74,7 @@ public class ProtecaoDeForaTests
 
         for (var i = 0; i < ProteçãoDeFora.PedidosPorMinuto * 2; i++)
         {
-            var (status, _) = await api.GetAsync("/api/status", IPAddress.Parse("100.94.84.30"));
+            var (status, _) = await api.GetAsync("/api/v1/status", IPAddress.Parse("100.94.84.30"));
             Assert.Equal(200, status);
         }
     }
@@ -146,7 +146,7 @@ public class ProtecaoDeForaTests
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
 
-        var (status, _) = await api.GetAsync("/api/status", headers: PeloFunnel);
+        var (status, _) = await api.GetAsync("/api/v1/status", headers: PeloFunnel);
 
         Assert.Equal(200, status);
     }

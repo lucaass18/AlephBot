@@ -10,9 +10,9 @@ using Microsoft.Extensions.Logging;
 namespace AlephBot.Threnodian.Api;
 
 /// <summary>
-/// A porta da API: sem a chave certa no header, nada passa. Fica num filtro do grupo /api e
-/// não num middleware pro /api/health e o /api/status, que moram fora do grupo, continuarem
-/// abertos.
+/// A porta da API: sem a chave certa no header, nada passa. Fica num filtro do grupo com chave
+/// (stats e commands) e não num middleware pro health e o status, que moram fora desse grupo,
+/// continuarem abertos.
 /// </summary>
 public sealed class ApiKeyFilter : IEndpointFilter
 {

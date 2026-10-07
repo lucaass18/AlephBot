@@ -17,7 +17,8 @@ public sealed class AlephConfig
         bool youtubeLogin,
         string? youtubeRefreshToken,
         string? malClientId,
-        ApiConfig? api)
+        ApiConfig? api,
+        string? ambiente)
     {
         Token = token;
         Prefix = prefix;
@@ -30,6 +31,7 @@ public sealed class AlephConfig
         YoutubeRefreshToken = youtubeRefreshToken;
         MalClientId = malClientId;
         Api = api;
+        Ambiente = ambiente;
     }
 
     public string Token { get; }
@@ -71,7 +73,17 @@ public sealed class AlephConfig
     /// </summary>
     public ApiConfig? Api { get; }
 
-    public bool IsDevelopment => DevGuildId is not null;
+    /// <summary>O DOTNET_ENVIRONMENT: o compose põe "Production"; rodando em casa, fica vazio.</summary>
+    public string? Ambiente { get; }
+
+    public bool IsProduction => string.Equals(Ambiente, "Production", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Dev é quem tem DEV_GUILD_ID e não está em produção. O ambiente vence: um DEV_GUILD_ID
+    /// esquecido no .env do servidor não faz o bot se anunciar como dev no banner, no log e
+    /// no /api/status.
+    /// </summary>
+    public bool IsDevelopment => DevGuildId is not null && !IsProduction;
 
     private const string EnvFile = "Config/.env";
 
@@ -126,7 +138,8 @@ public sealed class AlephConfig
             youtubeLogin: env.OptionalBool("YOUTUBE_LOGIN"),
             youtubeRefreshToken: env.OptionalOuNulo("YOUTUBE_REFRESH_TOKEN"),
             malClientId: env.OptionalOuNulo("MAL_CLIENT_ID"),
-            api: env.OptionalApi());
+            api: env.OptionalApi(),
+            ambiente: env.OptionalOuNulo("DOTNET_ENVIRONMENT"));
     }
 
     /// <summary>Lê cada variável da fonte e converte; o que vem torto vira erro com o nome dela.</summary>

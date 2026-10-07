@@ -3,8 +3,7 @@ using AlephBot.Core.Commands.Interface;
 namespace AlephBot.Threnodian.Api;
 
 // O formato do que sai pela API. Os nomes ficam em inglês porque viram as chaves do JSON, e
-// quem consome API espera "guilds", não "servidores". IDs do Discord saem como texto: são
-// inteiros de 64 bits, e o JavaScript arredonda número desse tamanho sem avisar ninguém.
+// quem consome API espera "guilds", não "servidores". Nenhum ID do Discord sai por aqui.
 
 public enum ConnectionStatus
 {
@@ -54,11 +53,11 @@ public sealed record StatusResponse(
     DiscordStatus Discord,
     LavalinkStatus Lavalink);
 
-/// <summary>Null até o Discord mandar o READY — antes disso eu não sei nem meu nome.</summary>
-public sealed record BotIdentity(
-    string Id,
-    string Username,
-    string AvatarUrl);
+/// <summary>
+/// Null até o Discord mandar o READY — antes disso eu não sei nem meu nome. Só o nome: a rota
+/// é aberta, e o ID não sai por aqui (nem o avatar, cujo link carrega o ID dentro).
+/// </summary>
+public sealed record BotIdentity(string Username);
 
 /// <summary><see cref="LatencyMs"/> é null fora do ar: latência de conexão caída é número velho.</summary>
 public sealed record DiscordStatus(
