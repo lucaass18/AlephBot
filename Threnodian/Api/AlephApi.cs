@@ -51,7 +51,13 @@ public static class AlephApi
         builder.WebHost.UseSetting(WebHostDefaults.HttpPortsKey, string.Empty);
 
         builder.Services.ConfigureHttpJsonOptions(json =>
-            json.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
+        {
+            json.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+
+            // o padrão web aceita número vindo como texto, e o /api/docs anunciava "integer ou
+            // string" em todo campo. Aqui só se escreve — e número sai sempre como número
+            json.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+        });
 
         // erro sai como application/problem+json, igual pra 401, 404 e exceção
         builder.Services.AddProblemDetails();
@@ -62,6 +68,8 @@ public static class AlephApi
 
         builder.Services.AddSingleton<LavalinkMonitor>();
         builder.Services.AddHostedService(provider => provider.GetRequiredService<LavalinkMonitor>());
+
+        ApiDocs.Configure(builder.Services);
     }
 
     public static void Map(WebApplication app)
@@ -81,13 +89,31 @@ public static class AlephApi
                 statusCode: saúde.Status == HealthStatus.Down
                     ? StatusCodes.Status503ServiceUnavailable
                     : StatusCodes.Status200OK);
-        });
+        })
+        .WithSummary("Se o bot está de pé")
+        .WithDescription(
+            "`ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com 503). " +
+            "Não pede chave: é a rota que monitor de uptime chama.")
+        .Produces<HealthResponse>()
+        .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable);
 
         var api = app.MapGroup("/api")
-            .AddEndpointFilter(app.Services.GetRequiredService<ApiKeyFilter>());
+            .AddEndpointFilter(app.Services.GetRequiredService<ApiKeyFilter>())
+            .PedeChave()
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
 
-        api.MapGet("/status", (BotStatus bot) => bot.Status());
-        api.MapGet("/stats", (BotStatus bot) => bot.Estatísticas());
-        api.MapGet("/commands", (BotStatus bot) => bot.Comandos());
+        api.MapGet("/status", (BotStatus bot) => bot.Status())
+            .WithSummary("Quem o bot é e como estão as conexões")
+            .WithDescription("Versão, uptime, latência do gateway e o estado do Lavalink.");
+
+        api.MapGet("/stats", (BotStatus bot) => bot.Estatísticas())
+            .WithSummary("Os números do bot")
+            .WithDescription("Servidores, membros, pessoas online, players de música e memória.");
+
+        api.MapGet("/commands", (BotStatus bot) => bot.Comandos())
+            .WithSummary("Os comandos do /help")
+            .WithDescription("Um item por comando, com a forma em barra, a de prefixo e os atalhos.");
+
+        ApiDocs.Map(app);
     }
 }
