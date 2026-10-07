@@ -107,14 +107,17 @@ Pra ligar:
 3. Confira com o `/api/health`, que não pede chave: `curl http://localhost:8080/api/health`
    devolve `{"status":"ok","discord":"connected","lavalink":"connected"}`.
 
+Daí em diante, **http://localhost:8080/api/docs** mostra tudo no navegador.
+
 | | Rota | O que devolve |
 |:--:|:--|:--|
-| 💓 | **`GET /api/health`** | `ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com **503**).<br>A única rota sem chave — é a que monitor de uptime chama (aceita `HEAD` também) |
+| 💓 | **`GET /api/health`** | `ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com **503**).<br>Não pede chave — é a que monitor de uptime chama (aceita `HEAD` também) |
 | 🪪 | **`GET /api/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink |
 | 📊 | **`GET /api/stats`** | Servidores, membros, pessoas online, players de música e memória |
 | 📜 | **`GET /api/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
+| 📖 | **`GET /api/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta e um botão pra testar.<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/openapi.json` |
 
-Todo pedido, menos o `/api/health`, leva a chave no header `X-Api-Key`:
+Fora o `/api/health` e a documentação, todo pedido leva a chave no header `X-Api-Key`:
 
 ```bash
 curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/status
@@ -187,6 +190,11 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
 > máquina — o HTTP leva a chave em texto puro, então pra abrir pra fora o certo é um proxy com
 > HTTPS na frente (Caddy, nginx). `API_BIND=0.0.0.0` no `.env` da raiz abre direto, e o Docker
 > publica por cima do firewall (`ufw`): abre mesmo.
+
+> [!TIP]
+> Pra ver de casa a API de um VPS não precisa abrir porta nenhuma: um túnel SSH traz ela até
+> você. `ssh -N -L 8080:127.0.0.1:8080 usuário@vps` — no PuTTY, *Connection → SSH → Tunnels*,
+> porta `8080` para `127.0.0.1:8080` — e o `http://localhost:8080/api/docs` abre no seu navegador.
 
 <br>
 
@@ -351,7 +359,7 @@ Core/
   Commands/       Um arquivo por comando, agrupados por categoria
   Personality/    Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
 Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
-  Api/            A API HTTP: rotas, a chave e o que ela lê do bot
+  Api/            A API HTTP: rotas, a chave, o /api/docs e o que ela lê do bot
   Youtube/        Login (o token guardado e entregue ao Lavalink) e a busca de playlist
   Players/        A foto de cada player e a volta depois de um restart
 Lavalink/         application.yml do servidor de áudio
