@@ -2,7 +2,7 @@
 
 # AlephBot
 
-**Bot de Discord em C# com moderação e música.**
+**Bot de Discord em C# com moderação, música e uma API de status.**
 
 
 <br>
@@ -99,6 +99,14 @@ Com uma `API_KEY` no `.env` o bot sobe junto uma API HTTP — no mesmo processo,
 do gateway, dos players e da lista de comandos. Só leitura: status e estatísticas. Sem a
 chave ela não existe, e nenhuma porta abre.
 
+Pra ligar:
+
+1. Gere uma chave com `openssl rand -hex 32` e ponha no `Config/.env`: `API_KEY=<a chave>`.
+2. Suba o bot de novo — `docker compose up -d`, ou `dotnet run` fora do Docker. O boot avisa
+   `API ligada` no log.
+3. Confira com o `/api/health`, que não pede chave: `curl http://localhost:8080/api/health`
+   devolve `{"status":"ok","discord":"connected","lavalink":"connected"}`.
+
 | | Rota | O que devolve |
 |:--:|:--|:--|
 | 💓 | **`GET /api/health`** | `ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com **503**).<br>A única rota sem chave — é a que monitor de uptime chama (aceita `HEAD` também) |
@@ -145,13 +153,34 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/stats
 }
 ```
 
+```bash
+curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
+```
+
+```json
+[
+  {
+    "name": "play",
+    "description": "Toca uma música ou põe ela na fila.",
+    "category": "music",
+    "slash": "/play <nome ou link>",
+    "text": "!play <nome ou link>",
+    "aliases": ["p", "tocar"]
+  }
+]
+```
+
 - IDs do Discord saem como texto: são inteiros de 64 bits, e o JavaScript arredonda número desse tamanho.
 - `members` soma os membros de cada servidor (quem está em dois conta duas vezes); `online` são
   pessoas distintas, sem bots — o mesmo número da presença do bot.
 - `lavalink.stats` é o último relatório do próprio Lavalink, que chega a cada minuto: `null`
   até o primeiro, e de novo depois de uma queda.
+- `/api/commands` traz um item por comando, em ordem alfabética (acima, só o `/play`). O `text`
+  já vem com o `PREFIX` do `.env`, e `slash` ou `text` vêm `null` quando o comando só existe de
+  um jeito.
 - Erro sai como `application/problem+json`: **401** sem chave ou com a chave errada, **404**,
-  **405**. Chave errada fica anotada no log, com o IP de quem tentou.
+  **405**. Chave errada fica anotada no log, com o IP de quem tentou (atrás de um proxy, o IP
+  que aparece é o do proxy).
 
 > [!IMPORTANT]
 > Fora do Docker a API só escuta em `localhost`. No compose ela é publicada no `127.0.0.1` da
