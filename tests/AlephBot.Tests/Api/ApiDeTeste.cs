@@ -45,7 +45,10 @@ public sealed class ApiDeTeste : IAsyncDisposable
 
     public TestServer Servidor { get; }
 
-    public static async Task<ApiDeTeste> SubirAsync(string? chaveDoAgent = ChaveDoAgent, string? senhaDosDocs = null)
+    public static async Task<ApiDeTeste> SubirAsync(
+        string? chaveDoAgent = ChaveDoAgent,
+        string? senhaDosDocs = null,
+        IReadOnlyDictionary<string, string>? variáveis = null)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.UseTestServer();
@@ -57,7 +60,7 @@ public sealed class ApiDeTeste : IAsyncDisposable
             "API_KEY" => ChaveDaApi,
             "SCALAR_AGENT_KEY" => chaveDoAgent,
             "API_DOCS_PASSWORD" => senhaDosDocs,
-            _ => null,
+            _ => variáveis?.GetValueOrDefault(nome),
         });
 
         builder.Services.AddSingleton(config);

@@ -3,9 +3,12 @@ using System.Text.Json.Serialization;
 
 using AlephBot.Config;
 
+using Asp.Versioning;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +23,9 @@ namespace AlephBot.Threnodian.Api;
 /// </summary>
 public static class AlephApi
 {
+    /// <summary>A versão que está no ar. Mudança que quebra quem já usa vira v2 ao lado dela.</summary>
+    public const int VersãoAtual = 1;
+
     /// <summary>
     /// A imagem oficial do .NET se anuncia com esta variável. Dentro do contêiner eu escuto em
     /// todas as interfaces, senão a porta publicada pelo compose não chega em mim; fora dele,
@@ -84,7 +90,23 @@ public static class AlephApi
         builder.Services.AddSingleton<LavalinkMonitor>();
         builder.Services.AddHostedService(provider => provider.GetRequiredService<LavalinkMonitor>());
 
-        ApiDocs.Configure(builder.Services);
+        // a versão vai no caminho (/api/v1/...), e toda resposta versionada conta no header
+        // api-supported-versions quais versões existem: o v2 nasce do lado do v1, sem quebrar ninguém
+        var versões = builder.Services
+            .AddApiVersioning(opções =>
+            {
+                opções.DefaultApiVersion = new ApiVersion(VersãoAtual);
+                opções.ApiVersionReader = new UrlSegmentApiVersionReader();
+                opções.ReportApiVersions = true;
+            })
+            .AddApiExplorer(opções =>
+            {
+                // "v1" é o nome do grupo e do documento; /api/v{version} vira /api/v1 no documento
+                opções.GroupNameFormat = "'v'V";
+                opções.SubstituteApiVersionInUrl = true;
+            });
+
+        ApiDocs.Configure(versões);
         ProteçãoDeFora.Configure(builder.Services);
     }
 
@@ -95,46 +117,71 @@ public static class AlephApi
         app.UseStatusCodePages();
         ProteçãoDeFora.Use(app, app.Services.GetRequiredService<ApiConfig>());
 
-        // aberta de propósito: é o que monitor de uptime chama, e não conta nada além de
-        // "estou de pé". 503 quando o Discord caiu — aí eu não respondo comando nenhum.
-        // HEAD junto porque é o padrão de monitor como o UptimeRobot; sem ele, 405 e alarme falso
-        app.MapMethods("/api/health", [HttpMethods.Get, HttpMethods.Head], (BotStatus bot) =>
-        {
-            var saúde = bot.Saúde();
+        var v1 = app.NewVersionedApi("AlephBot")
+            .MapGroup("/api/v{version:apiVersion}")
+            .HasApiVersion(VersãoAtual);
 
-            return TypedResults.Json(
-                saúde,
-                statusCode: saúde.Status == HealthStatus.Down
-                    ? StatusCodes.Status503ServiceUnavailable
-                    : StatusCodes.Status200OK);
-        })
-        .WithSummary("Se o bot está de pé")
-        .WithDescription(
-            "`ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com 503). " +
-            "Não pede chave: é a rota que monitor de uptime chama.")
-        .Produces<HealthResponse>()
-        .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable)
-        .SemChave();
+        // aberta de propósito: é o que monitor de uptime chama, e não conta nada além de
+        // "estou de pé". HEAD junto porque é o padrão de monitor como o UptimeRobot; sem ele,
+        // 405 e alarme falso
+        v1.MapMethods("/health", [HttpMethods.Get, HttpMethods.Head], Saúde)
+            .WithSummary("Se o bot está de pé")
+            .WithDescription(
+                "`ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com 503). " +
+                "Não pede chave: é a rota que monitor de uptime chama.")
+            .Produces<HealthResponse>()
+            .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable)
+            .SemChave();
 
         // também aberta: quem o bot é e se as conexões dele estão de pé é o que uma página de
         // status mostraria pra qualquer um. Os números e a lista de comandos seguem com chave
-        app.MapGet("/api/status", (BotStatus bot) => bot.Status())
+        v1.MapGet("/status", (BotStatus bot) => bot.Status())
             .WithSummary("Quem o bot é e como estão as conexões")
             .WithDescription("Versão, uptime, latência do gateway e o estado do Lavalink. Não pede chave.")
             .SemChave();
 
-        var api = app.MapGroup("/api")
+        var comChave = v1.MapGroup("")
             .AddEndpointFilter(app.Services.GetRequiredService<ApiKeyFilter>())
             .ProducesProblem(StatusCodes.Status401Unauthorized);
 
-        api.MapGet("/stats", (BotStatus bot) => bot.Estatísticas())
+        comChave.MapGet("/stats", (BotStatus bot) => bot.Estatísticas())
             .WithSummary("Os números do bot")
             .WithDescription("Servidores, membros, pessoas online, players de música e memória.");
 
-        api.MapGet("/commands", (BotStatus bot) => bot.Comandos())
+        comChave.MapGet("/commands", (BotStatus bot) => bot.Comandos())
             .WithSummary("Os comandos do /help")
             .WithDescription("Um item por comando, com a forma em barra, a de prefixo e os atalhos.");
 
+        MapEndereçosDeAntes(app);
         ApiDocs.Map(app);
+    }
+
+    /// <summary>503 quando o Discord caiu: aí eu não respondo comando nenhum.</summary>
+    private static JsonHttpResult<HealthResponse> Saúde(BotStatus bot)
+    {
+        var saúde = bot.Saúde();
+
+        return TypedResults.Json(
+            saúde,
+            statusCode: saúde.Status == HealthStatus.Down
+                ? StatusCodes.Status503ServiceUnavailable
+                : StatusCodes.Status200OK);
+    }
+
+    /// <summary>
+    /// Os endereços de antes da versão. O /api/health fica de pé como está, porque é ele que
+    /// monitor de uptime chama, e monitor não lê changelog. Os outros mandam pra versão atual
+    /// com 308, que preserva o método. Nenhum deles aparece no /api/docs.
+    /// </summary>
+    private static void MapEndereçosDeAntes(WebApplication app)
+    {
+        app.MapMethods("/api/health", [HttpMethods.Get, HttpMethods.Head], Saúde)
+            .ExcludeFromDescription();
+
+        foreach (var rota in (string[])["status", "stats", "commands"])
+        {
+            app.MapGet($"/api/{rota}", () => Results.Redirect($"/api/v{VersãoAtual}/{rota}", permanent: true, preserveMethod: true))
+                .ExcludeFromDescription();
+        }
     }
 }

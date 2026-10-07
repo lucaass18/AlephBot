@@ -104,28 +104,39 @@ Pra ligar:
 1. Gere uma chave com `openssl rand -hex 32` e ponha no `Config/.env`: `API_KEY=<a chave>`.
 2. Suba o bot de novo — `docker compose up -d`, ou `dotnet run` fora do Docker. O boot avisa
    `API ligada` no log.
-3. Confira com o `/api/health`, que não pede chave: `curl http://localhost:8080/api/health`
+3. Confira com o `/api/v1/health`, que não pede chave: `curl http://localhost:8080/api/v1/health`
    devolve `{"status":"ok","discord":"connected","lavalink":"connected"}`.
 
 Daí em diante, **http://localhost:8080/api/docs** mostra tudo no navegador.
 
 | | Rota | O que devolve |
 |:--:|:--|:--|
-| 💓 | **`GET /api/health`** | `ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com **503**).<br>Não pede chave — é a que monitor de uptime chama (aceita `HEAD` também) |
-| 🪪 | **`GET /api/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink.<br>Não pede chave |
-| 📊 | **`GET /api/stats`** | Servidores, membros, pessoas online, players de música e memória |
-| 📜 | **`GET /api/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
-| 📖 | **`GET /api/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/openapi.json` |
+| 💓 | **`GET /api/v1/health`** | `ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com **503**).<br>Não pede chave — é a que monitor de uptime chama (aceita `HEAD` também) |
+| 🪪 | **`GET /api/v1/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink.<br>Não pede chave |
+| 📊 | **`GET /api/v1/stats`** | Servidores, membros, pessoas online, players de música e memória |
+| 📜 | **`GET /api/v1/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
+| 📖 | **`GET /api/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/openapi/v1.json` |
 
-O `/api/status`, como o `/api/health`, não pede chave:
+### Versões
+
+A versão mora no caminho: **`/api/v1/...`**. Toda resposta da v1 conta no header
+`api-supported-versions` quais versões existem, e versão que não existe (`/api/v2/...`) é só um
+endereço que não existe — **404**. Mudança que quebra quem já usa nasce como `/api/v2`, do lado
+da v1, que continua de pé; o `/api/docs` mostra um documento por versão.
+
+Os endereços de antes da versão não quebram: o `/api/health` segue respondendo onde estava (é
+ele que monitor de uptime chama), e `/api/status`, `/api/stats` e `/api/commands` mandam pra v1
+com **308** — mesmo método, endereço novo.
+
+O `/api/v1/status`, como o `/api/v1/health`, não pede chave:
 
 ```bash
-curl http://localhost:8080/api/status
+curl http://localhost:8080/api/v1/status
 ```
 
 ```json
 {
-  "bot": { "id": "123456789012345678", "username": "AlephBot", "avatarUrl": "https://cdn.discordapp.com/avatars/..." },
+  "bot": { "username": "AlephBot" },
   "version": "1.0.0",
   "runtime": ".NET 10.0.12",
   "mode": "production",
@@ -144,7 +155,7 @@ curl http://localhost:8080/api/status
 Os outros levam a chave no header `X-Api-Key`:
 
 ```bash
-curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/stats
+curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/stats
 ```
 
 ```json
@@ -159,7 +170,7 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/stats
 ```
 
 ```bash
-curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
+curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 ```
 
 ```json
@@ -175,12 +186,15 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
 ]
 ```
 
-- IDs do Discord saem como texto: são inteiros de 64 bits, e o JavaScript arredonda número desse tamanho.
+- Do bot só sai o nome: o ID dele não aparece em nenhuma rota, nem o avatar (o link do avatar
+  carrega o ID dentro).
+- `mode` é `production` sempre que `DOTNET_ENVIRONMENT=Production` — o compose já põe —, mesmo
+  com um `DEV_GUILD_ID` esquecido no `.env`.
 - `members` soma os membros de cada servidor (quem está em dois conta duas vezes); `online` são
   pessoas distintas, sem bots — o mesmo número da presença do bot.
 - `lavalink.stats` é o último relatório do próprio Lavalink, que chega a cada minuto: `null`
   até o primeiro, e de novo depois de uma queda.
-- `/api/commands` traz um item por comando, em ordem alfabética (acima, só o `/play`). O `text`
+- `/api/v1/commands` traz um item por comando, em ordem alfabética (acima, só o `/play`). O `text`
   já vem com o `PREFIX` do `.env`, e `slash` ou `text` vêm `null` quando o comando só existe de
   um jeito.
 - Erro sai como `application/problem+json`: **401** sem chave ou com a chave errada, **404**,
@@ -203,7 +217,7 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
 > publica com HTTPS só as rotas que você escolher, sem abrir porta no firewall:
 >
 > ```bash
-> for rota in health status stats commands docs openapi.json; do
+> for rota in v1 health docs openapi; do
 >   sudo tailscale funnel --bg --set-path /api/$rota http://127.0.0.1:8080/api/$rota
 > done
 > ```
@@ -211,7 +225,7 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
 > O que chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
 >
 > - a página abre com a IA do Scalar, mas **sem a `API_KEY`**: de fora a IA chama só o que é
->   aberto (`/api/health` e `/api/status`), e nada fica guardado no navegador de quem abriu;
+>   aberto (`/api/v1/health` e `/api/v1/status`), e nada fica guardado no navegador de quem abriu;
 > - 60 pedidos por minuto por IP — passou disso, **429** até o minuto virar;
 > - a página não pode ser embutida em outro site (`X-Frame-Options: DENY`);
 > - com `API_DOCS_PASSWORD` no `Config/.env` o `/api/docs` pede senha antes de abrir. É a camada
@@ -239,7 +253,7 @@ Depois preencha o `TOKEN`:
 |:--|:--:|:--|:--|
 | **`TOKEN`** | ✅ | — | Token do bot no [Discord Developer Portal](https://discord.com/developers/applications) |
 | `PREFIX` | | `!` | Prefixo dos comandos de texto |
-| `DEV_GUILD_ID` | | *vazio* | ID do servidor de testes: registra os slash commands nele na hora.<br>Vazio = registro global (~1h para propagar) |
+| `DEV_GUILD_ID` | | *vazio* | ID do servidor de testes: marca o bot como em desenvolvimento (banner, log e `/api/v1/status`).<br>Não muda onde os slash commands são registrados — eles são sempre globais. Em produção (`DOTNET_ENVIRONMENT=Production`, como no compose) não vale |
 | `LOG_LEVEL` | | `Information` | `Trace` · `Debug` · `Information` · `Warning` · `Error` · `Critical` |
 | `LAVALINK_URI` | | `http://localhost:2333/` | Endereço REST do servidor Lavalink |
 | `LAVALINK_PASSWORD` | | `youshallnotpass` | Senha do Lavalink |
@@ -248,7 +262,7 @@ Depois preencha o `TOKEN`:
 | `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma`.<br>Vazio = usa o Jikan, sem chave. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
-| `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |
+| `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/openapi/v1.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |
 | `API_DOCS_PASSWORD` | | *vazio* | Senha do `/api/docs` pra quem vem de fora (Funnel ou IP público); o usuário pode ser qualquer um.<br>Vazio = docs abertos. De dentro ela nunca é pedida |
 
 <sub>✅ = obrigatória</sub>

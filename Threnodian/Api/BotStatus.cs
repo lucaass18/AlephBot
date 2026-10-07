@@ -145,12 +145,7 @@ public sealed class BotStatus
     };
 
     private BotIdentity? Identidade() =>
-        _client.Cache.User is { } eu
-            ? new BotIdentity(
-                eu.Id.ToString(),
-                eu.Username,
-                (eu.GetAvatarUrl() ?? eu.DefaultAvatarUrl).ToString())
-            : null;
+        _client.Cache.User is { } eu ? new BotIdentity(eu.Username) : null;
 
     private static DateTimeOffset InícioDoProcesso()
     {

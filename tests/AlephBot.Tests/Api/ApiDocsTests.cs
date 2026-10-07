@@ -16,7 +16,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
 
     private async Task<JsonNode> DocumentoAsync()
     {
-        var (_, corpo) = await _api.GetAsync("/api/openapi.json");
+        var (_, corpo) = await _api.GetAsync("/api/openapi/v1.json");
         return JsonNode.Parse(corpo)!;
     }
 
@@ -39,10 +39,19 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
         var rotas = documento["paths"]!;
 
         Assert.Equal("""[{"ApiKey":[]}]""", documento["security"]!.ToJsonString());
-        Assert.Equal("[{}]", rotas["/api/health"]!["get"]!["security"]!.ToJsonString());
-        Assert.Equal("[{}]", rotas["/api/status"]!["get"]!["security"]!.ToJsonString());
-        Assert.Null(rotas["/api/stats"]!["get"]!["security"]);
-        Assert.Null(rotas["/api/commands"]!["get"]!["security"]);
+        Assert.Equal("[{}]", rotas["/api/v1/health"]!["get"]!["security"]!.ToJsonString());
+        Assert.Equal("[{}]", rotas["/api/v1/status"]!["get"]!["security"]!.ToJsonString());
+        Assert.Null(rotas["/api/v1/stats"]!["get"]!["security"]);
+        Assert.Null(rotas["/api/v1/commands"]!["get"]!["security"]);
+    }
+
+    [Fact]
+    public async Task Do_bot_só_sai_o_nome()
+    {
+        // o ID não sai em rota nenhuma, nem o avatar, cujo link carrega o ID dentro
+        var bot = (await DocumentoAsync())["components"]!["schemas"]!["BotIdentity"]!["properties"]!.AsObject();
+
+        Assert.Equal(["username"], bot.Select(p => p.Key));
     }
 
     [Fact]
@@ -60,7 +69,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
     {
         // o Tailscale termina o HTTPS e repassa em HTTP, contando em X-Forwarded-Proto
         var (_, corpo) = await _api.GetAsync(
-            "/api/openapi.json",
+            "/api/openapi/v1.json",
             host: "aleph.tailc38add.ts.net",
             headers: [PeloFunnel, ("X-Forwarded-Proto", "https"), ("X-Forwarded-For", "203.0.113.9")]);
 

@@ -24,6 +24,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Asp.Versioning.Http" Version="10.2.3" />
+      <PackageReference Include="Asp.Versioning.OpenApi" Version="10.2.3" />
       <PackageReference Include="Lavalink4NET" Version="4.2.2" />
       <PackageReference Include="Lavalink4NET.InactivityTracking" Version="4.2.2" />
       <PackageReference Include="Lavalink4NET.NetCord" Version="4.2.2" />
