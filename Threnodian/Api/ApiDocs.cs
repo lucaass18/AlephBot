@@ -276,11 +276,12 @@ public static partial class ApiDocs
             scalar.Telemetry = false;
             scalar.DefaultFonts = false;
 
-            // a cara do bot (ApiDocs.Visual.cs): escura de saída, com o botão pra clarear
+            // a cara do bot (ApiDocs.Visual.cs): clara de saída, como a do Cypress, com o botão
+            // pra escurecer
             scalar.CustomCss = Tema;
             scalar.Favicon = Ícone;
             scalar.HeadContent = Cabeçalho;
-            scalar.DarkMode = true;
+            scalar.DarkMode = false;
 
             // o que é propaganda do Scalar, e não da API, sai: a barra de ferramentas dele e o
             // "Generate MCP"

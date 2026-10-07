@@ -171,11 +171,19 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
         var html = await PáginaAsync();
         var config = JsonNode.Parse(ConfigDaPágina().Match(html).Value)!;
 
+        var tema = (string?)config["customCss"];
+
         // a prévia do link no Discord lê o HTML que o servidor manda, sem rodar script
         Assert.Contains("""<meta name="theme-color" content="#af87ff">""", html);
         Assert.Equal("/api/v1/docs/aleph.svg", (string?)config["favicon"]);
-        Assert.Contains("--scalar-color-accent: #af87ff", (string?)config["customCss"]);
-        Assert.True((bool?)config["darkMode"]);
+
+        // o jeito do Cypress com as cores do bot: abre clara, com a barra lateral no
+        // azul-marinho dele e o roxo do Banner (escurecido no branco) de destaque
+        Assert.False((bool?)config["darkMode"] ?? false);
+        Assert.Contains(".t-doc__sidebar", tema);
+        Assert.Contains("--scalar-sidebar-background-1: #1b1e2e", tema);
+        Assert.Contains("--scalar-color-accent: #713cdd", tema);
+        Assert.Contains("--scalar-color-accent: #af87ff", tema);
 
         // o que é propaganda do Scalar, e não da API, fica de fora
         Assert.Equal("never", (string?)config["showDeveloperTools"]);
