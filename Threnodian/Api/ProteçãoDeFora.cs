@@ -1,62 +1,25 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.RateLimiting;
 
 using AlephBot.Config;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Api;
 
 /// <summary>
 /// As camadas pra quem vem de fora (Funnel ou IP público), por cima da chave da API: ninguém
-/// embute a página em outro site, quem pede demais espera, e os docs podem pedir senha. De
-/// dentro nada disso pesa — a casa não tem limite nem senha.
+/// embute a página em outro site, e os docs podem pedir senha — que de dentro nunca é pedida.
+/// O limite de pedidos vale pra todo mundo e mora no <see cref="LimiteDePedidos"/>.
 /// </summary>
 public static class ProteçãoDeFora
 {
     /// <summary>
-    /// Por IP, por minuto. A página dos docs gasta uns cinco pedidos pra abrir; isto sobra
-    /// pra quem usa e corta quem varre, martela ou fica chutando a senha.
+    /// Ninguém põe a página (e a IA) dentro de outro site, e o navegador não adivinha tipo.
+    /// Entra antes do limite, pra valer até no 429.
     /// </summary>
-    public const int PedidosPorMinuto = 60;
-
-    public static void Configure(IServiceCollection services) =>
-        services.AddRateLimiter(opções =>
-        {
-            opções.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-            opções.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http =>
-                RedeDeDentro.ÉDeDentro(http)
-                    ? RateLimitPartition.GetNoLimiter("dentro")
-                    : RateLimitPartition.GetFixedWindowLimiter(
-                        http.Connection.RemoteIpAddress?.ToString() ?? "sem ip",
-                        _ => new FixedWindowRateLimiterOptions
-                        {
-                            PermitLimit = PedidosPorMinuto,
-                            Window = TimeSpan.FromMinutes(1),
-                        }));
-
-            opções.OnRejected = (contexto, _) =>
-            {
-                var http = contexto.HttpContext;
-                http.Response.Headers.RetryAfter = "60";
-
-                http.RequestServices.GetRequiredService<ILoggerFactory>()
-                    .CreateLogger(typeof(ProteçãoDeFora))
-                    .LogWarning("Pedidos demais na API vindo de {Ip}", http.Connection.RemoteIpAddress);
-
-                return ValueTask.CompletedTask;
-            };
-        });
-
-    public static void Use(WebApplication app, ApiConfig api)
-    {
-        // ninguém põe a página (e a IA) dentro de outro site, e o navegador não adivinha tipo
+    public static void UseCabeçalhos(WebApplication app) =>
         app.Use((http, next) =>
         {
             var headers = http.Response.Headers;
@@ -66,22 +29,24 @@ public static class ProteçãoDeFora
             return next(http);
         });
 
-        // antes da senha de propósito: chutar senha também esbarra no limite
-        app.UseRateLimiter();
+    /// <summary>
+    /// A senha guarda a página (/api/v1/docs e o que ela carrega). O /api/docs de antes só
+    /// redireciona pra ela, e o documento é público como o do Registry. Entra depois do limite
+    /// de pedidos de propósito: chutar senha também gasta a cota.
+    /// </summary>
+    public static void UseSenhaDosDocs(WebApplication app, ApiConfig api)
+    {
+        if (api.DocsPassword is not { } senha)
+            return;
 
-        // a senha guarda a página (/api/v1/docs e o que ela carrega). O /api/docs de antes só
-        // redireciona pra ela, e o documento é público como o do Registry
-        if (api.DocsPassword is { } senha)
-        {
-            var esperada = Hash(senha);
+        var esperada = Hash(senha);
 
-            app.Use((http, next) =>
-                !http.Request.Path.StartsWithSegments(ApiDocs.Página)
-                || RedeDeDentro.ÉDeDentro(http)
-                || SenhaConfere(http, esperada)
-                    ? next(http)
-                    : PedeSenha(http));
-        }
+        app.Use((http, next) =>
+            !http.Request.Path.StartsWithSegments(ApiDocs.Página)
+            || RedeDeDentro.ÉDeDentro(http)
+            || SenhaConfere(http, esperada)
+                ? next(http)
+                : PedeSenha(http));
     }
 
     /// <summary>O Basic do HTTP: o navegador mostra a janelinha de usuário e senha sozinho.</summary>

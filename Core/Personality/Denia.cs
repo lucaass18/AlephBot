@@ -760,6 +760,9 @@ public static class Denia
     public static string ApiChaveErrada() =>
         "Essa chave não abre nada aqui.";
 
+    public static string ApiPedidosDemais(int segundos) =>
+        $"Devagar: é pedido demais pra um minuto só. Volta em {segundos} s.";
+
     // ---- testes --------------------------------------------------------------
     //
     // o relatório do tests/relatorio.cs: quem lê é quem mexe no bot, no terminal
