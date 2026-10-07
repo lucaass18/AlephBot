@@ -760,6 +760,34 @@ public static class Denia
     public static string ApiChaveErrada() =>
         "Essa chave não abre nada aqui.";
 
+    // ---- testes --------------------------------------------------------------
+    //
+    // o relatório do tests/relatorio.cs: quem lê é quem mexe no bot, no terminal
+
+    public const string TestesTítulo = "testes de unidade";
+
+    public static string TestesRodando() =>
+        "Rodando os testes. Se demorar, é o build, não eu.";
+
+    public static string TestesPassaram(int total) => Pick(
+        $"Rodei os {total}. Tudo de pé — volto pro meu cochilo.",
+        $"{total} de {total}. Nada quebrou. Ainda.",
+        $"Passaram os {total}. Isso merece um doce.");
+
+    public static string TestesFalharam(int falhas, int total) => falhas == 1
+        ? Pick(
+            $"Um dos {total} quebrou. Tá marcado aí em cima — conserta antes de subir.",
+            "Deu ruim em um. Não olha pra mim, eu só rodei; o que falhou tá aí em cima.")
+        : Pick(
+            $"{falhas} de {total} quebraram. Tá tudo marcado aí em cima — conserta antes de subir.",
+            $"Deu ruim em {falhas}. Não olha pra mim, eu só rodei; o que falhou tá aí em cima.");
+
+    public static string TestesNenhum() =>
+        "Não achei teste nenhum pra rodar. Se tem filtro, confere o nome.";
+
+    public static string TestesNãoRodaram() =>
+        "Nem cheguei a rodar: o build caiu antes. O erro tá aí embaixo.";
+
     // ---- presença ------------------------------------------------------------
 
     public static string PresençaVerbo() => Pick(

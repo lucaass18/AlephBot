@@ -38,7 +38,7 @@ public static class Program
 
         var roxo = cor ? Banner.Roxo : "";
         var cinza = cor ? Banner.Cinza : "";
-        var vermelho = cor ? Vermelho : "";
+        var vermelho = cor ? Banner.Vermelho : "";
         var fim = cor ? Banner.Fim : "";
 
         var titulo = erro is null ? "desligada" : "caiu";
@@ -57,7 +57,4 @@ public static class Program
 
         saida.WriteLine();
     }
-
-    /// <summary>Mesmo vermelho do nível de erro no nlog.config.</summary>
-    private const string Vermelho = "\e[38;5;203m";
 }

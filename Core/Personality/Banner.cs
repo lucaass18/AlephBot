@@ -12,9 +12,15 @@ public static class Banner
         █▀█ █▄▄ ██▄ █▀▀ █▀█   █▄█ █▄█ ░█░
         """;
 
-    internal const string Roxo = "\e[38;5;141m";
-    internal const string Cinza = "\e[38;5;245m";
-    internal const string Fim = "\e[0m";
+    // a paleta do console: os mesmos códigos do nlog.config, pra banner, log, despedida e o
+    // relatório dos testes falarem na mesma cor. Roxo é o Info (deu certo), laranja o Warn,
+    // vermelho o Error; cinza e apagado são o que acompanha
+    public const string Roxo = "\e[38;5;141m";
+    public const string Cinza = "\e[38;5;245m";
+    public const string Apagado = "\e[38;5;240m";
+    public const string Laranja = "\e[38;5;214m";
+    public const string Vermelho = "\e[38;5;203m";
+    public const string Fim = "\e[0m";
 
     public static void Print(TextWriter saida, string prefixo, string modo, string versao, string runtime)
     {
@@ -41,7 +47,7 @@ public static class Banner
     /// Sem cor quando a saída é redirecionada (arquivo, `docker logs`, pipe) ou quando
     /// o ambiente pede NO_COLOR — senão o log vira sopa de escape.
     /// </summary>
-    internal static bool UsaCor() =>
+    public static bool UsaCor() =>
         !Console.IsOutputRedirected
         && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NO_COLOR"));
 }
