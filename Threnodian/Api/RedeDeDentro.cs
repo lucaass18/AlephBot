@@ -1,5 +1,7 @@
 using System.Net;
 
+using Microsoft.AspNetCore.Http;
+
 namespace AlephBot.Threnodian.Api;
 
 /// <summary>
@@ -27,4 +29,17 @@ public static class RedeDeDentro
 
         return Redes.Any(rede => rede.Contains(ip));
     }
+
+    /// <summary>O Tailscale marca tudo o que entra pela internet, pelo Funnel.</summary>
+    public static bool PeloFunnel(HttpContext http) =>
+        http.Request.Headers.ContainsKey("Tailscale-Funnel-Request");
+
+    /// <summary>
+    /// O pedido veio de dentro: sem a marca do Funnel e de um IP daqui. O IP já é o de quem
+    /// pediu de verdade — o X-Forwarded-For do Tailscale é lido antes, e só vale vindo de dentro.
+    /// </summary>
+    public static bool ÉDeDentro(HttpContext http) =>
+        !PeloFunnel(http)
+        && http.Connection.RemoteIpAddress is { } ip
+        && Contém(ip);
 }

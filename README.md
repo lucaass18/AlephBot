@@ -208,8 +208,17 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
 > done
 > ```
 >
-> O que chega pelo Funnel vem marcado pelo Tailscale, e a página abre sem a IA do Scalar, sem o
-> módulo que entrega a chave e sem guardar no navegador a chave que você colar nela.
+> O que chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
+>
+> - a página abre com a IA do Scalar, mas **sem a `API_KEY`**: de fora a IA chama só o que é
+>   aberto (`/api/health` e `/api/status`), e nada fica guardado no navegador de quem abriu;
+> - 60 pedidos por minuto por IP — passou disso, **429** até o minuto virar;
+> - a página não pode ser embutida em outro site (`X-Frame-Options: DENY`);
+> - com `API_DOCS_PASSWORD` no `Config/.env` o `/api/docs` pede senha antes de abrir. É a camada
+>   que guarda a chave da IA: ela vai no HTML da página, e sem senha quem tiver o link usa as suas
+>   mensagens.
+>
+> De dentro (a sua rede, o Tailscale, o túnel SSH) nada disso pesa.
 
 <br>
 
@@ -240,6 +249,7 @@ Depois preencha o `TOKEN`:
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
 | `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |
+| `API_DOCS_PASSWORD` | | *vazio* | Senha do `/api/docs` pra quem vem de fora (Funnel ou IP público); o usuário pode ser qualquer um.<br>Vazio = docs abertos. De dentro ela nunca é pedida |
 
 <sub>✅ = obrigatória</sub>
 
@@ -367,6 +377,29 @@ dotnet run
 
 ---
 
+## Testes
+
+Testes de unidade em [xUnit](https://xunit.net), no `tests/AlephBot.Tests`. Rodam sem Discord,
+sem Lavalink e sem rede:
+
+```bash
+dotnet test --project tests/AlephBot.Tests
+```
+
+Cobrem o que quebra calado: o `.env` e a config, a duração do `/mute` e a posição do `/seek`, o
+link de rádio do YouTube, a leitura do MyAnimeList, a auditoria dos comandos de verdade (gatilho
+faltando, nome ou atalho repetido) e a API — que sobe inteira num servidor em memória pra
+conferir quem passa sem chave, o documento OpenAPI e o módulo que só entrega a chave pra quem
+está dentro.
+
+> [!NOTE]
+> O `global.json` da raiz põe o `dotnet test` na Microsoft.Testing.Platform, que é como o
+> .NET 10 roda o xUnit v3. Sem ele o comando acima recusa o projeto.
+
+<br>
+
+---
+
 ## Estrutura
 
 ```
@@ -379,6 +412,7 @@ Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
   Youtube/        Login (o token guardado e entregue ao Lavalink) e a busca de playlist
   Players/        A foto de cada player e a volta depois de um restart
 Lavalink/         application.yml do servidor de áudio
+tests/            Testes de unidade (xUnit): a config, os parsers, os comandos e a API em memória
 ```
 
 > [!TIP]

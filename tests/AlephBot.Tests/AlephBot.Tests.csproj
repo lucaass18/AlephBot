@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>AlephBot.Tests</RootNamespace>
+
+        <!-- o xUnit v3 roda os testes como um executável próprio -->
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.12" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+      <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+      <PackageReference Include="xunit.v3" Version="4.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\AlephBot.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Using Include="Xunit" />
+    </ItemGroup>
+
+</Project>

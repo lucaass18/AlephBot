@@ -7,7 +7,16 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+
+        <!-- os testes moram dentro da pasta do bot, mas são outro projeto: sem isto o SDK
+             compilaria tests/**/*.cs junto com o bot -->
+        <DefaultItemExcludes>$(DefaultItemExcludes);tests/**</DefaultItemExcludes>
     </PropertyGroup>
+
+    <!-- os testes alcançam o que é internal (os parsers, o Markdown, a auditoria de comandos) -->
+    <ItemGroup>
+      <InternalsVisibleTo Include="AlephBot.Tests" />
+    </ItemGroup>
 
     <!-- a API (Threnodian/Api) roda no Kestrel, dentro do mesmo processo do bot -->
     <ItemGroup>
