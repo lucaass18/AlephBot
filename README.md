@@ -224,7 +224,7 @@ Depois preencha o `TOKEN`:
 | `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma`.<br>Vazio = usa o Jikan, sem chave. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
-| `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento |
+| `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |
 
 <sub>✅ = obrigatória</sub>
 
