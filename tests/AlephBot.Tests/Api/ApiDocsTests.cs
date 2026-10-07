@@ -5,8 +5,8 @@ using System.Text.RegularExpressions;
 namespace AlephBot.Tests.Api;
 
 /// <summary>
-/// O /api/docs e o que ele carrega. A regra que importa: de fora (pelo Funnel ou com IP
-/// público) ninguém leva chave nenhuma — nem a da API, nem a da IA do Scalar.
+/// Os docs (/api/v1/docs) e o que eles carregam. A regra que importa: de fora (pelo Funnel ou
+/// com IP público) ninguém leva chave nenhuma — nem a da API, nem a da IA do Scalar.
 /// </summary>
 public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
@@ -16,7 +16,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
 
     private async Task<JsonNode> DocumentoAsync()
     {
-        var (_, corpo) = await _api.GetAsync("/api/openapi/v1.json");
+        var (_, corpo) = await _api.GetAsync("/api/v1/openapi.json");
         return JsonNode.Parse(corpo)!;
     }
 
@@ -69,7 +69,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
     {
         // o Tailscale termina o HTTPS e repassa em HTTP, contando em X-Forwarded-Proto
         var (_, corpo) = await _api.GetAsync(
-            "/api/openapi/v1.json",
+            "/api/v1/openapi.json",
             host: "aleph.tailc38add.ts.net",
             headers: [PeloFunnel, ("X-Forwarded-Proto", "https"), ("X-Forwarded-For", "203.0.113.9")]);
 
@@ -83,7 +83,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
 
     private async Task<string> PáginaAsync(params (string, string)[] headers)
     {
-        var (status, html) = await _api.GetAsync("/api/docs/", headers: headers);
+        var (status, html) = await _api.GetAsync("/api/v1/docs/", headers: headers);
 
         Assert.Equal(200, status);
         return html;
@@ -96,7 +96,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
         var config = ConfigDaPágina().Match(html).Value;
 
         Assert.Contains(ApiDeTeste.ChaveDoAgent, config);
-        Assert.Contains("/api/docs/aleph.js", html);
+        Assert.Contains("/api/v1/docs/aleph.js", html);
         Assert.Contains("\"persistAuth\":true", config);
     }
 
@@ -116,7 +116,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
     [Fact]
     public async Task IP_público_direto_também_é_tratado_como_de_fora()
     {
-        var (_, html) = await _api.GetAsync("/api/docs/", IPAddress.Parse("203.0.113.9"));
+        var (_, html) = await _api.GetAsync("/api/v1/docs/", IPAddress.Parse("203.0.113.9"));
 
         Assert.DoesNotContain("aleph.js", html);
         Assert.Contains("\"persistAuth\":false", ConfigDaPágina().Match(html).Value);
@@ -127,7 +127,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
     {
         await using var semAgent = await ApiDeTeste.SubirAsync(chaveDoAgent: null);
 
-        var (_, html) = await semAgent.GetAsync("/api/docs/");
+        var (_, html) = await semAgent.GetAsync("/api/v1/docs/");
 
         Assert.DoesNotContain("aleph.js", html);
         Assert.DoesNotContain(ApiDeTeste.ChaveDaApi, html);
@@ -156,7 +156,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
         if (peloFunnel)
             headers.Add(PeloFunnel);
 
-        var (status, corpo) = await _api.GetAsync("/api/docs/aleph.js", IPAddress.Parse(ip), headers: [.. headers]);
+        var (status, corpo) = await _api.GetAsync("/api/v1/docs/aleph.js", IPAddress.Parse(ip), headers: [.. headers]);
 
         Assert.Equal(200, status);
         Assert.True(

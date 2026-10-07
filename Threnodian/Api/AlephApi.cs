@@ -61,7 +61,7 @@ public static class AlephApi
         {
             json.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 
-            // o padrão web aceita número vindo como texto, e o /api/docs anunciava "integer ou
+            // o padrão web aceita número vindo como texto, e a página dos docs anunciava "integer ou
             // string" em todo campo. Aqui só se escreve — e número sai sempre como número
             json.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
         });
@@ -171,7 +171,7 @@ public static class AlephApi
     /// <summary>
     /// Os endereços de antes da versão. O /api/health fica de pé como está, porque é ele que
     /// monitor de uptime chama, e monitor não lê changelog. Os outros mandam pra versão atual
-    /// com 308, que preserva o método. Nenhum deles aparece no /api/docs.
+    /// com 308, que preserva o método. Nenhum deles aparece nos docs.
     /// </summary>
     private static void MapEndereçosDeAntes(WebApplication app)
     {

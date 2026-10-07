@@ -258,15 +258,15 @@ public sealed class ApiConfig
     public int Port { get; }
 
     /// <summary>
-    /// A chave da IA do Scalar no /api/docs. Sem ela a IA só aparece abrindo pelo localhost,
-    /// que é onde o Scalar dá a cota grátis.
+    /// A chave da IA do Scalar nos docs (/api/v1/docs). Sem ela a IA só aparece abrindo pelo
+    /// localhost, que é onde o Scalar dá a cota grátis.
     /// </summary>
     public string? ScalarAgentKey { get; }
 
     /// <summary>
-    /// Senha do /api/docs pra quem vem de fora (Funnel ou IP público). A página leva a chave da
-    /// IA do Scalar no HTML, e sem senha qualquer um com o link usa as suas mensagens. Null =
-    /// página aberta; de dentro ela nunca é pedida.
+    /// Senha dos docs (/api/v1/docs) pra quem vem de fora (Funnel ou IP público). A página leva
+    /// a chave da IA do Scalar no HTML, e sem senha qualquer um com o link usa as suas
+    /// mensagens. Null = página aberta; de dentro ela nunca é pedida.
     /// </summary>
     public string? DocsPassword { get; }
 }
