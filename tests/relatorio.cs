@@ -71,7 +71,7 @@ var largura = testes.Max(t => t.Classe.Length) + 8;
 
 foreach (var pasta in testes.GroupBy(t => t.Pasta).OrderBy(g => g.Key, StringComparer.Ordinal))
 {
-    Linha(pasta.Key, [.. pasta], recuo: 2, corDoNome: "", corDaConta: cinza);
+    Linha(pasta.Key, [.. pasta], recuo: 2, corDoNome: "", corDaConta: cinza, éPasta: true);
 
     foreach (var classe in pasta.GroupBy(t => t.Classe).OrderBy(g => g.Key, StringComparer.Ordinal))
     {
@@ -106,7 +106,7 @@ Console.WriteLine();
 
 return falharam > 0 ? 1 : 0;
 
-void Linha(string nome, List<Teste> grupo, int recuo, string corDoNome, string corDaConta)
+void Linha(string nome, List<Teste> grupo, int recuo, string corDoNome, string corDaConta, bool éPasta = false)
 {
     var falhas = grupo.Count(t => t.Falhou);
 
@@ -114,6 +114,10 @@ void Linha(string nome, List<Teste> grupo, int recuo, string corDoNome, string c
         falhas > 0 ? ("✘", vermelho)
         : grupo.All(t => t.Ignorado) ? ("○", laranja)
         : ("✔", roxo);
+
+    // a pasta é só um título: leva uma bolinha, na cor de como ela está. Quem diz ✔ ou ✘ é a classe
+    if (éPasta)
+        símbolo = "●";
 
     var conta = falhas > 0 ? $"{grupo.Count - falhas}/{grupo.Count}" : $"{grupo.Count}";
 
