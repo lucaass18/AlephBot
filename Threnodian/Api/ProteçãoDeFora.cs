@@ -14,13 +14,13 @@ namespace AlephBot.Threnodian.Api;
 
 /// <summary>
 /// As camadas pra quem vem de fora (Funnel ou IP público), por cima da chave da API: ninguém
-/// embute a página em outro site, quem pede demais espera, e o /api/docs pode pedir senha. De
+/// embute a página em outro site, quem pede demais espera, e os docs podem pedir senha. De
 /// dentro nada disso pesa — a casa não tem limite nem senha.
 /// </summary>
 public static class ProteçãoDeFora
 {
     /// <summary>
-    /// Por IP, por minuto. A página do /api/docs gasta uns cinco pedidos pra abrir; isto sobra
+    /// Por IP, por minuto. A página dos docs gasta uns cinco pedidos pra abrir; isto sobra
     /// pra quem usa e corta quem varre, martela ou fica chutando a senha.
     /// </summary>
     public const int PedidosPorMinuto = 60;
@@ -69,6 +69,8 @@ public static class ProteçãoDeFora
         // antes da senha de propósito: chutar senha também esbarra no limite
         app.UseRateLimiter();
 
+        // a senha guarda a página (/api/v1/docs e o que ela carrega). O /api/docs de antes só
+        // redireciona pra ela, e o documento é público como o do Registry
         if (api.DocsPassword is { } senha)
         {
             var esperada = Hash(senha);

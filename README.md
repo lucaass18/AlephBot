@@ -107,7 +107,7 @@ Pra ligar:
 3. Confira com o `/api/v1/health`, que não pede chave: `curl http://localhost:8080/api/v1/health`
    devolve `{"status":"ok","discord":"connected","lavalink":"connected"}`.
 
-Daí em diante, **http://localhost:8080/api/docs** mostra tudo no navegador.
+Daí em diante, **http://localhost:8080/api/v1/docs** mostra tudo no navegador.
 
 | | Rota | O que devolve |
 |:--:|:--|:--|
@@ -115,18 +115,22 @@ Daí em diante, **http://localhost:8080/api/docs** mostra tudo no navegador.
 | 🪪 | **`GET /api/v1/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink.<br>Não pede chave |
 | 📊 | **`GET /api/v1/stats`** | Servidores, membros, pessoas online, players de música e memória |
 | 📜 | **`GET /api/v1/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
-| 📖 | **`GET /api/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/openapi/v1.json` |
+| 📖 | **`GET /api/v1/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/v1/openapi.json` |
 
 ### Versões
 
 A versão mora no caminho: **`/api/v1/...`**. Toda resposta da v1 conta no header
 `api-supported-versions` quais versões existem, e versão que não existe (`/api/v2/...`) é só um
 endereço que não existe — **404**. Mudança que quebra quem já usa nasce como `/api/v2`, do lado
-da v1, que continua de pé; o `/api/docs` mostra um documento por versão.
+da v1, que continua de pé.
+
+Os docs moram dentro da versão, ao lado das rotas dela: a página em `/api/v1/docs` e o OpenAPI
+em `/api/v1/openapi.json`. Assim um mount só no Funnel, o `/api/v1`, leva a versão inteira.
 
 Os endereços de antes da versão não quebram: o `/api/health` segue respondendo onde estava (é
-ele que monitor de uptime chama), e `/api/status`, `/api/stats` e `/api/commands` mandam pra v1
-com **308** — mesmo método, endereço novo.
+ele que monitor de uptime chama), `/api/status`, `/api/stats` e `/api/commands` mandam pra v1
+com **308** — mesmo método, endereço novo —, o `/api/openapi.json` manda pro documento da v1 e
+o `/api/docs` leva pra página da versão atual.
 
 O `/api/v1/status`, como o `/api/v1/health`, não pede chave:
 
@@ -210,14 +214,14 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 > [!TIP]
 > Pra ver de casa a API de um VPS não precisa abrir porta nenhuma: um túnel SSH traz ela até
 > você. `ssh -N -L 8080:127.0.0.1:8080 usuário@vps` — no PuTTY, *Connection → SSH → Tunnels*,
-> porta `8080` para `127.0.0.1:8080` — e o `http://localhost:8080/api/docs` abre no seu navegador.
+> porta `8080` para `127.0.0.1:8080` — e o `http://localhost:8080/api/v1/docs` abre no seu navegador.
 
 > [!NOTE]
 > Pra abrir de qualquer máquina sem instalar nada, o [Tailscale Funnel](https://tailscale.com/kb/1223/funnel)
 > publica com HTTPS só as rotas que você escolher, sem abrir porta no firewall:
 >
 > ```bash
-> for rota in v1 health docs openapi; do
+> for rota in v1 health docs; do
 >   sudo tailscale funnel --bg --set-path /api/$rota http://127.0.0.1:8080/api/$rota
 > done
 > ```
@@ -228,7 +232,7 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 >   aberto (`/api/v1/health` e `/api/v1/status`), e nada fica guardado no navegador de quem abriu;
 > - 60 pedidos por minuto por IP — passou disso, **429** até o minuto virar;
 > - a página não pode ser embutida em outro site (`X-Frame-Options: DENY`);
-> - com `API_DOCS_PASSWORD` no `Config/.env` o `/api/docs` pede senha antes de abrir. É a camada
+> - com `API_DOCS_PASSWORD` no `Config/.env` a página dos docs pede senha antes de abrir. É a camada
 >   que guarda a chave da IA: ela vai no HTML da página, e sem senha quem tiver o link usa as suas
 >   mensagens.
 >
@@ -262,8 +266,8 @@ Depois preencha o `TOKEN`:
 | `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma`.<br>Vazio = usa o Jikan, sem chave. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
-| `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/openapi/v1.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |
-| `API_DOCS_PASSWORD` | | *vazio* | Senha do `/api/docs` pra quem vem de fora (Funnel ou IP público); o usuário pode ser qualquer um.<br>Vazio = docs abertos. De dentro ela nunca é pedida |
+| `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/v1/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/v1/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |
+| `API_DOCS_PASSWORD` | | *vazio* | Senha dos docs (`/api/v1/docs`) pra quem vem de fora (Funnel ou IP público); o usuário pode ser qualquer um.<br>Vazio = docs abertos. De dentro ela nunca é pedida |
 
 <sub>✅ = obrigatória</sub>
 
@@ -441,7 +445,7 @@ Core/
   Commands/       Um arquivo por comando, agrupados por categoria
   Personality/    Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
 Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
-  Api/            A API HTTP: rotas, a chave, o /api/docs e o que ela lê do bot
+  Api/            A API HTTP: rotas, a chave, os docs e o que ela lê do bot
   Youtube/        Login (o token guardado e entregue ao Lavalink) e a busca de playlist
   Players/        A foto de cada player e a volta depois de um restart
 Lavalink/         application.yml do servidor de áudio

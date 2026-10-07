@@ -21,7 +21,7 @@ public class ProtecaoDeForaTests
     // ---- headers -------------------------------------------------------------
 
     [Theory]
-    [InlineData("/api/docs/")]
+    [InlineData("/api/v1/docs/")]
     [InlineData("/api/v1/status")]
     [InlineData("/api/v1/health")]
     public async Task Ninguém_embute_a_página_nem_a_API_em_outro_site(string rota)
@@ -88,7 +88,7 @@ public class ProtecaoDeForaTests
     {
         await using var api = await ApiDeTeste.SubirAsync();
 
-        var (status, _) = await api.GetAsync("/api/docs/", headers: PeloFunnel);
+        var (status, _) = await api.GetAsync("/api/v1/docs/", headers: PeloFunnel);
 
         Assert.Equal(200, status);
     }
@@ -98,7 +98,7 @@ public class ProtecaoDeForaTests
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
 
-        var (status, corpo, headers) = await api.GetComHeadersAsync("/api/docs/", headers: PeloFunnel);
+        var (status, corpo, headers) = await api.GetComHeadersAsync("/api/v1/docs/", headers: PeloFunnel);
 
         Assert.Equal(401, status);
         Assert.StartsWith("Basic", headers.WWWAuthenticate.ToString());
@@ -113,7 +113,7 @@ public class ProtecaoDeForaTests
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
 
-        var (status, _) = await api.GetAsync("/api/docs/", headers: [PeloFunnel, Basic("aleph", tentativa)]);
+        var (status, _) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("aleph", tentativa)]);
 
         Assert.Equal(401, status);
     }
@@ -125,7 +125,7 @@ public class ProtecaoDeForaTests
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
 
-        var (status, html) = await api.GetAsync("/api/docs/", headers: [PeloFunnel, Basic(usuário, Senha)]);
+        var (status, html) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic(usuário, Senha)]);
 
         Assert.Equal(200, status);
         Assert.Contains(ApiDeTeste.ChaveDoAgent, html);
@@ -136,9 +136,23 @@ public class ProtecaoDeForaTests
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
 
-        var (status, _) = await api.GetAsync("/api/docs/", IPAddress.Parse("100.94.84.30"));
+        var (status, _) = await api.GetAsync("/api/v1/docs/", IPAddress.Parse("100.94.84.30"));
 
         Assert.Equal(200, status);
+    }
+
+    [Theory]
+    [InlineData("/API/V1/DOCS/")]
+    [InlineData("/api/v1/docs/aleph.js")]
+    [InlineData("/api/v1/docs/scalar.js")]
+    public async Task A_senha_guarda_a_página_inteira_em_qualquer_caixa(string caminho)
+    {
+        // a rota não liga pra maiúscula; a senha também não pode ligar
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
+
+        var (status, _) = await api.GetAsync(caminho, headers: PeloFunnel);
+
+        Assert.Equal(401, status);
     }
 
     [Fact]

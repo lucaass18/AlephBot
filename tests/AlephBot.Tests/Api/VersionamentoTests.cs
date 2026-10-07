@@ -46,7 +46,20 @@ public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var (status, _, headers) = await _api.GetComHeadersAsync("/api/openapi.json");
 
         Assert.Equal(301, status);
-        Assert.Equal("/api/openapi/v1.json", headers.Location.ToString());
+        Assert.Equal("/api/v1/openapi.json", headers.Location.ToString());
+    }
+
+    [Theory]
+    [InlineData("/api/docs")]
+    [InlineData("/api/docs/")]
+    [InlineData("/api/docs/aleph.js")]
+    public async Task Página_de_antes_leva_pra_da_versão_atual(string caminho)
+    {
+        // 302 e não 301: quando nascer a v2, o /api/docs passa a levar pra ela
+        var (status, _, headers) = await _api.GetComHeadersAsync(caminho);
+
+        Assert.Equal(302, status);
+        Assert.Equal("/api/v1/docs/", headers.Location.ToString());
     }
 
     [Fact]
@@ -61,7 +74,7 @@ public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     [Fact]
     public async Task O_documento_da_v1_só_tem_caminho_versionado()
     {
-        var (_, corpo) = await _api.GetAsync("/api/openapi/v1.json");
+        var (_, corpo) = await _api.GetAsync("/api/v1/openapi.json");
         var documento = JsonNode.Parse(corpo)!;
 
         Assert.Equal("1", (string?)documento["info"]!["version"]);
@@ -69,11 +82,26 @@ public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     [Fact]
-    public async Task A_página_mostra_o_documento_da_v1()
+    public async Task Documento_de_versão_que_não_existe_dá_404()
     {
-        var (_, html) = await _api.GetAsync("/api/docs/");
+        var (status, _) = await _api.GetAsync("/api/v2/openapi.json");
 
-        Assert.Contains("api/openapi/v1.json", html);
-        Assert.Contains("AlephBot API v1", html);
+        Assert.Equal(404, status);
+    }
+
+    [Fact]
+    public async Task A_página_mora_dentro_da_v1_e_mostra_o_documento_dela()
+    {
+        // sem a barra no fim o Scalar manda pra com barra, senão os arquivos dele não carregam.
+        // Ele responde "docs/", relativo, e quem resolve o endereço é o navegador
+        var (redireciona, _, headers) = await _api.GetComHeadersAsync("/api/v1/docs");
+        var destino = new Uri(new Uri("https://aleph.tailc38add.ts.net/api/v1/docs"), headers.Location.ToString());
+        var (status, html) = await _api.GetAsync("/api/v1/docs/");
+
+        Assert.Equal("/api/v1/docs/", destino.AbsolutePath);
+        Assert.InRange(redireciona, 301, 308);
+        Assert.Equal(200, status);
+        Assert.Contains("api/v1/openapi.json", html);
+        Assert.Contains("<title>AlephBot API v1</title>", html);
     }
 }

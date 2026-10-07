@@ -16,9 +16,11 @@ using Scalar.AspNetCore;
 namespace AlephBot.Threnodian.Api;
 
 /// <summary>
-/// O /api/docs: a API no navegador, pelo Scalar — cada rota, o formato da resposta e um botão
-/// pra testar. Os documentos por trás (/api/openapi/v1.json, um por versão) saem das próprias
-/// rotas, então não existe arquivo de documentação pra ficar desatualizado.
+/// Os docs: a API no navegador, pelo Scalar — cada rota, o formato da resposta e um botão pra
+/// testar. Moram dentro da versão, ao lado das rotas dela: a página em /api/v1/docs e o
+/// documento por trás em /api/v1/openapi.json, que sai das próprias rotas — não existe arquivo
+/// de documentação pra ficar desatualizado. Tudo debaixo do /api/v1, um mount só no Funnel
+/// leva a versão inteira.
 ///
 /// Essas rotas ficam fora da chave de propósito: o navegador não manda header ao abrir uma
 /// página, e elas só contam o formato da API, nada de dentro do bot. A chave você cola uma
@@ -26,11 +28,12 @@ namespace AlephBot.Threnodian.Api;
 /// </summary>
 public static partial class ApiDocs
 {
-    public const string Página = "/api/docs";
+    /// <summary>A página da versão atual; o /api/docs de antes leva pra ela.</summary>
+    public static readonly string Página = $"/api/v{AlephApi.VersãoAtual}/docs";
 
-    private const string Documento = "/api/openapi/{documentName}.json";
-    private const string DocumentoDeAntes = "/api/openapi.json";
-    private const string Módulo = "/api/docs/aleph.js";
+    // /api/v1/openapi.json: um documento por versão, cada um dentro da sua
+    private const string Documento = "/api/{documentName}/openapi.json";
+    private static readonly string Módulo = $"{Página}/aleph.js";
     private const string Título = "AlephBot API";
 
     // o nome com que o documento e o Scalar se referem à chave
@@ -123,14 +126,12 @@ public static partial class ApiDocs
     public static void Map(WebApplication app)
     {
         var api = app.Services.GetRequiredService<ApiConfig>();
+        var versão = $"v{AlephApi.VersãoAtual}";
 
-        // /api/openapi/v1.json, e um arquivo novo pra cada versão que nascer
+        // /api/v1/openapi.json, e um arquivo novo pra cada versão que nascer
         app.MapOpenApi(Documento).WithDocumentPerVersion();
 
-        // o endereço de antes da versão manda pro documento da versão atual
-        app.MapGet(DocumentoDeAntes, () => Results.Redirect(
-                Documento.Replace("{documentName}", $"v{AlephApi.VersãoAtual}"), permanent: true))
-            .ExcludeFromDescription();
+        MapEndereçosDeAntes(app, versão);
 
         // a IA do Scalar não lê o formulário da página: ela só usa a chave que já estiver
         // guardada no navegador pro documento dela, e essa guarda começa vazia. Este módulo
@@ -164,17 +165,10 @@ public static partial class ApiDocs
                     scalar.JavaScriptConfiguration = Módulo;
             }
 
-            scalar.Title = Título;
+            // a página de uma versão mostra o documento dela, e só ele
+            scalar.Title = $"{Título} {versão}";
             scalar.OpenApiRoutePattern = Documento;
-
-            // uma entrada por versão; com mais de uma, o Scalar mostra a escolha num menu
-            foreach (var versão in app.DescribeApiVersions())
-            {
-                scalar.AddDocument(
-                    versão.GroupName,
-                    versão.IsDeprecated ? $"{Título} {versão.GroupName} (descontinuada)" : $"{Título} {versão.GroupName}",
-                    isDefault: versão.ApiVersion.MajorVersion == AlephApi.VersãoAtual);
-            }
+            scalar.AddDocument(versão, $"{Título} {versão}", isDefault: true);
 
             // em casa a chave fica guardada no navegador, porque colar de novo a cada F5 cansa.
             // Em máquina dos outros ela não fica pra trás: some quando a aba fecha
@@ -185,6 +179,22 @@ public static partial class ApiDocs
             scalar.Telemetry = false;
             scalar.DefaultFonts = false;
         });
+    }
+
+    /// <summary>
+    /// Os endereços de antes da versão. O documento muda de endereço de vez (301), como as
+    /// rotas de antes. A página leva pra da versão atual com 302, que o navegador não guarda:
+    /// quando nascer a v2, o /api/docs passa a levar pra ela.
+    /// </summary>
+    private static void MapEndereçosDeAntes(WebApplication app, string versão)
+    {
+        app.MapGet("/api/openapi.json", () => Results.Redirect(
+                Documento.Replace("{documentName}", versão), permanent: true))
+            .ExcludeFromDescription();
+
+        // com o {**resto} vale /api/docs, /api/docs/ e o que mais tiver ficado salvo nos favoritos
+        app.MapGet("/api/docs/{**resto}", () => Results.Redirect($"{Página}/"))
+            .ExcludeFromDescription();
     }
 
     /// <summary>
