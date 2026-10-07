@@ -107,7 +107,7 @@ public static class AlephApi
             });
 
         ApiDocs.Configure(versões);
-        ProteçãoDeFora.Configure(builder.Services);
+        LimiteDePedidos.Configure(builder.Services);
     }
 
     public static void Map(WebApplication app)
@@ -115,11 +115,18 @@ public static class AlephApi
         app.UseForwardedHeaders();
         app.UseExceptionHandler();
         app.UseStatusCodePages();
-        ProteçãoDeFora.Use(app, app.Services.GetRequiredService<ApiConfig>());
 
+        // a ordem conta: os headers de proteção valem até pro 429, e o limite vem antes da
+        // senha dos docs, pra que chutar senha também gaste a cota
+        ProteçãoDeFora.UseCabeçalhos(app);
+        LimiteDePedidos.Use(app);
+        ProteçãoDeFora.UseSenhaDosDocs(app, app.Services.GetRequiredService<ApiConfig>());
+
+        // o 429 vale pra toda rota, e o documento conta isso em cada uma
         var v1 = app.NewVersionedApi("AlephBot")
             .MapGroup("/api/v{version:apiVersion}")
-            .HasApiVersion(VersãoAtual);
+            .HasApiVersion(VersãoAtual)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
         // aberta de propósito: é o que monitor de uptime chama, e não conta nada além de
         // "estou de pé". HEAD junto porque é o padrão de monitor como o UptimeRobot; sem ele,

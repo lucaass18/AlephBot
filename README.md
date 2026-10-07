@@ -117,21 +117,6 @@ Daí em diante, **http://localhost:8080/api/v1/docs** mostra tudo no navegador.
 | 📜 | **`GET /api/v1/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
 | 📖 | **`GET /api/v1/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/v1/openapi.json` |
 
-### Versões
-
-A versão mora no caminho: **`/api/v1/...`**. Toda resposta da v1 conta no header
-`api-supported-versions` quais versões existem, e versão que não existe (`/api/v2/...`) é só um
-endereço que não existe — **404**. Mudança que quebra quem já usa nasce como `/api/v2`, do lado
-da v1, que continua de pé.
-
-Os docs moram dentro da versão, ao lado das rotas dela: a página em `/api/v1/docs` e o OpenAPI
-em `/api/v1/openapi.json`. Assim um mount só no Funnel, o `/api/v1`, leva a versão inteira.
-
-Os endereços de antes da versão não quebram: o `/api/health` segue respondendo onde estava (é
-ele que monitor de uptime chama), `/api/status`, `/api/stats` e `/api/commands` mandam pra v1
-com **308** — mesmo método, endereço novo —, o `/api/openapi.json` manda pro documento da v1 e
-o `/api/docs` leva pra página da versão atual.
-
 O `/api/v1/status`, como o `/api/v1/health`, não pede chave:
 
 ```bash
@@ -202,8 +187,9 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
   já vem com o `PREFIX` do `.env`, e `slash` ou `text` vêm `null` quando o comando só existe de
   um jeito.
 - Erro sai como `application/problem+json`: **401** sem chave ou com a chave errada, **404**,
-  **405**. Chave errada fica anotada no log, com o IP de quem tentou — também atrás do Tailscale
-  ou de um proxy na mesma máquina, que contam quem é pelo `X-Forwarded-For`.
+  **405** e **429** pra quem passa do [limite de pedidos](#limite-de-pedidos). Chave errada fica
+  anotada no log, com o IP de quem tentou — também atrás do Tailscale ou de um proxy na mesma
+  máquina, que contam quem é pelo `X-Forwarded-For`.
 
 > [!IMPORTANT]
 > Fora do Docker a API só escuta em `localhost`. No compose ela é publicada no `127.0.0.1` da
@@ -230,13 +216,55 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 >
 > - a página abre com a IA do Scalar, mas **sem a `API_KEY`**: de fora a IA chama só o que é
 >   aberto (`/api/v1/health` e `/api/v1/status`), e nada fica guardado no navegador de quem abriu;
-> - 60 pedidos por minuto por IP — passou disso, **429** até o minuto virar;
+> - 60 pedidos por minuto por IP ([limite de pedidos](#limite-de-pedidos)) — passou disso,
+>   **429** até o minuto virar;
 > - a página não pode ser embutida em outro site (`X-Frame-Options: DENY`);
 > - com `API_DOCS_PASSWORD` no `Config/.env` a página dos docs pede senha antes de abrir. É a camada
 >   que guarda a chave da IA: ela vai no HTML da página, e sem senha quem tiver o link usa as suas
 >   mensagens.
 >
-> De dentro (a sua rede, o Tailscale, o túnel SSH) nada disso pesa.
+> De dentro (a sua rede, o Tailscale, o túnel SSH) nada disso pesa — fica só o limite de pedidos,
+> dez vezes maior.
+
+### Versões
+
+A versão mora no caminho: **`/api/v1/...`**. Toda resposta da v1 conta no header
+`api-supported-versions` quais versões existem, e versão que não existe (`/api/v2/...`) é só um
+endereço que não existe — **404**. Mudança que quebra quem já usa nasce como `/api/v2`, do lado
+da v1, que continua de pé.
+
+Os docs moram dentro da versão, ao lado das rotas dela: a página em `/api/v1/docs` e o OpenAPI
+em `/api/v1/openapi.json`. Assim um mount só no Funnel, o `/api/v1`, leva a versão inteira.
+
+Os endereços de antes da versão não quebram: o `/api/health` segue respondendo onde estava (é
+ele que monitor de uptime chama), `/api/status`, `/api/stats` e `/api/commands` mandam pra v1
+com **308** — mesmo método, endereço novo —, o `/api/openapi.json` manda pro documento da v1 e
+o `/api/docs` leva pra página da versão atual.
+
+### Limite de pedidos
+
+Cada IP tem uma cota de pedidos por minuto — no IPv6, conta o `/64` inteiro, que é o que o
+provedor entrega pra uma casa só:
+
+| Quem pede | Pedidos por minuto |
+|:--|:--:|
+| De fora (Funnel ou IP público) | **60** |
+| De dentro (a sua rede, o Tailscale, o túnel SSH) | **600** |
+
+Toda resposta conta a cota no `X-RateLimit-Limit` e quanto ainda sobra no
+`X-RateLimit-Remaining`:
+
+```console
+$ curl -si http://localhost:8080/api/v1/health | grep -i ratelimit
+X-RateLimit-Limit: 600
+X-RateLimit-Remaining: 599
+```
+
+Passou da cota, **429** com `Retry-After` dizendo em quantos segundos voltar — a cota inteira
+volta quando o minuto vira. Conta todo pedido, docs inclusive (a página gasta uns cinco pra
+abrir), e chave errada também gasta. A cota de dentro é maior só pra segurar script em loop: a
+API mora no mesmo processo que atende o Discord. No log, quem passa da cota aparece uma vez por
+minuto, e não a cada pedido recusado.
 
 <br>
 

@@ -55,6 +55,21 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
     }
 
     [Fact]
+    public async Task O_documento_conta_o_limite_de_pedidos_em_toda_rota()
+    {
+        var rotas = (await DocumentoAsync())["paths"]!.AsObject();
+
+        Assert.All(rotas, rota =>
+        {
+            var respostas = rota.Value!.AsObject().First().Value!["responses"]!;
+
+            Assert.NotNull(respostas["429"]!["headers"]!["Retry-After"]);
+            Assert.NotNull(respostas["200"]!["headers"]!["X-RateLimit-Limit"]);
+            Assert.NotNull(respostas["200"]!["headers"]!["X-RateLimit-Remaining"]);
+        });
+    }
+
+    [Fact]
     public async Task O_esquema_da_chave_é_o_header_X_Api_Key()
     {
         var esquema = (await DocumentoAsync())["components"]!["securitySchemes"]!["ApiKey"]!;

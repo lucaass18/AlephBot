@@ -54,7 +54,10 @@ public static partial class ApiDocs
                 documento.Info.Title = Título;
                 documento.Info.Description =
                     "Só leitura: status e estatísticas do bot. Toda rota, menos `health` e `status`, " +
-                    $"pede a `API_KEY` do `Config/.env` no header `{ApiKeyFilter.Header}`.";
+                    $"pede a `API_KEY` do `Config/.env` no header `{ApiKeyFilter.Header}`.\n\n" +
+                    $"Cada IP pode fazer {LimiteDePedidos.DeFora} pedidos por minuto ({LimiteDePedidos.DeDentro} " +
+                    $"na rede do bot). Toda resposta conta a cota em `{LimiteDePedidos.CabeçalhoDaCota}` e " +
+                    $"quanto sobra em `{LimiteDePedidos.CabeçalhoDaSobra}`; quem passa leva 429 com `Retry-After`.";
 
                 // "http://aleph/" vira "http://aleph": servidor com barra no fim o linter do Scalar recusa
                 foreach (var servidor in documento.Servers ?? [])
@@ -86,9 +89,39 @@ public static partial class ApiDocs
             options.AddOperationTransformer((operação, contexto, _) =>
             {
                 operação.OperationId ??= IdDaOperação(contexto.Description);
+                DocumentaOLimite(operação);
                 return Task.CompletedTask;
             });
         });
+
+    /// <summary>
+    /// Os headers do limite de pedidos em cada resposta: a cota e a sobra em todas, e o
+    /// Retry-After no 429. Sem isto o Scalar (e a IA dele) não sabem que eles existem.
+    /// </summary>
+    private static void DocumentaOLimite(OpenApiOperation operação)
+    {
+        if (operação.Responses is null)
+            return;
+
+        foreach (var (status, resposta) in operação.Responses)
+        {
+            if (resposta is not OpenApiResponse comHeaders)
+                continue;
+
+            comHeaders.Headers ??= new Dictionary<string, IOpenApiHeader>();
+            comHeaders.Headers[LimiteDePedidos.CabeçalhoDaCota] = Inteiro("Quantos pedidos por minuto este IP pode fazer.");
+            comHeaders.Headers[LimiteDePedidos.CabeçalhoDaSobra] = Inteiro("Quantos ainda sobram neste minuto.");
+
+            if (status == "429")
+                comHeaders.Headers["Retry-After"] = Inteiro("Em quantos segundos tentar de novo.");
+        }
+    }
+
+    private static OpenApiHeader Inteiro(string descrição) => new()
+    {
+        Description = descrição,
+        Schema = new OpenApiSchema { Type = JsonSchemaType.Integer, Format = "int32" },
+    };
 
     /// <summary>
     /// "GET api/v1/status" vira "getStatus": a versão já mora no documento (um por versão). O

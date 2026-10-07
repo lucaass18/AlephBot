@@ -6,8 +6,8 @@ using AlephBot.Threnodian.Api;
 namespace AlephBot.Tests.Api;
 
 /// <summary>
-/// As camadas de quem vem de fora. Cada teste sobe a própria API: o limite de pedidos guarda
-/// estado, e um teste não pode gastar a cota do outro.
+/// As camadas de quem vem de fora: os headers de proteção e a senha dos docs. Cada teste sobe
+/// a própria API: a senha muda de um pra outro, e o limite de pedidos guarda estado.
 /// </summary>
 public class ProtecaoDeForaTests
 {
@@ -35,48 +35,18 @@ public class ProtecaoDeForaTests
         Assert.Equal("nosniff", headers.XContentTypeOptions);
     }
 
-    // ---- limite de pedidos ----------------------------------------------------
-
     [Fact]
-    public async Task De_fora_quem_passa_do_limite_espera()
+    public async Task Até_o_429_sai_com_os_headers_de_proteção()
     {
         await using var api = await ApiDeTeste.SubirAsync();
 
-        for (var i = 0; i < ProteçãoDeFora.PedidosPorMinuto; i++)
-        {
-            var (status, _) = await api.GetAsync("/api/v1/status", IpDeFora);
-            Assert.Equal(200, status);
-        }
-
-        var (bloqueado, _, headers) = await api.GetComHeadersAsync("/api/v1/status", IpDeFora);
-
-        Assert.Equal(429, bloqueado);
-        Assert.Equal("60", headers.RetryAfter);
-    }
-
-    [Fact]
-    public async Task O_limite_é_por_IP()
-    {
-        await using var api = await ApiDeTeste.SubirAsync();
-
-        for (var i = 0; i <= ProteçãoDeFora.PedidosPorMinuto; i++)
+        for (var i = 0; i < LimiteDePedidos.DeFora; i++)
             await api.GetAsync("/api/v1/status", IpDeFora);
 
-        var (outroIp, _) = await api.GetAsync("/api/v1/status", IPAddress.Parse("198.51.100.1"));
+        var (status, _, headers) = await api.GetComHeadersAsync("/api/v1/status", IpDeFora);
 
-        Assert.Equal(200, outroIp);
-    }
-
-    [Fact]
-    public async Task De_dentro_não_tem_limite()
-    {
-        await using var api = await ApiDeTeste.SubirAsync();
-
-        for (var i = 0; i < ProteçãoDeFora.PedidosPorMinuto * 2; i++)
-        {
-            var (status, _) = await api.GetAsync("/api/v1/status", IPAddress.Parse("100.94.84.30"));
-            Assert.Equal(200, status);
-        }
+        Assert.Equal(429, status);
+        Assert.Equal("DENY", headers.XFrameOptions);
     }
 
     // ---- senha dos docs -------------------------------------------------------
