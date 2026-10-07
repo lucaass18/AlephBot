@@ -115,7 +115,7 @@ Daí em diante, **http://localhost:8080/api/v1/docs** mostra tudo no navegador.
 | 🪪 | **`GET /api/v1/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink.<br>Não pede chave |
 | 📊 | **`GET /api/v1/stats`** | Servidores, membros, pessoas online, players de música e memória |
 | 📜 | **`GET /api/v1/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
-| 📖 | **`GET /api/v1/docs`** | Esta API no navegador ([Scalar](https://scalar.com)), com a cara do bot: as rotas em dois grupos (`Status` e `Bot`), o formato de cada resposta com um exemplo de verdade, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/v1/openapi.json` |
+| 📖 | **`GET /api/v1/docs`** | Esta API no navegador ([Scalar](https://scalar.com)), no jeito do Cypress com as cores do bot: as rotas em dois grupos (`Status` e `Bot`), o formato de cada resposta com um exemplo de verdade, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/v1/openapi.json` |
 
 O `/api/v1/status`, como o `/api/v1/health`, não pede chave:
 
