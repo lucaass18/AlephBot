@@ -115,6 +115,7 @@ public class ProtecaoDeForaTests
     [InlineData("/API/V1/DOCS/")]
     [InlineData("/api/v1/docs/aleph.js")]
     [InlineData("/api/v1/docs/scalar.js")]
+    [InlineData("/api/v1/docs/aleph.svg")]
     public async Task A_senha_guarda_a_página_inteira_em_qualquer_caixa(string caminho)
     {
         // a rota não liga pra maiúscula; a senha também não pode ligar

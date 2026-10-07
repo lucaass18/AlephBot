@@ -55,6 +55,54 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
     }
 
     [Fact]
+    public async Task As_rotas_ficam_em_dois_grupos_com_explicação()
+    {
+        var documento = await DocumentoAsync();
+        var grupos = documento["tags"]!.AsArray();
+        var rotas = documento["paths"]!;
+
+        string? GrupoDe(string caminho, string método) =>
+            (string?)Assert.Single(rotas[caminho]![método]!["tags"]!.AsArray());
+
+        Assert.Equal(["Status", "Bot"], grupos.Select(g => (string?)g!["name"]));
+        Assert.All(grupos, g => Assert.False(string.IsNullOrWhiteSpace((string?)g!["description"])));
+
+        Assert.Equal("Status", GrupoDe("/api/v1/health", "get"));
+        Assert.Equal("Status", GrupoDe("/api/v1/health", "head"));
+        Assert.Equal("Status", GrupoDe("/api/v1/status", "get"));
+        Assert.Equal("Bot", GrupoDe("/api/v1/stats", "get"));
+        Assert.Equal("Bot", GrupoDe("/api/v1/commands", "get"));
+    }
+
+    [Fact]
+    public async Task Os_exemplos_saem_no_mesmo_JSON_das_respostas()
+    {
+        // camelCase e enum como texto: o exemplo passa pelo mesmo serializador das rotas
+        var rotas = (await DocumentoAsync())["paths"]!;
+
+        JsonNode Exemplo(string caminho) =>
+            rotas[caminho]!["get"]!["responses"]!["200"]!["content"]!["application/json"]!["example"]!;
+
+        var status = Exemplo("/api/v1/status");
+
+        Assert.Equal("AlephBot", (string?)status["bot"]!["username"]);
+        Assert.Equal("production", (string?)status["mode"]);
+        Assert.Equal("connected", (string?)status["discord"]!["status"]);
+        Assert.Equal("ok", (string?)Exemplo("/api/v1/health")["status"]);
+        Assert.Equal(12, (int)Exemplo("/api/v1/stats")["guilds"]!);
+        Assert.Contains(Exemplo("/api/v1/commands").AsArray(), c => (string?)c!["slash"] == "/ping");
+    }
+
+    [Fact]
+    public async Task O_HEAD_do_health_tem_nome_próprio_e_sai_sem_corpo()
+    {
+        var head = (await DocumentoAsync())["paths"]!["/api/v1/health"]!["head"]!;
+
+        Assert.Equal("Se o bot está de pé, sem corpo", (string?)head["summary"]);
+        Assert.Null(head["responses"]!["200"]!["content"]);
+    }
+
+    [Fact]
     public async Task O_documento_conta_o_limite_de_pedidos_em_toda_rota()
     {
         var rotas = (await DocumentoAsync())["paths"]!.AsObject();
@@ -93,7 +141,9 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
 
     // ---- página --------------------------------------------------------------
 
-    [GeneratedRegex("""\{"authentication".*\}(?=,\s*\n)""")]
+    // a configuração do Scalar é o objeto JSON que ocupa uma linha inteira do initialize(...),
+    // seja qual for a primeira chave dele
+    [GeneratedRegex("""(?<=^\s*)\{".*\}(?=,\s*$)""", RegexOptions.Multiline)]
     private static partial Regex ConfigDaPágina();
 
     private async Task<string> PáginaAsync(params (string, string)[] headers)
@@ -113,6 +163,33 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
         Assert.Contains(ApiDeTeste.ChaveDoAgent, config);
         Assert.Contains("/api/v1/docs/aleph.js", html);
         Assert.Contains("\"persistAuth\":true", config);
+    }
+
+    [Fact]
+    public async Task A_página_tem_a_cara_do_bot()
+    {
+        var html = await PáginaAsync();
+        var config = JsonNode.Parse(ConfigDaPágina().Match(html).Value)!;
+
+        // a prévia do link no Discord lê o HTML que o servidor manda, sem rodar script
+        Assert.Contains("""<meta name="theme-color" content="#af87ff">""", html);
+        Assert.Equal("/api/v1/docs/aleph.svg", (string?)config["favicon"]);
+        Assert.Contains("--scalar-color-accent: #af87ff", (string?)config["customCss"]);
+        Assert.True((bool?)config["darkMode"]);
+
+        // o que é propaganda do Scalar, e não da API, fica de fora
+        Assert.Equal("never", (string?)config["showDeveloperTools"]);
+        Assert.True((bool?)config["mcp"]!["disabled"]);
+    }
+
+    [Fact]
+    public async Task O_ícone_da_aba_é_o_aleph()
+    {
+        var (status, corpo, headers) = await _api.GetComHeadersAsync("/api/v1/docs/aleph.svg");
+
+        Assert.Equal(200, status);
+        Assert.StartsWith("image/svg+xml", headers.ContentType.ToString());
+        Assert.Contains("ℵ", corpo);
     }
 
     [Fact]
