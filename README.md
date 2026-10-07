@@ -386,6 +386,25 @@ sem Lavalink e sem rede:
 dotnet test --project tests/AlephBot.Tests
 ```
 
+Pra ver o resultado na paleta do console do bot — agrupado por pasta e classe e, quando algo
+quebra, o teste, a mensagem do `Assert` e a linha:
+
+```bash
+dotnet run --file tests/relatorio.cs
+dotnet run --file tests/relatorio.cs -- --filter-class AlephBot.Tests.Commands.MuteCommandTests
+```
+
+> [!IMPORTANT]
+> É `--file` mesmo: na raiz mora o `AlephBot.csproj`, e sem a opção o `dotnet run` sobe o bot em
+> vez do relatório.
+
+No VPS, sem .NET instalado, o SDK vem do Docker — e o `-t` é o que traz as cores:
+
+```bash
+docker run --rm -t --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/src -w /src \
+  mcr.microsoft.com/dotnet/sdk:10.0 dotnet run --file tests/relatorio.cs
+```
+
 Cobrem o que quebra calado: o `.env` e a config, a duração do `/mute` e a posição do `/seek`, o
 link de rádio do YouTube, a leitura do MyAnimeList, a auditoria dos comandos de verdade (gatilho
 faltando, nome ou atalho repetido) e a API — que sobe inteira num servidor em memória pra
