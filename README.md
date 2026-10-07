@@ -115,7 +115,7 @@ Daí em diante, **http://localhost:8080/api/docs** mostra tudo no navegador.
 | 🪪 | **`GET /api/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink |
 | 📊 | **`GET /api/stats`** | Servidores, membros, pessoas online, players de música e memória |
 | 📜 | **`GET /api/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
-| 📖 | **`GET /api/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta e um botão pra testar.<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/openapi.json` |
+| 📖 | **`GET /api/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas, o formato de cada resposta, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/openapi.json` |
 
 Fora o `/api/health` e a documentação, todo pedido leva a chave no header `X-Api-Key`:
 
@@ -224,6 +224,7 @@ Depois preencha o `TOKEN`:
 | `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma`.<br>Vazio = usa o Jikan, sem chave. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
+| `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento |
 
 <sub>✅ = obrigatória</sub>
 
