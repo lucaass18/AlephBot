@@ -9,6 +9,11 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
+    <!-- a API (Threnodian/Api) roda no Kestrel, dentro do mesmo processo do bot -->
+    <ItemGroup>
+      <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
     <ItemGroup>
       <PackageReference Include="Lavalink4NET" Version="4.2.2" />
       <PackageReference Include="Lavalink4NET.InactivityTracking" Version="4.2.2" />
