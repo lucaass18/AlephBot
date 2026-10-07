@@ -95,11 +95,11 @@ public static class AlephApi
             "`ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com 503). " +
             "Não pede chave: é a rota que monitor de uptime chama.")
         .Produces<HealthResponse>()
-        .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable);
+        .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable)
+        .SemChave();
 
         var api = app.MapGroup("/api")
             .AddEndpointFilter(app.Services.GetRequiredService<ApiKeyFilter>())
-            .PedeChave()
             .ProducesProblem(StatusCodes.Status401Unauthorized);
 
         api.MapGet("/status", (BotStatus bot) => bot.Status())

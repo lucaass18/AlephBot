@@ -56,6 +56,15 @@ public static class ApiDocs
                     Description = "A API_KEY do Config/.env.",
                 };
 
+                // a chave vale pro documento inteiro, e não rota por rota: a IA do Scalar escolhe
+                // a autenticação das chamadas dela pelo primeiro item daqui — sem ele, chama sem
+                // header nenhum e leva 401 mesmo com a chave preenchida. Quem não pede chave avisa
+                // na própria rota (SemChave)
+                documento.Security =
+                [
+                    new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference(Esquema, documento)] = [] },
+                ];
+
                 return Task.CompletedTask;
             });
 
@@ -86,17 +95,15 @@ public static class ApiDocs
     }
 
     /// <summary>
-    /// Marca no documento as rotas que pedem a chave. Quem barra de verdade é o
-    /// <see cref="ApiKeyFilter"/>; isto é só o aviso pro Scalar mandar o header nos testes.
+    /// Marca no documento a rota que não pede a chave. Quem decide de verdade é o
+    /// <see cref="ApiKeyFilter"/>, que só vigia o grupo /api; isto é o aviso pro Scalar. O
+    /// "[{}]" é "sem autenticação", e não "[]": lista vazia some do documento e a rota herdaria
+    /// a chave do documento inteiro.
     /// </summary>
-    public static TBuilder PedeChave<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder =>
-        builder.AddOpenApiOperationTransformer((operação, contexto, _) =>
+    public static TBuilder SemChave<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder =>
+        builder.AddOpenApiOperationTransformer((operação, _, _) =>
         {
-            operação.Security =
-            [
-                new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference(Esquema, contexto.Document)] = [] },
-            ];
-
+            operação.Security = [new OpenApiSecurityRequirement()];
             return Task.CompletedTask;
         });
 
