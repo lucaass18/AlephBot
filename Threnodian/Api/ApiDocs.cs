@@ -1,6 +1,10 @@
+using System.Net;
+using System.Text.Json;
+
 using AlephBot.Config;
 
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi;
@@ -23,6 +27,7 @@ public static class ApiDocs
     public const string Página = "/api/docs";
 
     private const string Documento = "/api/openapi.json";
+    private const string Módulo = "/api/docs/aleph.js";
     private const string Título = "AlephBot API";
 
     // o nome com que o documento e o Scalar se referem à chave
@@ -113,11 +118,30 @@ public static class ApiDocs
 
         app.MapOpenApi(Documento);
 
+        // a IA do Scalar não lê o formulário da página: ela só usa a chave que já estiver
+        // guardada no navegador pro documento dela, e essa guarda começa vazia. Este módulo
+        // carrega antes do Scalar e preenche a guarda com a API_KEY
+        if (api.ScalarAgentKey is not null)
+        {
+            app.MapGet(Módulo, (HttpContext http) =>
+            {
+                http.Response.Headers.CacheControl = "no-store";
+
+                return Results.Text(
+                    PodeLevarAChave(http) ? MóduloDaChave(api.Key) : "export default {};",
+                    "text/javascript");
+            })
+            .ExcludeFromDescription();
+        }
+
         app.MapScalarApiReference(Página, scalar =>
         {
             // a IA do Scalar: em localhost ela vem com uma cota grátis; fora dele, só com chave
             if (api.ScalarAgentKey is { } chave)
+            {
                 scalar.WithAgentKey(chave);
+                scalar.JavaScriptConfiguration = Módulo;
+            }
 
             scalar.Title = Título;
             scalar.OpenApiRoutePattern = Documento;
@@ -131,4 +155,66 @@ public static class ApiDocs
             scalar.DefaultFonts = false;
         });
     }
+
+    /// <summary>
+    /// A chave só vai pra quem já está do lado de dentro. O Funnel nem publica o /api/docs, mas
+    /// se um dia publicar, o Tailscale marca o pedido e ele leva o módulo vazio; e com a porta
+    /// aberta direto pra internet (API_BIND=0.0.0.0) quem chega tem IP público e também não leva.
+    /// </summary>
+    private static bool PodeLevarAChave(HttpContext http)
+    {
+        if (http.Request.Headers.ContainsKey("Tailscale-Funnel-Request"))
+            return false;
+
+        if (http.Connection.RemoteIpAddress is not { } ip)
+            return false;
+
+        if (ip.IsIPv4MappedToIPv6)
+            ip = ip.MapToIPv4();
+
+        return IPAddress.IsLoopback(ip) || RedesDeDentro.Any(rede => rede.Contains(ip));
+    }
+
+    // o que chega pelo Tailscale e pelo túnel SSH entra no contêiner pela rede do Docker
+    private static readonly IPNetwork[] RedesDeDentro =
+    [
+        IPNetwork.Parse("10.0.0.0/8"),
+        IPNetwork.Parse("172.16.0.0/12"),
+        IPNetwork.Parse("192.168.0.0/16"),
+        IPNetwork.Parse("100.64.0.0/10"),
+        IPNetwork.Parse("fc00::/7"),
+    ];
+
+    /// <summary>
+    /// O Scalar guarda a autenticação de cada documento no localStorage, em
+    /// "scalar-reference-auth-{documento}", e é lendo dali que a IA monta o header. O módulo
+    /// intercepta essa leitura e põe a chave do bot — vale pro documento da página e pro do
+    /// Registry, cujo nome só a IA sabe. A do bot sempre vence: uma chave velha ou errada que
+    /// ficou guardada de antes não atrapalha, e trocar a API_KEY já vale no próximo F5.
+    /// </summary>
+    private static string MóduloDaChave(string chave) =>
+        $$"""
+        // AlephBot: põe a API_KEY na autenticação que o Scalar guarda no navegador
+        const chave = {{JsonSerializer.Serialize(chave)}};
+        const esquema = {{JsonSerializer.Serialize(Esquema)}};
+        const prefixo = "scalar-reference-auth-";
+        const ler = Storage.prototype.getItem;
+
+        Storage.prototype.getItem = function (nome) {
+          const valor = ler.call(this, nome);
+
+          if (this !== window.localStorage || typeof nome !== "string" || !nome.startsWith(prefixo))
+            return valor;
+
+          let auth;
+          try { auth = JSON.parse(valor ?? "{}") ?? {}; } catch { return valor; }
+
+          auth.secrets ??= {};
+          auth.secrets[esquema] = { type: "apiKey", "x-scalar-secret-token": chave };
+          auth.selected ??= {};
+          return JSON.stringify(auth);
+        };
+
+        export default {};
+        """;
 }
