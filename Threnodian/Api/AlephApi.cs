@@ -128,51 +128,36 @@ public static class AlephApi
             .HasApiVersion(VersãoAtual)
             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
-        // abertas de propósito: se o bot está de pé e quem ele é, é o que monitor de uptime e
-        // página de status mostrariam pra qualquer um. Os números e os comandos seguem com chave
-        var abertas = v1.MapGroup("")
-            .WithTags(ApiDocs.GrupoStatus)
-            .SemChave();
-
-        abertas.MapGet("/health", Saúde)
+        // aberta de propósito: é o que monitor de uptime chama, e não conta nada além de
+        // "estou de pé". HEAD junto porque é o padrão de monitor como o UptimeRobot; sem ele,
+        // 405 e alarme falso
+        v1.MapMethods("/health", [HttpMethods.Get, HttpMethods.Head], Saúde)
             .WithSummary("Se o bot está de pé")
             .WithDescription(
                 "`ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com 503). " +
                 "Não pede chave: é a rota que monitor de uptime chama.")
             .Produces<HealthResponse>()
             .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable)
-            .ComExemplo(ExemplosDaApi.Saúde);
+            .SemChave();
 
-        // HEAD é o padrão de monitor como o UptimeRobot; sem ele, 405 e alarme falso. Fica numa
-        // rota à parte do GET só pra ter nome próprio nos docs — e no documento sai sem corpo,
-        // que HEAD não tem
-        abertas.MapMethods("/health", [HttpMethods.Head], Saúde)
-            .WithSummary("Se o bot está de pé, sem corpo")
-            .WithDescription(
-                "O mesmo do GET, só com o código: 200 de pé, 503 sem Discord. É o que monitor de uptime " +
-                "costuma chamar.")
-            .Produces(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status503ServiceUnavailable);
-
-        abertas.MapGet("/status", (BotStatus bot) => bot.Status())
+        // também aberta: quem o bot é e se as conexões dele estão de pé é o que uma página de
+        // status mostraria pra qualquer um. Os números e a lista de comandos seguem com chave
+        v1.MapGet("/status", (BotStatus bot) => bot.Status())
             .WithSummary("Quem o bot é e como estão as conexões")
             .WithDescription("Versão, uptime, latência do gateway e o estado do Lavalink. Não pede chave.")
-            .ComExemplo(ExemplosDaApi.Status);
+            .SemChave();
 
         var comChave = v1.MapGroup("")
-            .WithTags(ApiDocs.GrupoBot)
             .AddEndpointFilter(app.Services.GetRequiredService<ApiKeyFilter>())
             .ProducesProblem(StatusCodes.Status401Unauthorized);
 
         comChave.MapGet("/stats", (BotStatus bot) => bot.Estatísticas())
             .WithSummary("Os números do bot")
-            .WithDescription("Servidores, membros, pessoas online, players de música e memória.")
-            .ComExemplo(ExemplosDaApi.Estatísticas);
+            .WithDescription("Servidores, membros, pessoas online, players de música e memória.");
 
         comChave.MapGet("/commands", (BotStatus bot) => bot.Comandos())
             .WithSummary("Os comandos do /help")
-            .WithDescription("Um item por comando, com a forma em barra, a de prefixo e os atalhos.")
-            .ComExemplo(ExemplosDaApi.Comandos);
+            .WithDescription("Um item por comando, com a forma em barra, a de prefixo e os atalhos.");
 
         MapEndereçosDeAntes(app);
         ApiDocs.Map(app);
