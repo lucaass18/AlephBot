@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 
 using AlephBot.Config;
@@ -134,10 +133,19 @@ public static class ApiDocs
             .ExcludeFromDescription();
         }
 
-        app.MapScalarApiReference(Página, scalar =>
+        app.MapScalarApiReference(Página, (scalar, http) =>
         {
-            // a IA do Scalar: em localhost ela vem com uma cota grátis; fora dele, só com chave
-            if (api.ScalarAgentKey is { } chave)
+            var deFora = PeloFunnel(http);
+
+            // a IA do Scalar mora no navegador: a chave dela vai no HTML de quem abre a página, e
+            // cada mensagem é cobrada. Em localhost ela vem com uma cota grátis; na rede de casa,
+            // com a chave. Pelo Funnel a página abre sem IA — quem achar o link não leva chave
+            // nenhuma nem gasta as suas mensagens
+            if (deFora)
+            {
+                scalar.DisableAgent();
+            }
+            else if (api.ScalarAgentKey is { } chave)
             {
                 scalar.WithAgentKey(chave);
                 scalar.JavaScriptConfiguration = Módulo;
@@ -146,8 +154,9 @@ public static class ApiDocs
             scalar.Title = Título;
             scalar.OpenApiRoutePattern = Documento;
 
-            // a chave fica guardada neste navegador: colar de novo a cada F5 cansa
-            scalar.PersistentAuthentication = true;
+            // em casa a chave fica guardada no navegador, porque colar de novo a cada F5 cansa.
+            // Em máquina dos outros ela não fica pra trás: some quando a aba fecha
+            scalar.PersistentAuthentication = !deFora;
             scalar.AddPreferredSecuritySchemes([Esquema]);
 
             // a página é pra uso da casa: sem telemetria do Scalar e sem fonte vinda de CDN
@@ -156,34 +165,19 @@ public static class ApiDocs
         });
     }
 
+    /// <summary>O Tailscale marca tudo o que entra pela internet, pelo Funnel.</summary>
+    private static bool PeloFunnel(HttpContext http) =>
+        http.Request.Headers.ContainsKey("Tailscale-Funnel-Request");
+
     /// <summary>
-    /// A chave só vai pra quem já está do lado de dentro. O Funnel nem publica o /api/docs, mas
-    /// se um dia publicar, o Tailscale marca o pedido e ele leva o módulo vazio; e com a porta
-    /// aberta direto pra internet (API_BIND=0.0.0.0) quem chega tem IP público e também não leva.
+    /// A chave só vai pra quem já está do lado de dentro. Pelo Funnel o pedido vem marcado e
+    /// leva o módulo vazio; e com a porta aberta direto pra internet (API_BIND=0.0.0.0) quem
+    /// chega tem IP público e também não leva.
     /// </summary>
-    private static bool PodeLevarAChave(HttpContext http)
-    {
-        if (http.Request.Headers.ContainsKey("Tailscale-Funnel-Request"))
-            return false;
-
-        if (http.Connection.RemoteIpAddress is not { } ip)
-            return false;
-
-        if (ip.IsIPv4MappedToIPv6)
-            ip = ip.MapToIPv4();
-
-        return IPAddress.IsLoopback(ip) || RedesDeDentro.Any(rede => rede.Contains(ip));
-    }
-
-    // o que chega pelo Tailscale e pelo túnel SSH entra no contêiner pela rede do Docker
-    private static readonly IPNetwork[] RedesDeDentro =
-    [
-        IPNetwork.Parse("10.0.0.0/8"),
-        IPNetwork.Parse("172.16.0.0/12"),
-        IPNetwork.Parse("192.168.0.0/16"),
-        IPNetwork.Parse("100.64.0.0/10"),
-        IPNetwork.Parse("fc00::/7"),
-    ];
+    private static bool PodeLevarAChave(HttpContext http) =>
+        !PeloFunnel(http)
+        && http.Connection.RemoteIpAddress is { } ip
+        && RedeDeDentro.Contém(ip);
 
     /// <summary>
     /// O Scalar guarda a autenticação de cada documento no localStorage, em

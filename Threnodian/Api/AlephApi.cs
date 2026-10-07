@@ -6,6 +6,7 @@ using AlephBot.Config;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AlephBot.Threnodian.Api;
@@ -59,6 +60,20 @@ public static class AlephApi
             json.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
         });
 
+        // na frente de mim fica o Tailscale (serve e Funnel), que conta em X-Forwarded-Proto se o
+        // pedido chegou por HTTPS e em X-Forwarded-For quem pediu. Sem ler isso a página pública
+        // anunciava "http://" — e o navegador barrava o botão de testar — e o log de chave errada
+        // mostrava o IP do Docker. Só vale vindo da rede de dentro: de fora, qualquer um forjaria
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.KnownProxies.Clear();
+            options.KnownIPNetworks.Clear();
+
+            foreach (var rede in RedeDeDentro.Redes)
+                options.KnownIPNetworks.Add(rede);
+        });
+
         // erro sai como application/problem+json, igual pra 401, 404 e exceção
         builder.Services.AddProblemDetails();
 
@@ -74,6 +89,7 @@ public static class AlephApi
 
     public static void Map(WebApplication app)
     {
+        app.UseForwardedHeaders();
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 

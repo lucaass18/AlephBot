@@ -182,8 +182,8 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
   já vem com o `PREFIX` do `.env`, e `slash` ou `text` vêm `null` quando o comando só existe de
   um jeito.
 - Erro sai como `application/problem+json`: **401** sem chave ou com a chave errada, **404**,
-  **405**. Chave errada fica anotada no log, com o IP de quem tentou (atrás de um proxy, o IP
-  que aparece é o do proxy).
+  **405**. Chave errada fica anotada no log, com o IP de quem tentou — também atrás do Tailscale
+  ou de um proxy na mesma máquina, que contam quem é pelo `X-Forwarded-For`.
 
 > [!IMPORTANT]
 > Fora do Docker a API só escuta em `localhost`. No compose ela é publicada no `127.0.0.1` da
@@ -195,6 +195,19 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/commands
 > Pra ver de casa a API de um VPS não precisa abrir porta nenhuma: um túnel SSH traz ela até
 > você. `ssh -N -L 8080:127.0.0.1:8080 usuário@vps` — no PuTTY, *Connection → SSH → Tunnels*,
 > porta `8080` para `127.0.0.1:8080` — e o `http://localhost:8080/api/docs` abre no seu navegador.
+
+> [!NOTE]
+> Pra abrir de qualquer máquina sem instalar nada, o [Tailscale Funnel](https://tailscale.com/kb/1223/funnel)
+> publica com HTTPS só as rotas que você escolher, sem abrir porta no firewall:
+>
+> ```bash
+> for rota in health status stats commands docs openapi.json; do
+>   sudo tailscale funnel --bg --set-path /api/$rota http://127.0.0.1:8080/api/$rota
+> done
+> ```
+>
+> O que chega pelo Funnel vem marcado pelo Tailscale, e a página abre sem a IA do Scalar, sem o
+> módulo que entrega a chave e sem guardar no navegador a chave que você colar nela.
 
 <br>
 
