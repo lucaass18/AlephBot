@@ -133,7 +133,7 @@ public sealed class AlephConfig
                 "`openssl rand -hex 32` gera uma boa.");
         }
 
-        return new ApiConfig(chave, OptionalPort("API_PORT", PortaDaApiPadrão));
+        return new ApiConfig(chave, OptionalPort("API_PORT", PortaDaApiPadrão), OptionalOuNulo("SCALAR_AGENT_KEY"));
     }
 
     private static string Required(string key)
@@ -212,14 +212,21 @@ public sealed class AlephConfig
 /// </summary>
 public sealed class ApiConfig
 {
-    public ApiConfig(string key, int port)
+    public ApiConfig(string key, int port, string? scalarAgentKey = null)
     {
         Key = key;
         Port = port;
+        ScalarAgentKey = scalarAgentKey;
     }
 
     /// <summary>O que todo pedido tem que trazer no header X-Api-Key.</summary>
     public string Key { get; }
 
     public int Port { get; }
+
+    /// <summary>
+    /// A chave da IA do Scalar no /api/docs. Sem ela a IA só aparece abrindo pelo localhost,
+    /// que é onde o Scalar dá a cota grátis.
+    /// </summary>
+    public string? ScalarAgentKey { get; }
 }
