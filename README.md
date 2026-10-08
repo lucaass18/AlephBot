@@ -335,7 +335,8 @@ Depois preencha o `TOKEN`:
 | `LAVALINK_URI` | | `http://localhost:2333/` | Endereço REST do servidor Lavalink |
 | `LAVALINK_PASSWORD` | | `youshallnotpass` | Senha do Lavalink |
 | `MUSIC_IDLE_MINUTES` | | `2` | Minutos parado (canal vazio ou nada tocando) antes de sair da voz |
-| `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console quando não há token guardado.<br>Plano B pra servidor: com o WARP do compose o YouTube toca sem conta — veja [YouTube num servidor](#youtube-num-servidor) |
+| `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console quando não há token guardado.<br>Plano B pra servidor: com o `yt-audio` do compose o YouTube toca sem conta — veja [YouTube num servidor](#youtube-num-servidor) |
+| `YOUTUBE_AUDIO_URI` | | *vazio* | Endereço do `yt-audio`, o serviço que toca o YouTube sem conta. O compose preenche (`http://yt-audio:8080/`).<br>Vazio = o YouTube toca só pelo plugin do Lavalink — veja [YouTube num servidor](#youtube-num-servidor) |
 | `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma`.<br>Vazio = usa o Jikan, sem chave. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
@@ -367,11 +368,11 @@ No Developer Portal, aba **Bot**, ligue:
 
 ### 🐳 Docker <sub>recomendado</sub>
 
-Sobe cinco contêineres na rede interna do compose: o bot, o Lavalink (áudio), o
+Sobe sete contêineres na rede interna do compose: o bot, o Lavalink (áudio), o
 `yt-cipher`, que decifra as assinaturas do player do YouTube — o decifrador embutido no
-plugin quebra a cada mudança do YouTube; esse acompanha —, o `warp`, por onde o Lavalink sai
-pra internet ([YouTube num servidor](#youtube-num-servidor)), e o n8n, que roda a
-[automação com a API](#automação-com-a-api-n8n).
+plugin quebra a cada mudança do YouTube; esse acompanha —, os três que tocam o YouTube sem
+conta (`yt-audio`, `pot` e `warp`, veja [YouTube num servidor](#youtube-num-servidor)) e o
+n8n, que roda a [automação com a API](#automação-com-a-api-n8n).
 
 ```bash
 docker compose up -d --build
@@ -381,9 +382,9 @@ docker compose logs -f alephbot
 O bot só é iniciado depois que o Lavalink responde ao healthcheck, então o primeiro `up`
 pode levar um minuto: o plugin do YouTube é baixado antes do servidor abrir a porta.
 
-O `compose.yaml` injeta `LAVALINK_URI` e `LAVALINK_PASSWORD` nos contêineres, então o que
-estiver no `Config/.env` para essas duas chaves é ignorado. O que o compose lê é o `.env`
-da **raiz** do projeto — um arquivo diferente do `Config/.env`:
+O `compose.yaml` injeta `LAVALINK_URI`, `LAVALINK_PASSWORD` e `YOUTUBE_AUDIO_URI` no bot,
+então o que estiver no `Config/.env` para essas três chaves é ignorado. O que o compose lê
+é o `.env` da **raiz** do projeto — um arquivo diferente do `Config/.env`:
 
 | Variável | Padrão | Descrição |
 |:--|:--|:--|
@@ -409,11 +410,34 @@ Quatro volumes sobrevivem ao `docker compose down`: `aleph-logs` (logs em arquiv
 
 #### YouTube num servidor
 
-De um IP de datacenter (EC2, DigitalOcean e afins) o YouTube responde *"This video requires
-login"* mesmo em vídeo público: a busca funciona, o áudio não. O compose contorna isso sem
-conta nenhuma: o Lavalink sai pra internet pelo [Cloudflare WARP](https://one.one.one.one)
-(o contêiner `warp`), e do IP da Cloudflare o YouTube entrega o áudio. Não há token, código
-nem login pra manter.
+De um IP de datacenter (EC2, DigitalOcean e afins) o YouTube não entrega áudio a quem não
+está logado: a busca funciona, o áudio responde *"This video requires login"* ou *"Sign in
+to confirm you're not a bot"*. O compose contorna isso sem conta nenhuma, com três
+contêineres:
+
+- **`yt-audio`** (a pasta `YtAudio`) pega o áudio com o [yt-dlp](https://github.com/yt-dlp/yt-dlp),
+  que acompanha as mudanças do YouTube toda semana, e serve por HTTP na rede interna;
+- **`pot`** gera o token anti-robô (*PO token*) que o YouTube passou a exigir, com o
+  [bgutil](https://github.com/Brainicism/bgutil-ytdlp-pot-provider);
+- **`warp`** é a saída pra internet, pelo [Cloudflare WARP](https://one.one.one.one): do IP
+  da AWS o YouTube recusa mesmo com o token; do da Cloudflare, entrega.
+
+O bot continua buscando pelo plugin do Lavalink — título, capa e fila vêm de lá —, mas na
+hora de tocar uma faixa do YouTube manda o Lavalink tocar `http://yt-audio:8080/v/<id>`. Se
+o `yt-audio` falhar, aquela faixa vai pelo plugin, como antes. Quem liga isso é o
+`YOUTUBE_AUDIO_URI`, que o compose já preenche; transmissão ao vivo fica sempre com o plugin.
+
+Pra acompanhar — cada música mostra o formato e quanto o yt-dlp levou, e cada recusa, o motivo:
+
+```bash
+docker compose logs -f yt-audio
+```
+
+Pra testar um vídeo direto (`204` = o áudio veio; `502` vem com o motivo):
+
+```bash
+docker compose exec lavalink curl -s -w "%{http_code}\n" http://yt-audio:8080/preparar/dQw4w9WgXcQ
+```
 
 Pra conferir se o túnel está de pé (`warp=on`):
 
@@ -421,10 +445,18 @@ Pra conferir se o túnel está de pé (`warp=on`):
 docker compose exec lavalink curl -x socks5h://warp:9091 -fsS https://www.cloudflare.com/cdn-cgi/trace | grep warp
 ```
 
+Quando o YouTube mudar e o `yt-audio` começar a recusar, o conserto quase sempre é um yt-dlp
+mais novo: troque a versão no `YtAudio/requirements.txt` (a lista está no
+[PyPI](https://pypi.org/project/yt-dlp/#history)) e reconstrua só ele:
+
+```bash
+docker compose up -d --build yt-audio
+```
+
 > [!NOTE]
-> O WARP gratuito não foi feito pra isso, e o YouTube pode passar a desconfiar dos IPs da
-> Cloudflare. Se o áudio voltar a falhar com *"requires login"*, use o login abaixo — os
-> dois convivem: o client que usa a conta é o último da lista no `application.yml`.
+> O WARP gratuito não foi feito pra isso, e o YouTube pode passar a recusar os IPs da
+> Cloudflare. Se o áudio voltar a falhar, ligue o login abaixo como reserva: a faixa que o
+> `yt-audio` não conseguir toca pelo plugin, com a conta.
 
 ##### Login do YouTube <sub>plano B</sub>
 
@@ -466,9 +498,10 @@ diferente ali (trocar de conta, por exemplo). Fora isso a variável pode ficar v
 > [!NOTE]
 > Use uma **conta Google descartável**: o padrão de acesso de um bot pode fazer o YouTube
 > sinalizar a conta — e é isso, não o tempo, que mata o token. Pra voltar a ficar sem conta,
-> desligue o `YOUTUBE_LOGIN`, esvazie o `YOUTUBE_REFRESH_TOKEN` e apague o token guardado
-> (`docker compose exec alephbot rm /app/data/youtube-token.json`): com um token guardado,
-> o bot pede login novo quando o Google recusa, mesmo com o `YOUTUBE_LOGIN` desligado.
+> só com o `yt-audio`, desligue o `YOUTUBE_LOGIN`, esvazie o `YOUTUBE_REFRESH_TOKEN` e apague
+> o token guardado (`docker compose exec alephbot rm /app/data/youtube-token.json`): com um
+> token guardado, o bot pede login novo quando o Google recusa, mesmo com o `YOUTUBE_LOGIN`
+> desligado.
 
 <br>
 
@@ -489,6 +522,8 @@ java -jar Lavalink.jar
 # e o bot num terceiro
 dotnet run
 ```
+
+Fora do compose o `YOUTUBE_AUDIO_URI` fica vazio, e o YouTube toca só pelo plugin.
 
 <br>
 
@@ -523,10 +558,14 @@ docker run --rm -t --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/src -w /sr
 ```
 
 Cobrem o que quebra calado: o `.env` e a config, a duração do `/mute` e a posição do `/seek`, o
-link de rádio do YouTube, a leitura do MyAnimeList, a auditoria dos comandos de verdade (gatilho
-faltando, nome ou atalho repetido) e a API — que sobe inteira num servidor em memória pra
-conferir quem passa sem chave, o documento OpenAPI e o módulo que só entrega a chave pra quem
-está dentro.
+link de rádio do YouTube, o áudio do YouTube pelo `yt-audio` (e a volta pro plugin quando ele
+falha), a leitura do MyAnimeList, a auditoria dos comandos de verdade (gatilho faltando, nome
+ou atalho repetido) e a API — que sobe inteira num servidor em memória pra conferir quem passa
+sem chave, o documento OpenAPI e o módulo que só entrega a chave pra quem está dentro.
+
+Os do `yt-audio`, em Python, rodam no build da imagem dele, com o yt-dlp e o YouTube de
+mentira: o pedaço que o Lavalink pede no `/seek`, o link renovado e as recusas. Se algum
+quebrar, `docker compose build yt-audio` falha e a imagem nem sai.
 
 > [!NOTE]
 > O `global.json` da raiz põe o `dotnet test` na Microsoft.Testing.Platform, que é como o
@@ -545,9 +584,11 @@ Core/
   Personality/    Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
 Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
   Api/            A API HTTP: rotas, a chave, os docs e o que ela lê do bot
-  Youtube/        Login (o token guardado e entregue ao Lavalink) e a busca de playlist
+  Youtube/        Login (o token guardado e entregue ao Lavalink), a busca de playlist e o
+                  áudio pelo yt-audio
   Players/        A foto de cada player e a volta depois de um restart
 Lavalink/         application.yml do servidor de áudio
+YtAudio/          O yt-audio: o áudio do YouTube sem conta, pelo yt-dlp (Python)
 n8n/              A automação com a API: os fluxos, o script que instala e a pasta onde eles gravam
 tests/            Testes de unidade (xUnit): a config, os parsers, os comandos e a API em memória
 ```

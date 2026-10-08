@@ -16,6 +16,7 @@ public sealed class AlephConfig
         TimeSpan musicIdleTimeout,
         bool youtubeLogin,
         string? youtubeRefreshToken,
+        Uri? youtubeAudioUri,
         string? malClientId,
         ApiConfig? api,
         string? ambiente)
@@ -29,6 +30,7 @@ public sealed class AlephConfig
         MusicIdleTimeout = musicIdleTimeout;
         YoutubeLogin = youtubeLogin;
         YoutubeRefreshToken = youtubeRefreshToken;
+        YoutubeAudioUri = youtubeAudioUri;
         MalClientId = malClientId;
         Api = api;
         Ambiente = ambiente;
@@ -59,6 +61,14 @@ public sealed class AlephConfig
     /// porque o Google pode trocar ele sem avisar, e o .env não acompanharia.
     /// </summary>
     public string? YoutubeRefreshToken { get; }
+
+    /// <summary>
+    /// O yt-audio, o serviço do compose que pega o áudio do YouTube com o yt-dlp, sem conta.
+    /// Com ele as faixas do YouTube tocam pelo link dele; null (o padrão fora do compose)
+    /// deixa tudo com o plugin do Lavalink. O endereço é como o Lavalink alcança o serviço,
+    /// não como eu alcanço — no compose, os dois são o mesmo.
+    /// </summary>
+    public Uri? YoutubeAudioUri { get; }
 
     /// <summary>
     /// Client ID da API oficial do MyAnimeList. Opcional: sem ele o /ma pergunta ao Jikan,
@@ -137,6 +147,7 @@ public sealed class AlephConfig
             musicIdleTimeout: env.OptionalMinutes("MUSIC_IDLE_MINUTES", TimeSpan.FromMinutes(2)),
             youtubeLogin: env.OptionalBool("YOUTUBE_LOGIN"),
             youtubeRefreshToken: env.OptionalOuNulo("YOUTUBE_REFRESH_TOKEN"),
+            youtubeAudioUri: env.OptionalUriOuNulo("YOUTUBE_AUDIO_URI"),
             malClientId: env.OptionalOuNulo("MAL_CLIENT_ID"),
             api: env.OptionalApi(),
             ambiente: env.OptionalOuNulo("DOTNET_ENVIRONMENT"));
@@ -210,6 +221,18 @@ public sealed class AlephConfig
         public Uri OptionalUri(string key, string fallback)
         {
             var value = Optional(key, fallback);
+
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+                throw new InvalidOperationException($"{key} não é um endereço válido: '{value}'");
+
+            return uri;
+        }
+
+        /// <summary>Endereço que pode faltar; torto continua sendo erro, pelo mesmo motivo do de cima.</summary>
+        public Uri? OptionalUriOuNulo(string key)
+        {
+            if (OptionalOuNulo(key) is not { } value)
+                return null;
 
             if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
                 throw new InvalidOperationException($"{key} não é um endereço válido: '{value}'");

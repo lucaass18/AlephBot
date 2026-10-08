@@ -66,9 +66,9 @@ plugins:
     enabled: true
 
     # de IP de datacenter (EC2 e afins) o YouTube responde "This video requires login"
-    # em vídeo público: a busca passa, o áudio não. No compose quem resolve é o WARP (o
-    # Lavalink sai pela Cloudflare, sem conta); o login fica de reserva, pra quando o
-    # YouTube passar a desconfiar dos IPs dela. Logado, ele volta a entregar o stream.
+    # em vídeo público: a busca passa, o áudio não. No compose quem entrega o áudio é o
+    # yt-audio (o bot manda o Lavalink tocar o link dele); o login fica de reserva, pra
+    # quando ele falhar. Logado, o plugin volta a entregar o stream.
     oauth:
       enabled: true
       # quem pede o login é o bot (YOUTUBE_LOGIN no Config/.env), pra o código sair no
@@ -88,23 +88,26 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
 
-    # a ordem importa: o Lavalink tenta um cliente por vez até algum entregar o áudio.
+    # a ordem importa: pra cada pedido o Lavalink tenta um client por vez, pulando os que
+    # não atendem aquele tipo, até algum dar conta.
     #
-    # Pelo WARP os clients que não precisam de conta tocam, então eles vêm primeiro. O
-    # MUSIC fica na frente porque é ele quem responde busca; pra tocar ele nem é tentado.
-    # O TV vai por último: é o único que sabe usar o OAuth, e só serve quando há login
-    # (sem ele na lista um token seria renovado e nunca usado) — sem token, ele falha
-    # rápido e não atrapalha.
+    # No compose o plugin não toca o YouTube: ele busca, lê os dados de um link e, quando o
+    # yt-audio falha, ainda tenta tocar. O MUSIC só atende a busca do YouTube Music
+    # (ytmsearch:). O TV vem logo depois: é o único que sabe usar o OAuth e é quem toca na
+    # reserva quando há login (sem ele na lista um token seria renovado e nunca usado) —
+    # sem token ele falha rápido, e busca e link ele nem atende. A busca normal (ytsearch:,
+    # a que o bot usa) e os links caem no WEB, que pelo WARP o YouTube atende; os outros
+    # ficam de reserva dele.
     #
     # Se as buscas começarem a falhar, é esta lista que se mexe — o README do plugin mantém
     # a ordem recomendada do momento.
     clients:
       - MUSIC
-      - ANDROID_VR
-      - TVHTML5_SIMPLY
+      - TV
       - WEB
       - WEBEMBEDDED
-      - TV
+      - ANDROID_VR
+      - TVHTML5_SIMPLY
 
 metrics:
   prometheus:

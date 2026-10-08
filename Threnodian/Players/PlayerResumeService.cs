@@ -161,7 +161,7 @@ public sealed class PlayerResumeService : BackgroundService
         player.RepeatMode = foto.Repetição;
 
         // marcada como anunciada: quem apresenta a volta sou eu, com a posição, não o "tocando agora"
-        var item = new FaixaPedida(new TrackReference(atual), foto.Atual.QuemPediu) { JáAnunciada = true };
+        var item = player.Pedido(atual, foto.Atual.QuemPediu, jáAnunciada: true);
         var posição = Retomável(atual, foto.Posição) ? foto.Posição : (TimeSpan?)null;
 
         await player.PlayAsync(
@@ -173,10 +173,13 @@ public sealed class PlayerResumeService : BackgroundService
         if (foto.Pausado)
             await player.PauseAsync(cancellationToken);
 
-        var fila = Fila(foto);
+        var fila = Fila(foto, player);
 
         if (fila.Count > 0)
+        {
             await player.Queue.AddRangeAsync(fila, cancellationToken);
+            player.PrepararPróxima();
+        }
 
         // a foto nova é do player vivo; a velha já cumpriu o papel
         player.Fotografar();
@@ -198,14 +201,14 @@ public sealed class PlayerResumeService : BackgroundService
         && posição < faixa.Duration;
 
     /// <summary>A fila como estava; faixa que não decodifica mais é pulada, não derruba o resto.</summary>
-    private List<ITrackQueueItem> Fila(PlayerSnapshot foto)
+    private List<ITrackQueueItem> Fila(PlayerSnapshot foto, AlephPlayer player)
     {
         var fila = new List<ITrackQueueItem>(foto.Fila.Count);
 
         foreach (var guardada in foto.Fila)
         {
             if (LavalinkTrack.TryParse(guardada.Dados, null, out var faixa))
-                fila.Add(new FaixaPedida(new TrackReference(faixa), guardada.QuemPediu));
+                fila.Add(player.Pedido(faixa, guardada.QuemPediu));
             else
                 _logger.LogWarning("Uma faixa da fila guardada da guild {Guild} não decodifica mais; pulei", foto.GuildId);
         }
