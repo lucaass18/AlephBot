@@ -66,7 +66,9 @@ plugins:
     enabled: true
 
     # de IP de datacenter (EC2 e afins) o YouTube responde "This video requires login"
-    # em vídeo público: a busca passa, o áudio não. Logado, ele volta a entregar o stream.
+    # em vídeo público: a busca passa, o áudio não. No compose quem resolve é o WARP (o
+    # Lavalink sai pela Cloudflare, sem conta); o login fica de reserva, pra quando o
+    # YouTube passar a desconfiar dos IPs dela. Logado, ele volta a entregar o stream.
     oauth:
       enabled: true
       # quem pede o login é o bot (YOUTUBE_LOGIN no Config/.env), pra o código sair no
@@ -88,19 +90,21 @@ plugins:
 
     # a ordem importa: o Lavalink tenta um cliente por vez até algum entregar o áudio.
     #
-    # O TV é o único que sabe usar o OAuth — sem ele na lista o token é renovado e nunca
-    # usado, e de IP de datacenter todos os outros levam "This video requires login". O
+    # Pelo WARP os clients que não precisam de conta tocam, então eles vêm primeiro. O
     # MUSIC fica na frente porque é ele quem responde busca; pra tocar ele nem é tentado.
+    # O TV vai por último: é o único que sabe usar o OAuth, e só serve quando há login
+    # (sem ele na lista um token seria renovado e nunca usado) — sem token, ele falha
+    # rápido e não atrapalha.
     #
     # Se as buscas começarem a falhar, é esta lista que se mexe — o README do plugin mantém
     # a ordem recomendada do momento.
     clients:
       - MUSIC
-      - TV
-      - TVHTML5_SIMPLY
       - ANDROID_VR
+      - TVHTML5_SIMPLY
       - WEB
       - WEBEMBEDDED
+      - TV
 
 metrics:
   prometheus:

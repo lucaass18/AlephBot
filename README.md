@@ -335,7 +335,7 @@ Depois preencha o `TOKEN`:
 | `LAVALINK_URI` | | `http://localhost:2333/` | Endereço REST do servidor Lavalink |
 | `LAVALINK_PASSWORD` | | `youshallnotpass` | Senha do Lavalink |
 | `MUSIC_IDLE_MINUTES` | | `2` | Minutos parado (canal vazio ou nada tocando) antes de sair da voz |
-| `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console quando não há token guardado.<br>Só faz sentido em servidor — veja [Login do YouTube](#login-do-youtube-só-em-servidor) |
+| `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console quando não há token guardado.<br>Plano B pra servidor: com o WARP do compose o YouTube toca sem conta — veja [YouTube num servidor](#youtube-num-servidor) |
 | `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma`.<br>Vazio = usa o Jikan, sem chave. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
@@ -367,9 +367,10 @@ No Developer Portal, aba **Bot**, ligue:
 
 ### 🐳 Docker <sub>recomendado</sub>
 
-Sobe quatro contêineres na rede interna do compose: o bot, o Lavalink (áudio), o
+Sobe cinco contêineres na rede interna do compose: o bot, o Lavalink (áudio), o
 `yt-cipher`, que decifra as assinaturas do player do YouTube — o decifrador embutido no
-plugin quebra a cada mudança do YouTube; esse acompanha —, e o n8n, que roda a
+plugin quebra a cada mudança do YouTube; esse acompanha —, o `warp`, por onde o Lavalink sai
+pra internet ([YouTube num servidor](#youtube-num-servidor)), e o n8n, que roda a
 [automação com a API](#automação-com-a-api-n8n).
 
 ```bash
@@ -387,7 +388,7 @@ da **raiz** do projeto — um arquivo diferente do `Config/.env`:
 | Variável | Padrão | Descrição |
 |:--|:--|:--|
 | `LAVALINK_PASSWORD` | `youshallnotpass` | Senha do Lavalink, nos dois lados |
-| `YOUTUBE_REFRESH_TOKEN` | *vazio* | Semente do login do YouTube — veja [abaixo](#login-do-youtube-só-em-servidor) |
+| `YOUTUBE_REFRESH_TOKEN` | *vazio* | Semente do login do YouTube, o plano B — veja [abaixo](#login-do-youtube-plano-b) |
 | `YOUTUBE_PO_TOKEN`<br>`YOUTUBE_VISITOR_DATA` | *vazio* | Par que responde ao *"Sign in to confirm you're not a bot"* nos clients WEB.<br>Gere os dois com `docker run --rm quay.io/invidious/youtube-trusted-session-generator` |
 | `API_PORT` | `8080` | Porta da [API](#api) na máquina. Dentro do contêiner ela é sempre `8080` |
 | `API_BIND` | `127.0.0.1` | Onde essa porta é publicada. `0.0.0.0` abre pra rede — leia o aviso da [API](#api) antes |
@@ -397,7 +398,7 @@ da **raiz** do projeto — um arquivo diferente do `Config/.env`:
 Quatro volumes sobrevivem ao `docker compose down`: `aleph-logs` (logs em arquivo),
 `aleph-data` (o token do YouTube e o que cada servidor estava tocando), `lavalink-plugins`
 (o plugin baixado) e `n8n-data` (a conta do n8n, os fluxos e o histórico dos stats).
-`down -v` apaga os quatro — o login do YouTube tem que ser refeito.
+`down -v` apaga os quatro — se você usa o login do YouTube, ele tem que ser refeito.
 
 > [!NOTE]
 > A porta `2333` do Lavalink não é publicada: ele só existe dentro da rede do compose. A da
@@ -406,11 +407,29 @@ Quatro volumes sobrevivem ao `docker compose down`: `aleph-logs` (logs em arquiv
 
 <br>
 
-#### Login do YouTube <sub>só em servidor</sub>
+#### YouTube num servidor
 
 De um IP de datacenter (EC2, DigitalOcean e afins) o YouTube responde *"This video requires
-login"* mesmo em vídeo público: a busca funciona, o áudio não. Quem usa o token é o Lavalink,
-mas quem pede o login é o bot — assim o código aparece no console dele, junto do resto.
+login"* mesmo em vídeo público: a busca funciona, o áudio não. O compose contorna isso sem
+conta nenhuma: o Lavalink sai pra internet pelo [Cloudflare WARP](https://one.one.one.one)
+(o contêiner `warp`), e do IP da Cloudflare o YouTube entrega o áudio. Não há token, código
+nem login pra manter.
+
+Pra conferir se o túnel está de pé (`warp=on`):
+
+```bash
+docker compose exec lavalink curl -x socks5h://warp:9091 -fsS https://www.cloudflare.com/cdn-cgi/trace | grep warp
+```
+
+> [!NOTE]
+> O WARP gratuito não foi feito pra isso, e o YouTube pode passar a desconfiar dos IPs da
+> Cloudflare. Se o áudio voltar a falhar com *"requires login"*, use o login abaixo — os
+> dois convivem: o client que usa a conta é o último da lista no `application.yml`.
+
+##### Login do YouTube <sub>plano B</sub>
+
+Quem usa o token é o Lavalink, mas quem pede o login é o bot — assim o código aparece no
+console dele, junto do resto.
 
 Ligue `YOUTUBE_LOGIN=true` no `Config/.env`, suba e acompanhe:
 
@@ -446,8 +465,10 @@ diferente ali (trocar de conta, por exemplo). Fora isso a variável pode ficar v
 
 > [!NOTE]
 > Use uma **conta Google descartável**: o padrão de acesso de um bot pode fazer o YouTube
-> sinalizar a conta — e é isso, não o tempo, que mata o token. Em casa, com IP residencial,
-> nada disso é necessário — sem `YOUTUBE_LOGIN` e sem token, o bot nem toca no assunto.
+> sinalizar a conta — e é isso, não o tempo, que mata o token. Pra voltar a ficar sem conta,
+> desligue o `YOUTUBE_LOGIN`, esvazie o `YOUTUBE_REFRESH_TOKEN` e apague o token guardado
+> (`docker compose exec alephbot rm /app/data/youtube-token.json`): com um token guardado,
+> o bot pede login novo quando o Google recusa, mesmo com o `YOUTUBE_LOGIN` desligado.
 
 <br>
 

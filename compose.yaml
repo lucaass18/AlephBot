@@ -87,20 +87,29 @@ services:
     restart: unless-stopped
     init: true
 
-    # o cipher precisa estar de pé antes: é ele que decifra as assinaturas do player
+    # o cipher precisa estar de pé antes: é ele que decifra as assinaturas do player. O
+    # warp é por onde ele sai pra internet
     depends_on:
       - yt-cipher
+      - warp
 
     environment:
       # o application.yml lê esta variável; a mesma vai pro bot logo acima, então
       # trocar a senha é mexer num lugar só (o .env da raiz)
       LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-youshallnotpass}
       TZ: America/Sao_Paulo
-      # decodificar áudio é o trabalho dele; o resto do limite fica pro heap nativo
-      _JAVA_OPTIONS: -Xmx700m
+      # decodificar áudio é o trabalho dele; o resto do limite fica pro heap nativo.
+      #
+      # As -Dsocks* mandam as conexões dele pra internet pelo WARP (o serviço warp, abaixo):
+      # é o que faz o YouTube entregar o áudio sem login. O plugin do YouTube não tem
+      # opção de proxy e o httpConfig do Lavalink só vale pra links HTTP diretos, então
+      # quem desvia é o próprio Java. O yt-cipher é vizinho de rede e fica de fora; a voz
+      # do Discord nem passa por aqui (é UDP), então não ganha latência
+      _JAVA_OPTIONS: "-Xmx700m -DsocksProxyHost=warp -DsocksProxyPort=9091 -DsocksNonProxyHosts=yt-cipher|localhost|127.*"
 
       # o token do YouTube não entra aqui: quem entrega é o bot, a cada conexão, pela
-      # REST do plugin — assim um token invalidado não derruba o Lavalink no boot
+      # REST do plugin — assim um token invalidado não derruba o Lavalink no boot. Com o
+      # WARP o login virou reserva: sem YOUTUBE_LOGIN e sem token, nada é entregue
 
       # "Sign in to confirm you're not a bot": o par abaixo é a resposta documentada pra
       # isso, e vale só pros clients WEB e WEBEMBEDDED. Gere os dois com
@@ -167,6 +176,37 @@ services:
       resources:
         limits:
           memory: 256M
+
+  # A saída do Lavalink pra internet, pelo Cloudflare WARP.
+  #
+  # Do IP da AWS o YouTube entrega o título do vídeo mas não o áudio ("This video requires
+  # login"), e o único jeito dele tocar era uma conta Google logada. Do IP da Cloudflare ele
+  # entrega o áudio sem conta nenhuma: testado na VPS em 08/10/2026, mesmo vídeo, direto sem
+  # formatos e pelo WARP com. Este contêiner abre um túnel WireGuard até a Cloudflare e
+  # oferece um proxy SOCKS5 na porta 9091, que o Lavalink usa (as -Dsocks* lá em cima).
+  #
+  # Se o YouTube passar a marcar os IPs da Cloudflare, o plano B é o login do YouTube do
+  # bot (YOUTUBE_LOGIN). Sem `ports`: só o Lavalink alcança. O digest é o da imagem
+  # testada; pra atualizar, troque e teste de novo.
+  warp:
+    image: ghcr.io/mon-ius/docker-warp-socks@sha256:5424011aea5d1ec7f84730a006e8888e5a2aae01b1377e6694b6ae0ef07e5737
+    container_name: alephbot-warp
+
+    restart: unless-stopped
+
+    environment:
+      TZ: America/Sao_Paulo
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   # A automação com a API, no n8n: avisa no Discord quando o bot cai, guarda o histórico dos
   # stats, mantém a lista de comandos em Markdown, serve um painel com gráficos e faz um
