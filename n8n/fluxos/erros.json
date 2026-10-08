@@ -1,0 +1,55 @@
+{
+  "id": "AlephErros000001",
+  "name": "AlephBot · Erros dos fluxos",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "3a7c9e1b-6d24-4f58-a1c3-8e5b2d7f9c06",
+      "name": "Um fluxo falhou",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ALEPH_DISCORD_WEBHOOK }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ username: 'AlephBot · n8n', content: '⚠️ O fluxo **' + $json.workflow.name + '** falhou em \"' + $json.execution.lastNodeExecuted + '\": ' + $json.execution.error.message }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "c8e2b5d9-4f17-4a3e-b6c1-9d0a7e3f5b28",
+      "name": "Avisa no Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Um fluxo falhou": {
+      "main": [
+        [
+          {
+            "node": "Avisa no Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

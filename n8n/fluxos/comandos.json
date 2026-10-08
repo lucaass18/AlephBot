@@ -1,0 +1,150 @@
+{
+  "id": "AlephComandos001",
+  "name": "AlephBot · Comandos",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "6fddddee-0f1d-4af5-920d-fb190f56d51e",
+      "name": "De hora em hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.ALEPH_API_URL }}/api/v1/commands",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.ALEPH_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "68d165cf-c910-4460-aab4-73205f211849",
+      "name": "Pede os comandos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// a lista vem um comando por item; se vier inteira num item só, desembrulha\nlet comandos = $input.all().map(i => i.json);\nif (comandos.length === 1 && Array.isArray(comandos[0].data)) {\n  comandos = comandos[0].data;\n}\n\nconst categorias = {\n  general: 'Geral',\n  moderation: 'Moderação',\n  utility: 'Utilidade',\n  music: 'Música',\n  anime: 'Anime',\n  fun: 'Diversão',\n  owner: 'Dono',\n};\n\nconst código = texto => (texto ? '`' + texto + '`' : '—');\nconst célula = texto => String(texto ?? '').replace(/\\|/g, '\\\\|');\n\nconst linhas = [\n  '# Comandos do AlephBot',\n  '',\n  `${comandos.length} comandos, tirados de \\`/api/v1/commands\\` pelo n8n.`,\n  '',\n];\n\nconst conhecidas = Object.keys(categorias);\nconst grupos = [\n  ...conhecidas.map(chave => [categorias[chave], comandos.filter(c => c.category === chave)]),\n  ['Outros', comandos.filter(c => !conhecidas.includes(c.category))],\n];\n\nfor (const [nome, daqui] of grupos) {\n  if (daqui.length === 0) continue;\n\n  linhas.push(`## ${nome}`, '', '| Comando | Barra | Prefixo | Atalhos | O que faz |', '|:--|:--|:--|:--|:--|');\n\n  for (const c of daqui) {\n    const atalhos = (c.aliases ?? []).map(código).join(', ') || '—';\n    linhas.push(`| ${célula(c.name)} | ${código(c.slash)} | ${código(c.text)} | ${atalhos} | ${célula(c.description)} |`);\n  }\n\n  linhas.push('');\n}\n\nconst markdown = linhas.join('\\n');\n\n// só segue quando a lista mudou: o arquivo é regravado uma vez por mudança\nconst memória = $getWorkflowStaticData('global');\nif (memória.markdown === markdown) {\n  return [];\n}\nmemória.markdown = markdown;\n\nreturn [{ json: { markdown, total: comandos.length } }];\n"
+      },
+      "id": "8c2b9671-6fba-455d-8d92-e66a9ddc6537",
+      "name": "Monta o Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "markdown",
+        "binaryPropertyName": "data",
+        "options": {
+          "fileName": "comandos.md"
+        }
+      },
+      "id": "c6261968-155d-41ba-92ef-29580a4417f0",
+      "name": "Vira arquivo",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/home/node/.n8n-files/comandos.md",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "268ddcdf-aa01-462f-ad98-1bfba86d5517",
+      "name": "Salva comandos.md",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        960,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "De hora em hora": {
+      "main": [
+        [
+          {
+            "node": "Pede os comandos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pede os comandos": {
+      "main": [
+        [
+          {
+            "node": "Monta o Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta o Markdown": {
+      "main": [
+        [
+          {
+            "node": "Vira arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vira arquivo": {
+      "main": [
+        [
+          {
+            "node": "Salva comandos.md",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "AlephErros000001",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

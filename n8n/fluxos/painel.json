@@ -1,0 +1,125 @@
+{
+  "id": "AlephPainel00001",
+  "name": "AlephBot · Painel",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "aleph-painel",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "60c59996-6b6e-450c-a2ff-2ff235f7abcc",
+      "name": "Abre o painel",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "aa928187-bfc2-4c01-98de-b00b4c7703d6",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "aleph_stats"
+        },
+        "limit": 672,
+        "orderBy": true,
+        "orderByColumn": "coletado_em",
+        "orderByDirection": "DESC"
+      },
+      "id": "2dbb2bad-2020-4e5d-8308-fd0ad1190929",
+      "name": "Lê o histórico",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const entrada = $input.all().map(i => i.json);\nconst falhou = entrada.find(l => l.error);\n\n// a tabela vem da mais nova pra mais velha; o gráfico lê da esquerda pra direita\nconst linhas = entrada.filter(l => l.coletado_em).reverse();\n\nconst hora = valor => new Date(valor).toLocaleString('pt-BR', {\n  timeZone: 'America/Sao_Paulo',\n  day: '2-digit',\n  month: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit',\n});\n\nconst gráficos = [\n  ['Membros e pessoas online', [['membros', 'Membros'], ['online', 'Online']]],\n  ['Música', [['players', 'Players'], ['tocando', 'Tocando'], ['na_fila', 'Na fila']]],\n  ['Memória (MB)', [['memoria_mb', 'Processo'], ['heap_mb', 'Heap do .NET']]],\n  ['Servidores', [['servidores', 'Servidores']]],\n].map(([título, séries]) => ({\n  título,\n  séries: séries.map(([campo, nome]) => ({\n    label: nome,\n    data: linhas.map(l => l[campo]),\n    pointRadius: 0,\n    tension: 0.2,\n  })),\n}));\n\n// o JSON vai dentro de um <script>: sem \"<\" cru, nada dele fecha a tag antes da hora\nconst dados = JSON.stringify({ rótulos: linhas.map(l => hora(l.coletado_em)), gráficos })\n  .replace(/</g, '\\\\u003c');\n\nconst última = linhas.at(-1);\n\nconst topo = falhou\n  ? 'A tabela <code>aleph_stats</code> ainda não existe: ela nasce na primeira rodada do fluxo \"AlephBot · Histórico de stats\".'\n  : última\n    ? `Última coleta: ${hora(última.coletado_em)} · ${última.servidores} servidores · ${última.membros} membros · ${última.online} online`\n    : 'Ainda não tem histórico: o fluxo \"AlephBot · Histórico de stats\" grava uma linha a cada 15 minutos.';\n\nconst html = `<!doctype html>\n<html lang=\"pt-BR\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>AlephBot · Painel</title>\n<style>\n  body { font-family: system-ui, sans-serif; margin: 24px; }\n  main { max-width: 1100px; margin: 0 auto; }\n  #graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 24px; }\n  h2 { font-size: 1rem; }\n</style>\n</head>\n<body>\n<main>\n  <h1>AlephBot · Painel</h1>\n  <p>${topo}</p>\n  <div id=\"graficos\"></div>\n</main>\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4\"></script>\n<script>\n  const { rótulos, gráficos } = ${dados};\n  const lugar = document.getElementById('graficos');\n\n  for (const g of gráficos) {\n    const bloco = document.createElement('section');\n    bloco.innerHTML = '<h2></h2><canvas></canvas>';\n    bloco.querySelector('h2').textContent = g.título;\n    lugar.appendChild(bloco);\n\n    new Chart(bloco.querySelector('canvas'), {\n      type: 'line',\n      data: { labels: rótulos, datasets: g.séries },\n      options: { interaction: { mode: 'index', intersect: false }, scales: { x: { ticks: { maxTicksLimit: 8 } } } },\n    });\n  }\n</script>\n</body>\n</html>`;\n\nreturn [{ json: { html } }];\n"
+      },
+      "id": "a0bf00e1-6224-49e1-96d6-3544c2371c29",
+      "name": "Monta a página",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "66f1131d-ce92-48d4-9461-cc03496f9dbd",
+      "name": "Responde",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Abre o painel": {
+      "main": [
+        [
+          {
+            "node": "Lê o histórico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lê o histórico": {
+      "main": [
+        [
+          {
+            "node": "Monta a página",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta a página": {
+      "main": [
+        [
+          {
+            "node": "Responde",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "AlephErros000001",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}
