@@ -1,0 +1,13 @@
+# As versões do teste que tirou a música inteira sem conta na VPS (08/10/2026).
+#
+# yt-dlp nightly: o YouTube muda toda semana, e as correções saem primeiro nela. [pin]
+# trava as dependências nas versões que o próprio yt-dlp testou; [pin-deno] traz o deno, que
+# roda os desafios em JavaScript do player do YouTube. Pra atualizar: troque o número (a
+# lista está em https://pypi.org/project/yt-dlp/#history) e `docker compose up -d --build yt-audio`
+yt-dlp[pin,pin-deno]==2026.9.27.232945.dev0
+
+# o plugin do yt-dlp que pede o token anti-robô ao contêiner pot
+bgutil-ytdlp-pot-provider==2.0.2
+
+# SOCKS pro requests: o áudio sai pelo WARP, como o resto
+PySocks==1.7.1

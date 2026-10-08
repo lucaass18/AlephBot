@@ -29,3 +29,6 @@ tests/
 
 # a automação (n8n) roda no contêiner dela; o build do bot não precisa dos fluxos nem dos backups
 n8n/
+
+# o yt-audio roda no contêiner dele, com o próprio Dockerfile
+YtAudio/

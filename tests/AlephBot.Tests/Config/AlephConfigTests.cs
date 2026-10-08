@@ -145,6 +145,29 @@ public class AlephConfigTests
     }
 
     [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Sem_YOUTUBE_AUDIO_URI_o_YouTube_fica_com_o_plugin(string? valor)
+    {
+        Assert.Null(ComToken(("YOUTUBE_AUDIO_URI", valor)).YoutubeAudioUri);
+    }
+
+    [Fact]
+    public void YOUTUBE_AUDIO_URI_é_o_endereço_do_yt_audio()
+    {
+        var config = ComToken(("YOUTUBE_AUDIO_URI", "http://yt-audio:8080/"));
+        Assert.Equal(new Uri("http://yt-audio:8080/"), config.YoutubeAudioUri);
+    }
+
+    [Fact]
+    public void YOUTUBE_AUDIO_URI_torto_é_erro_e_não_desliga_calado()
+    {
+        var erro = Assert.Throws<InvalidOperationException>(() => ComToken(("YOUTUBE_AUDIO_URI", "não é endereço")));
+        Assert.Contains("YOUTUBE_AUDIO_URI", erro.Message);
+    }
+
+    [Theory]
     [InlineData("5", 300)]
     [InlineData("0.5", 30)]
     [InlineData("0", 120)]

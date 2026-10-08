@@ -41,6 +41,11 @@ services:
       # com YOUTUBE_LOGIN ligado o bot pede o código no log e guarda sozinho
       YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
 
+      # o áudio do YouTube vem do yt-audio (o serviço lá embaixo), pela rede interna: o bot
+      # manda o Lavalink tocar o link dele no lugar da faixa do YouTube. Vazio = tudo pelo
+      # plugin do Lavalink, como antes
+      YOUTUBE_AUDIO_URI: http://yt-audio:8080/
+
       # a API escuta sempre na 8080 do contêiner; quem escolhe a porta de fora é o `ports`
       # abaixo. Fixo aqui pra um API_PORT esquecido no Config/.env não desencontrar os dois
       API_PORT: "8080"
@@ -101,15 +106,16 @@ services:
       # decodificar áudio é o trabalho dele; o resto do limite fica pro heap nativo.
       #
       # As -Dsocks* mandam as conexões dele pra internet pelo WARP (o serviço warp, abaixo):
-      # é o que faz o YouTube entregar o áudio sem login. O plugin do YouTube não tem
-      # opção de proxy e o httpConfig do Lavalink só vale pra links HTTP diretos, então
-      # quem desvia é o próprio Java. O yt-cipher é vizinho de rede e fica de fora; a voz
-      # do Discord nem passa por aqui (é UDP), então não ganha latência
-      _JAVA_OPTIONS: "-Xmx700m -DsocksProxyHost=warp -DsocksProxyPort=9091 -DsocksNonProxyHosts=yt-cipher|localhost|127.*"
+      # é por onde o plugin do YouTube busca as músicas e lê os dados delas, e por onde ele
+      # ainda tenta tocar quando o yt-audio falha. O plugin não tem opção de proxy e o
+      # httpConfig do Lavalink só vale pra links HTTP diretos, então quem desvia é o próprio
+      # Java. Os vizinhos de rede ficam de fora: o yt-cipher e o yt-audio, que é de onde vem
+      # o áudio do YouTube. A voz do Discord nem passa por aqui (é UDP)
+      _JAVA_OPTIONS: "-Xmx700m -DsocksProxyHost=warp -DsocksProxyPort=9091 -DsocksNonProxyHosts=yt-cipher|yt-audio|localhost|127.*"
 
       # o token do YouTube não entra aqui: quem entrega é o bot, a cada conexão, pela
       # REST do plugin — assim um token invalidado não derruba o Lavalink no boot. Com o
-      # WARP o login virou reserva: sem YOUTUBE_LOGIN e sem token, nada é entregue
+      # yt-audio o login virou reserva: sem YOUTUBE_LOGIN e sem token, nada é entregue
 
       # "Sign in to confirm you're not a bot": o par abaixo é a resposta documentada pra
       # isso, e vale só pros clients WEB e WEBEMBEDDED. Gere os dois com
@@ -177,17 +183,17 @@ services:
         limits:
           memory: 256M
 
-  # A saída do Lavalink pra internet, pelo Cloudflare WARP.
+  # A saída pra internet de quem fala com o YouTube, pelo Cloudflare WARP.
   #
-  # Do IP da AWS o YouTube entrega o título do vídeo mas não o áudio ("This video requires
-  # login"), e o único jeito dele tocar era uma conta Google logada. Do IP da Cloudflare ele
-  # entrega o áudio sem conta nenhuma: testado na VPS em 08/10/2026, mesmo vídeo, direto sem
-  # formatos e pelo WARP com. Este contêiner abre um túnel WireGuard até a Cloudflare e
-  # oferece um proxy SOCKS5 na porta 9091, que o Lavalink usa (as -Dsocks* lá em cima).
+  # Do IP da AWS o YouTube não entrega o áudio sem conta, nem com o token anti-robô ("Sign
+  # in to confirm you're not a bot"). Do IP da Cloudflare, com o token, entrega: testado na
+  # VPS em 08/10/2026, a música inteira pelo WARP e recusa pela AWS. Este contêiner abre um
+  # túnel WireGuard até a Cloudflare e oferece um proxy SOCKS5 na porta 9091, usado pelo
+  # yt-audio (e pelo pot, que recebe o proxy dele) e pelo Lavalink (as -Dsocks* lá em cima).
   #
-  # Se o YouTube passar a marcar os IPs da Cloudflare, o plano B é o login do YouTube do
-  # bot (YOUTUBE_LOGIN). Sem `ports`: só o Lavalink alcança. O digest é o da imagem
-  # testada; pra atualizar, troque e teste de novo.
+  # Se o YouTube passar a recusar os IPs da Cloudflare, o plano B é o login do YouTube do
+  # bot (YOUTUBE_LOGIN). Sem `ports`. O digest é o da imagem testada; pra atualizar, troque
+  # e teste de novo.
   warp:
     image: ghcr.io/mon-ius/docker-warp-socks@sha256:5424011aea5d1ec7f84730a006e8888e5a2aae01b1377e6694b6ae0ef07e5737
     container_name: alephbot-warp
@@ -207,6 +213,82 @@ services:
       resources:
         limits:
           memory: 128M
+
+  # O gerador do token anti-robô (PO token) que o YouTube exige pra entregar o áudio a quem
+  # não está logado. Quem pede é o yt-audio, pelo plugin do yt-dlp, e manda junto o proxy do
+  # WARP: a conversa do gerador com o Google também sai pela Cloudflare.
+  #
+  # Sem `ports`: só o yt-audio alcança. O digest é o da imagem testada na VPS (08/10/2026).
+  pot:
+    image: brainicism/bgutil-ytdlp-pot-provider@sha256:d7d34108b76e52c7d3b575fe9e797e4bf41c1b2a08f80c5292eff6f851ce8472
+    container_name: alephbot-pot
+
+    restart: unless-stopped
+    init: true
+
+    environment:
+      TZ: America/Sao_Paulo
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # O áudio do YouTube sem conta (a pasta YtAudio).
+  #
+  # De um servidor, o plugin do Lavalink não consegue mais o áudio do YouTube sem login: o
+  # YouTube passou a exigir o token anti-robô, e o plugin não sabe pedir. O yt-dlp sabe. Este
+  # serviço pega o áudio com ele — saindo pelo WARP, com o token do pot — e serve por HTTP na
+  # rede interna. O bot manda o Lavalink tocar http://yt-audio:8080/v/<id> no lugar da faixa
+  # do YouTube; título, capa e fila continuam vindo do plugin. Se ele falhar, aquela faixa
+  # vai pelo plugin, como antes.
+  #
+  # Sem `ports`: só o bot e o Lavalink alcançam.
+  yt-audio:
+    image: alephbot-yt-audio:latest
+    container_name: alephbot-yt-audio
+
+    build:
+      context: ./YtAudio
+
+    restart: unless-stopped
+    init: true
+
+    depends_on:
+      - warp
+      - pot
+
+    environment:
+      TZ: America/Sao_Paulo
+      # a saída do yt-dlp, do gerador de token e do próprio áudio: a mesma nos três, porque o
+      # link do áudio só vale pro IP que pediu ele
+      PROXY: socks5://warp:9091
+      GERADOR_DE_TOKEN: http://pot:4416
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/saude', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # o deno sobe a cada desafio do player do YouTube; fora isso é um Python parado
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # A automação com a API, no n8n: avisa no Discord quando o bot cai, guarda o histórico dos
   # stats, mantém a lista de comandos em Markdown, serve um painel com gráficos e faz um

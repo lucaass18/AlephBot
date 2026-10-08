@@ -188,6 +188,10 @@ public sealed class AlephBot
         services.AddSingleton<LavalinkYoutube>();
         services.AddHostedService<YoutubeLoginService>();
 
+        // o áudio do YouTube pelo yt-audio do compose: o player pega daqui na hora de pôr
+        // faixa na fila. Sem YOUTUBE_AUDIO_URI ele não envolve nada e tudo vai pelo plugin
+        services.AddSingleton<YoutubeAudio>();
+
         // a foto de cada player, pra eu voltar ao mesmo ponto depois de um restart. quem tira
         // é o player; quem revela é o PlayerResumeService, registrado lá no fim do BuildHost
         services.AddSingleton<PlayerSnapshotStore>();

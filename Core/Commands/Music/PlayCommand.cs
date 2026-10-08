@@ -98,7 +98,7 @@ internal static class Play
     {
         // marco antes do PlayAsync de propósito: o evento de início vem pelo websocket e
         // pode ganhar a corrida da linha seguinte, e aí o canal levava o embed duas vezes
-        var item = new FaixaPedida(new TrackReference(faixa), quemPediu) { JáAnunciada = true };
+        var item = player.Pedido(faixa, quemPediu, jáAnunciada: true);
 
         var posição = await player.PlayAsync(item, enqueue: true, cancellationToken: cancellationToken);
 
@@ -107,6 +107,7 @@ internal static class Play
 
         // entrou na fila e não começou: quem anuncia, quando chegar a vez dela, é o player
         item.JáAnunciada = false;
+        player.PrepararPróxima();
 
         return Music.Resposta.Ok(Music.EmbedNaFila(faixa, posição, quemPediu));
     }
@@ -121,7 +122,7 @@ internal static class Play
         var faixas = resultado.Tracks;
 
         var itens = faixas
-            .Select(faixa => (ITrackQueueItem)new FaixaPedida(new TrackReference(faixa), quemPediu))
+            .Select(faixa => (ITrackQueueItem)player.Pedido(faixa, quemPediu))
             .ToArray();
 
         // não marco nenhuma: aqui eu falo da playlist, e quem apresenta a primeira é o player
@@ -136,6 +137,8 @@ internal static class Play
         {
             await player.Queue.AddRangeAsync(itens, cancellationToken);
         }
+
+        player.PrepararPróxima();
 
         // playlist às vezes vem sem nome; aí o que a pessoa digitou diz mais que um rótulo vazio
         var nome = resultado.Playlist?.Name is { Length: > 0 } título ? título : busca;

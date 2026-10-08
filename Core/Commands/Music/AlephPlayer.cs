@@ -1,5 +1,6 @@
 using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Players;
+using AlephBot.Threnodian.Youtube;
 
 using Lavalink4NET.InactivityTracking.Players;
 using Lavalink4NET.InactivityTracking.Trackers;
@@ -68,6 +69,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
 
     private readonly TextChannel? _canal;
     private readonly PlayerSnapshotStore _fotos;
+    private readonly YoutubeAudio? _youtube;
     private readonly ILogger<AlephPlayer> _logger;
 
     private int _falhasSeguidas;
@@ -77,8 +79,23 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     {
         _canal = properties.Options.Value.Canal;
         _fotos = properties.ServiceProvider!.GetRequiredService<PlayerSnapshotStore>();
+        _youtube = properties.ServiceProvider!.GetService<YoutubeAudio>();
         _logger = properties.Logger;
     }
+
+    /// <summary>
+    /// A faixa como item da minha fila. A do YouTube sai envolvida pro yt-audio: é aqui, e
+    /// não em cada comando, porque toda faixa que entra na fila — do /play, da playlist, da
+    /// volta depois de um restart — passa por um player.
+    /// </summary>
+    internal FaixaPedida Pedido(LavalinkTrack faixa, string? quemPediu, bool jáAnunciada = false) =>
+        new(new TrackReference(_youtube?.Envolver(faixa) ?? faixa), quemPediu) { JáAnunciada = jáAnunciada };
+
+    /// <summary>
+    /// Pede pro yt-audio já preparar a próxima da fila, pra ela começar sem esperar o yt-dlp.
+    /// Eu chamo quando uma faixa começa; os comandos, depois de pôr faixa na fila.
+    /// </summary>
+    internal void PrepararPróxima() => _youtube?.Preparar(Queue.Peek()?.Track);
 
     protected override async ValueTask NotifyTrackStartedAsync(
         ITrackQueueItem track, CancellationToken cancellationToken = default)
@@ -86,6 +103,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         await base.NotifyTrackStartedAsync(track, cancellationToken);
 
         Fotografar();
+        PrepararPróxima();
 
         if (track is FaixaPedida { JáAnunciada: true } pedida)
         {
