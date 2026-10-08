@@ -280,7 +280,7 @@ em `n8n/fluxos`:
 | 💓 | **Saúde** | Pergunta o `/api/v1/health` a cada 5 minutos e avisa no Discord quando o bot cai e quando volta — uma vez por mudança, sem repetir |
 | 📈 | **Histórico de stats** | Guarda o `/api/v1/stats` a cada 15 minutos numa tabela do próprio n8n, a `aleph_stats` |
 | 📜 | **Comandos** | De hora em hora lê o `/api/v1/commands` e, quando a lista muda, regrava o `comandos.md` |
-| 📊 | **Painel** | Gráficos da última semana do histórico, em **http://localhost:5678/webhook/aleph-painel** |
+| 📊 | **Painel** | O estado de agora (pelo `/api/v1/status` e pelo `/api/v1/stats`) e as últimas 24 h ou 7 dias do histórico, em **http://localhost:5678/webhook/aleph-painel** |
 | 💾 | **Backup diário** | Às 3h guarda o `status` e os `stats` do dia num JSON |
 | ⚠️ | **Erros dos fluxos** | Quando um dos outros falha — chave errada, API fora —, avisa no mesmo canal |
 
