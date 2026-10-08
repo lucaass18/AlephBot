@@ -197,6 +197,14 @@ services:
       # onde os fluxos podem gravar arquivo: a pasta n8n/arquivos, montada logo abaixo
       N8N_RESTRICT_FILE_ACCESS_TO: /home/node/.n8n-files
 
+      # o heap do JavaScript do n8n, abaixo do limite do contêiner: a sobra é do processo
+      # que roda os nós de código e da memória fora do heap. Sem isto o Node calcula o
+      # heap sozinho e estoura antes ("JavaScript heap out of memory")
+      NODE_OPTIONS: --max-old-space-size=640
+      # o histórico de execuções guarda 7 dias, não os 14 de fábrica: o banco não incha
+      EXECUTIONS_DATA_MAX_AGE: "168"
+      EXECUTIONS_DATA_PRUNE_MAX_COUNT: "5000"
+
       ALEPH_API_URL: http://alephbot:8080
       # a mesma API_KEY do Config/.env, repetida no .env da raiz: este container não lê o
       # Config/.env, que tem o token do Discord
@@ -219,10 +227,12 @@ services:
         max-size: "10m"
         max-file: "3"
 
+    # o n8n 2 sozinho já fica perto de 450 MB; com 512M o Docker matava ele a cada pico
+    # (abrir o editor, migração ao subir) e tudo parava até ele voltar
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
 
 volumes:
   aleph-logs:

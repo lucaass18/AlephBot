@@ -289,8 +289,7 @@ pasta do bot na VPS.
 
 Pra ligar, na VPS:
 
-1. Confira a folga com `free -m`: o n8n usa uns 200 a 300 MB de memória (o compose limita em
-   512 MB).
+1. Confira a folga com `free -m`: o n8n usa uns 450 MB de memória (o compose limita em 1 GB).
 2. Crie um webhook no canal que vai receber os avisos (*Editar canal → Integrações → Webhooks
    → Novo webhook → Copiar URL do webhook*) e ponha no `.env` da raiz, junto com a mesma
    `API_KEY` do `Config/.env`:

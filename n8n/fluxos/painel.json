@@ -117,6 +117,7 @@
     }
   },
   "settings": {
+    "saveDataSuccessExecution": "none",
     "errorWorkflow": "AlephErros000001",
     "executionOrder": "v1"
   },
