@@ -16,9 +16,10 @@ COPY *.py ./
 # os testes rodam aqui, com o yt-dlp e o YouTube de mentira: se quebrar, a imagem nem sai
 RUN python -m unittest -q test_regras test_servidor
 
-# usuário sem privilégio, com casa própria: o yt-dlp e o deno guardam cache em ~/.cache
-RUN useradd --create-home --uid 10001 audio
-USER audio
+# usuário sem privilégio, com casa própria: o yt-dlp e o deno guardam cache em ~/.cache.
+# Não pode se chamar "audio": o Debian já tem um grupo com esse nome
+RUN useradd --create-home --uid 10001 ytaudio
+USER ytaudio
 
 EXPOSE 8080
 CMD ["python", "servidor.py"]
