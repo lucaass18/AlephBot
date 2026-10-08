@@ -168,7 +168,64 @@ services:
         limits:
           memory: 256M
 
+  # A automação com a API, no n8n: avisa no Discord quando o bot cai, guarda o histórico dos
+  # stats, mantém a lista de comandos em Markdown, serve um painel com gráficos e faz um
+  # backup por dia. Os fluxos moram em n8n/fluxos; quem importa e publica é o
+  # n8n/instalar.sh.
+  #
+  # Só no localhost da VPS: a porta abre em 127.0.0.1 e chega no seu navegador pelo túnel
+  # SSH, como a API. A API ele chama pela rede interna do compose, como quem é de dentro.
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.42.4
+    container_name: alephbot-n8n
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:5678:5678"
+
+    environment:
+      TZ: America/Sao_Paulo
+      # o fuso das agendas ("todo dia às 3h")
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      # nada de telemetria pra n8n.io nem questionário de boas-vindas
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      # os fluxos leem a URL, a chave e o webhook daqui ($env). O n8n 2 bloqueia isso de
+      # fábrica; liberar não abre nada pra fora, só quem tem a conta de dono mexe em fluxo
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      # onde os fluxos podem gravar arquivo: a pasta n8n/arquivos, montada logo abaixo
+      N8N_RESTRICT_FILE_ACCESS_TO: /home/node/.n8n-files
+
+      ALEPH_API_URL: http://alephbot:8080
+      # a mesma API_KEY do Config/.env, repetida no .env da raiz: este container não lê o
+      # Config/.env, que tem o token do Discord
+      ALEPH_API_KEY: ${ALEPH_API_KEY:-}
+      # o webhook do canal que recebe os avisos
+      ALEPH_DISCORD_WEBHOOK: ${ALEPH_DISCORD_WEBHOOK:-}
+
+    volumes:
+      # a conta, os fluxos, as execuções e a tabela do histórico (aleph_stats)
+      - n8n-data:/home/node/.n8n
+      # a lista de comandos e os backups, à vista em n8n/arquivos na VPS. A pasta vem do
+      # git, criada pelo seu usuário — o mesmo UID 1000 do usuário node do n8n, que grava nela
+      - ./n8n/arquivos:/home/node/.n8n-files
+      # os fluxos do repo, só pra importar
+      - ./n8n/fluxos:/fluxos:ro
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
 volumes:
   aleph-logs:
   aleph-data:
   lavalink-plugins:
+  n8n-data:

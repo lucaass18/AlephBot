@@ -1,0 +1,177 @@
+{
+  "id": "AlephBackup00001",
+  "name": "AlephBot · Backup diário",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "id": "4f69b7b6-95b5-4837-9212-0c76ba6e6493",
+      "name": "Todo dia às 3h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.ALEPH_API_URL }}/api/v1/status",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "7d2e5a1c-3b64-4f0e-9a8d-1c5e7f2b9d40",
+      "name": "Pede o status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.ALEPH_API_URL }}/api/v1/stats",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.ALEPH_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "b3f8c6a2-5d17-4e93-8c40-2a9e6d1f7b85",
+      "name": "Pede os stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// um arquivo por dia, no fuso do bot: rodar de novo no mesmo dia sobrescreve\nconst dia = $now.setZone('America/Sao_Paulo').toFormat('yyyy-LL-dd');\n\nconst backup = {\n  coletadoEm: new Date().toISOString(),\n  status: $('Pede o status').first().json,\n  stats: $('Pede os stats').first().json,\n};\n\nreturn [{ json: { arquivo: `aleph-${dia}.json`, conteudo: JSON.stringify(backup, null, 2) } }];\n"
+      },
+      "id": "e51a9d7f-2c84-4b36-a0e9-6f3d8b2c1a57",
+      "name": "Junta os dois",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "conteudo",
+        "binaryPropertyName": "data",
+        "options": {
+          "fileName": "={{ $json.arquivo }}"
+        }
+      },
+      "id": "9c4b7e2d-1a58-4f63-b8d0-3e7a5c9f2d14",
+      "name": "Vira arquivo",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ '/home/node/.n8n-files/backups/' + $('Junta os dois').first().json.arquivo }}",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "2f6d8a3b-7c91-4e25-9b4a-5d1e8c7f3a62",
+      "name": "Salva o backup",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Todo dia às 3h": {
+      "main": [
+        [
+          {
+            "node": "Pede o status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pede o status": {
+      "main": [
+        [
+          {
+            "node": "Pede os stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pede os stats": {
+      "main": [
+        [
+          {
+            "node": "Junta os dois",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Junta os dois": {
+      "main": [
+        [
+          {
+            "node": "Vira arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vira arquivo": {
+      "main": [
+        [
+          {
+            "node": "Salva o backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "AlephErros000001",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

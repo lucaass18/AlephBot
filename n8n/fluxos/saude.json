@@ -1,0 +1,124 @@
+{
+  "id": "AlephSaude000001",
+  "name": "AlephBot · Saúde",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "66faa2df-7b94-47f3-8029-0fac7cf63297",
+      "name": "A cada 5 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.ALEPH_API_URL }}/api/v1/health",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "f35b30df-42c6-49e1-b4f4-8ca3e6ca25e3",
+      "name": "Pergunta o health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// O último estado mora no próprio fluxo. Só vale com ele publicado: rodando na mão pelo\n// editor, o n8n não guarda nada, e todo teste parece a primeira vez.\nconst memória = $getWorkflowStaticData('global');\nconst resposta = $input.first().json;\n\nlet estado;\nlet detalhe;\n\nif (resposta.statusCode === undefined) {\n  // nem respondeu: o contêiner do bot está fora, ou a API não subiu\n  estado = 'sem resposta';\n  detalhe = resposta.error?.message ?? 'A API não respondeu.';\n} else {\n  const saúde = resposta.body && typeof resposta.body === 'object' ? resposta.body : {};\n  estado = saúde.status ?? `HTTP ${resposta.statusCode}`;\n  detalhe = `Discord: ${saúde.discord ?? '?'} · Lavalink: ${saúde.lavalink ?? '?'}`;\n}\n\nconst antes = memória.estado;\nmemória.estado = estado;\n\n// na primeira rodada só anoto, a não ser que já comece mal\nif (antes === undefined ? estado === 'ok' : antes === estado) {\n  return [];\n}\n\nconst títulos = {\n  ok: '\uD83D\uDFE2 O AlephBot voltou',\n  degraded: '\uD83D\uDFE1 O AlephBot está sem música: o Lavalink caiu',\n  down: '\uD83D\uDD34 O AlephBot caiu do Discord',\n  'sem resposta': '\uD83D\uDD34 O AlephBot não responde',\n};\n\nconst título = títulos[estado] ?? `⚠️ AlephBot: ${estado}`;\nconst rodapé = antes === undefined ? '' : `\\n-# antes: ${antes}`;\n\nreturn [{ json: { content: `**${título}**\\n${detalhe}${rodapé}` } }];\n"
+      },
+      "id": "0c100a03-98f1-4fb2-a3f5-aa84e27aadbd",
+      "name": "Mudou?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ALEPH_DISCORD_WEBHOOK }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ username: 'AlephBot · n8n', content: $json.content }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "ecc04b22-86ac-4191-939b-8fde5a2e4e71",
+      "name": "Avisa no Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "A cada 5 minutos": {
+      "main": [
+        [
+          {
+            "node": "Pergunta o health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pergunta o health": {
+      "main": [
+        [
+          {
+            "node": "Mudou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mudou?": {
+      "main": [
+        [
+          {
+            "node": "Avisa no Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataSuccessExecution": "none",
+    "errorWorkflow": "AlephErros000001",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

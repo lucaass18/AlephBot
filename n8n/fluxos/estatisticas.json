@@ -1,0 +1,211 @@
+{
+  "id": "AlephStats000001",
+  "name": "AlephBot · Histórico de stats",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "aa213c88-9c5d-4388-a774-e8b6316cfbf6",
+      "name": "A cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "aleph_stats",
+        "columns": {
+          "column": [
+            {
+              "name": "coletado_em",
+              "type": "date"
+            },
+            {
+              "name": "servidores",
+              "type": "number"
+            },
+            {
+              "name": "membros",
+              "type": "number"
+            },
+            {
+              "name": "online",
+              "type": "number"
+            },
+            {
+              "name": "comandos",
+              "type": "number"
+            },
+            {
+              "name": "players",
+              "type": "number"
+            },
+            {
+              "name": "tocando",
+              "type": "number"
+            },
+            {
+              "name": "pausados",
+              "type": "number"
+            },
+            {
+              "name": "na_fila",
+              "type": "number"
+            },
+            {
+              "name": "memoria_mb",
+              "type": "number"
+            },
+            {
+              "name": "heap_mb",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "fae8f665-553a-4863-b913-72a9f922250b",
+      "name": "Garante a tabela",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.ALEPH_API_URL }}/api/v1/stats",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.ALEPH_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "22a330a0-168e-4641-adaa-ea6a4aca15d9",
+      "name": "Pede os stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// uma linha por coleta, com os nomes das colunas da tabela aleph_stats\nconst s = $input.first().json;\n\nreturn [{\n  json: {\n    coletado_em: new Date().toISOString(),\n    servidores: s.guilds,\n    membros: s.members,\n    online: s.online,\n    comandos: s.commands,\n    players: s.music.players,\n    tocando: s.music.playing,\n    pausados: s.music.paused,\n    na_fila: s.music.queuedTracks,\n    memoria_mb: s.memory.workingSetMb,\n    heap_mb: s.memory.gcHeapMb,\n  },\n}];\n"
+      },
+      "id": "717469dd-7f0c-4c62-a262-9cd46d448d7f",
+      "name": "Vira linha",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "aleph_stats"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "5f90b97e-87a0-4635-ac92-d37a1889dd6c",
+      "name": "Grava na tabela",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "A cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "Garante a tabela",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garante a tabela": {
+      "main": [
+        [
+          {
+            "node": "Pede os stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pede os stats": {
+      "main": [
+        [
+          {
+            "node": "Vira linha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vira linha": {
+      "main": [
+        [
+          {
+            "node": "Grava na tabela",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataSuccessExecution": "none",
+    "errorWorkflow": "AlephErros000001",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

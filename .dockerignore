@@ -26,3 +26,6 @@ README.md
 Lavalink/
 compose.yaml
 tests/
+
+# a automação (n8n) roda no contêiner dela; o build do bot não precisa dos fluxos nem dos backups
+n8n/

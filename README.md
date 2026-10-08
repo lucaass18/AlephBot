@@ -270,6 +270,52 @@ minuto, e não a cada pedido recusado.
 
 ---
 
+## Automação com a API (n8n)
+
+Um [n8n](https://n8n.io) sobe junto no compose e usa a API sozinho. Cada fluxo é um arquivo
+em `n8n/fluxos`:
+
+| | Fluxo | O que faz |
+|:--:|:--|:--|
+| 💓 | **Saúde** | Pergunta o `/api/v1/health` a cada 5 minutos e avisa no Discord quando o bot cai e quando volta — uma vez por mudança, sem repetir |
+| 📈 | **Histórico de stats** | Guarda o `/api/v1/stats` a cada 15 minutos numa tabela do próprio n8n, a `aleph_stats` |
+| 📜 | **Comandos** | De hora em hora lê o `/api/v1/commands` e, quando a lista muda, regrava o `comandos.md` |
+| 📊 | **Painel** | Gráficos da última semana do histórico, em **http://localhost:5678/webhook/aleph-painel** |
+| 💾 | **Backup diário** | Às 3h guarda o `status` e os `stats` do dia num JSON |
+| ⚠️ | **Erros dos fluxos** | Quando um dos outros falha — chave errada, API fora —, avisa no mesmo canal |
+
+O `comandos.md` e os backups (`backups/aleph-AAAA-MM-DD.json`) ficam em `n8n/arquivos/`, na
+pasta do bot na VPS.
+
+Pra ligar, na VPS:
+
+1. Confira a folga com `free -m`: o n8n usa uns 200 a 300 MB de memória (o compose limita em
+   512 MB).
+2. Crie um webhook no canal que vai receber os avisos (*Editar canal → Integrações → Webhooks
+   → Novo webhook → Copiar URL do webhook*) e ponha no `.env` da raiz, junto com a mesma
+   `API_KEY` do `Config/.env`:
+
+   ```bash
+   echo "ALEPH_API_KEY=$(grep '^API_KEY=' Config/.env | cut -d= -f2-)" >> .env
+   echo 'ALEPH_DISCORD_WEBHOOK=https://discord.com/api/webhooks/...' >> .env
+   ```
+
+3. `git pull` e `docker compose up -d` — o n8n sobe só no `localhost` da VPS.
+4. No PuTTY, um túnel a mais (*Connection → SSH → Tunnels*): porta `5678` para
+   `127.0.0.1:5678`. Abra **http://localhost:5678** e crie a conta de dono.
+5. `sh n8n/instalar.sh` importa e publica os fluxos.
+
+Depois de um `git pull` que mude algum fluxo, rode o `sh n8n/instalar.sh` de novo — o fluxo
+volta a ser o do repo, e o que você tinha mudado nele pelo editor do n8n se perde.
+
+> [!NOTE]
+> O n8n mora na mesma VPS do bot: ele avisa quando o bot, o Discord ou o Lavalink caem, mas
+> não quando a VPS inteira cai — aí não sobra ninguém pra avisar.
+
+<br>
+
+---
+
 ## Configuração
 
 Toda a configuração vem de variáveis de ambiente. Em desenvolvimento elas são lidas de
@@ -322,9 +368,10 @@ No Developer Portal, aba **Bot**, ligue:
 
 ### 🐳 Docker <sub>recomendado</sub>
 
-Sobe três contêineres na rede interna do compose: o bot, o Lavalink (áudio) e o
+Sobe quatro contêineres na rede interna do compose: o bot, o Lavalink (áudio), o
 `yt-cipher`, que decifra as assinaturas do player do YouTube — o decifrador embutido no
-plugin quebra a cada mudança do YouTube; esse acompanha.
+plugin quebra a cada mudança do YouTube; esse acompanha —, e o n8n, que roda a
+[automação com a API](#automação-com-a-api-n8n).
 
 ```bash
 docker compose up -d --build
@@ -345,14 +392,18 @@ da **raiz** do projeto — um arquivo diferente do `Config/.env`:
 | `YOUTUBE_PO_TOKEN`<br>`YOUTUBE_VISITOR_DATA` | *vazio* | Par que responde ao *"Sign in to confirm you're not a bot"* nos clients WEB.<br>Gere os dois com `docker run --rm quay.io/invidious/youtube-trusted-session-generator` |
 | `API_PORT` | `8080` | Porta da [API](#api) na máquina. Dentro do contêiner ela é sempre `8080` |
 | `API_BIND` | `127.0.0.1` | Onde essa porta é publicada. `0.0.0.0` abre pra rede — leia o aviso da [API](#api) antes |
+| `ALEPH_API_KEY` | *vazio* | A mesma `API_KEY` do `Config/.env`, pro [n8n](#automação-com-a-api-n8n) chamar `stats` e `commands` |
+| `ALEPH_DISCORD_WEBHOOK` | *vazio* | Webhook do canal que recebe os avisos do [n8n](#automação-com-a-api-n8n) |
 
-Três volumes sobrevivem ao `docker compose down`: `aleph-logs` (logs em arquivo),
-`aleph-data` (o token do YouTube e o que cada servidor estava tocando) e `lavalink-plugins`
-(o plugin baixado). `down -v` apaga os três — o login do YouTube tem que ser refeito.
+Quatro volumes sobrevivem ao `docker compose down`: `aleph-logs` (logs em arquivo),
+`aleph-data` (o token do YouTube e o que cada servidor estava tocando), `lavalink-plugins`
+(o plugin baixado) e `n8n-data` (a conta do n8n, os fluxos e o histórico dos stats).
+`down -v` apaga os quatro — o login do YouTube tem que ser refeito.
 
 > [!NOTE]
 > A porta `2333` do Lavalink não é publicada: ele só existe dentro da rede do compose. A da
 > [API](#api) é, mas só no `127.0.0.1` da máquina — e só responde com `API_KEY` no `Config/.env`.
+> A `5678` do n8n também, só no `127.0.0.1`: chega até você pelo túnel SSH.
 
 <br>
 
@@ -477,6 +528,7 @@ Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
   Youtube/        Login (o token guardado e entregue ao Lavalink) e a busca de playlist
   Players/        A foto de cada player e a volta depois de um restart
 Lavalink/         application.yml do servidor de áudio
+n8n/              A automação com a API: os fluxos, o script que instala e a pasta onde eles gravam
 tests/            Testes de unidade (xUnit): a config, os parsers, os comandos e a API em memória
 ```
 
