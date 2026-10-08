@@ -95,7 +95,6 @@ public static class AlephApi
         var versões = builder.Services
             .AddApiVersioning(opções =>
             {
-                opções.DefaultApiVersion = new ApiVersion(VersãoAtual);
                 opções.ApiVersionReader = new UrlSegmentApiVersionReader();
                 opções.ReportApiVersions = true;
             })
