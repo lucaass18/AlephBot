@@ -35,25 +35,62 @@ public static class ProteçãoDeFora
             return next(http);
         });
 
+    /// <summary>Quanto a página entrega a quem abriu ela.</summary>
+    public enum Acesso
+    {
+        /// <summary>A documentação inteira, sem a IA — que é paga e tem dono.</summary>
+        Visitante,
+
+        /// <summary>A página como em casa, IA inclusa.</summary>
+        Dono,
+    }
+
+    private const string Crachá = "aleph.acesso";
+
     /// <summary>
-    /// A senha guarda a página (/api/v1/docs e o que ela carrega). O /api/docs de antes só
-    /// redireciona pra ela, e o documento é público como o do Registry. Entra depois do limite
-    /// de pedidos de propósito: chutar senha também gasta a cota.
+    /// Quem está em casa, ou quem entrou de fora com a senha de dono. É por isto que a página
+    /// decide se mostra a IA.
+    /// </summary>
+    public static bool ÉDono(HttpContext http) =>
+        RedeDeDentro.ÉDeDentro(http) || (http.Items[Crachá] as Acesso?) == Acesso.Dono;
+
+    /// <summary>
+    /// A senha guarda a página (/api/v1/docs e o que ela carrega). São duas: a de dono abre
+    /// tudo, a de visitante abre a documentação sem a IA. O /api/docs de antes só redireciona
+    /// pra cá, e o documento é público como o do Registry. Entra depois do limite de pedidos de
+    /// propósito: chutar senha também gasta a cota.
     /// </summary>
     public static void UseSenhaDosDocs(WebApplication app, ApiConfig api)
     {
-        if (api.DocsPassword is not { } senha)
+        var doDono = api.DocsAdminPassword is { } dono ? Hash(dono) : null;
+        var doVisitante = api.DocsPassword is { } visitante ? Hash(visitante) : null;
+
+        if (doDono is null && doVisitante is null)
             return;
 
-        var esperada = Hash(senha);
-
         app.Use((http, next) =>
-            !http.Request.Path.StartsWithSegments(ApiDocs.Página)
-            || RedeDeDentro.ÉDeDentro(http)
-            || SenhaConfere(http, esperada)
-                ? next(http)
-                : PedeSenha(http));
+        {
+            if (!http.Request.Path.StartsWithSegments(ApiDocs.Página) || RedeDeDentro.ÉDeDentro(http))
+                return next(http);
+
+            if (SenhaTentada(http) is not { } tentada)
+                return PedeSenha(http);
+
+            // a de dono primeiro: se as duas forem iguais por descuido, quem configurou leva o
+            // acesso maior, não o menor
+            if (Confere(tentada, doDono))
+                http.Items[Crachá] = Acesso.Dono;
+            else if (Confere(tentada, doVisitante))
+                http.Items[Crachá] = Acesso.Visitante;
+            else
+                return PedeSenha(http);
+
+            return next(http);
+        });
     }
+
+    private static bool Confere(byte[] tentada, byte[]? esperada) =>
+        esperada is not null && CryptographicOperations.FixedTimeEquals(tentada, esperada);
 
     /// <summary>O Basic do HTTP: o navegador mostra a janelinha de usuário e senha sozinho.</summary>
     private static Task PedeSenha(HttpContext http)
@@ -64,15 +101,16 @@ public static class ProteçãoDeFora
     }
 
     /// <summary>
-    /// O usuário tanto faz; quem decide é a senha. Comparo os hashes, como a chave da API: o
-    /// tempo da comparação não conta nada pra quem está chutando.
+    /// A senha que veio no Basic, já em hash — o usuário tanto faz, quem diz quem é a pessoa é
+    /// a senha. Em hash porque daí a comparação tem tempo fixo, como a da chave da API: quanto
+    /// ela demora não conta nada pra quem está chutando.
     /// </summary>
-    private static bool SenhaConfere(HttpContext http, byte[] esperada)
+    private static byte[]? SenhaTentada(HttpContext http)
     {
         var cabeçalho = http.Request.Headers.Authorization.ToString();
 
         if (!cabeçalho.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
-            return false;
+            return null;
 
         string credenciais;
 
@@ -82,13 +120,12 @@ public static class ProteçãoDeFora
         }
         catch (FormatException)
         {
-            return false;
+            return null;
         }
 
         var separador = credenciais.IndexOf(':');
 
-        return separador >= 0
-            && CryptographicOperations.FixedTimeEquals(Hash(credenciais[(separador + 1)..]), esperada);
+        return separador < 0 ? null : Hash(credenciais[(separador + 1)..]);
     }
 
     private static byte[] Hash(string texto) => SHA256.HashData(Encoding.UTF8.GetBytes(texto));

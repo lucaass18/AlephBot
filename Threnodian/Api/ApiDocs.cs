@@ -271,12 +271,14 @@ public static partial class ApiDocs
         app.MapScalarApiReference(Página, (scalar, http) =>
         {
             var deDentro = RedeDeDentro.ÉDeDentro(http);
+            var dono = ProteçãoDeFora.ÉDono(http);
 
-            // a IA do Scalar mora no navegador: a chave dela vai no HTML de quem abre a página.
-            // Em localhost ela vem com uma cota grátis; com a chave, pra todo mundo. A API_KEY é
-            // que não sai daqui: de fora a IA conversa e chama o que é aberto (health e status),
-            // e o resto leva 401. Quem guarda as mensagens pagas é a senha dos docs
-            if (api.ScalarAgentKey is { } chave)
+            // a IA do Scalar mora no navegador: a chave dela vai no HTML de quem abre a página,
+            // e quem lê o HTML gasta as mensagens pagas. Por isso ela só vai pra casa ou pra
+            // quem entrou com a senha de dono — visitante lê a documentação e testa o que é
+            // aberto, sem conta nenhuma a pagar. A API_KEY é mais fechada ainda: nem pro dono
+            // de fora, que cola a dele à mão se quiser
+            if (api.ScalarAgentKey is { } chave && dono)
             {
                 scalar.WithAgentKey(chave);
 

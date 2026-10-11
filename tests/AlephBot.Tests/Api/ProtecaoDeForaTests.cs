@@ -92,14 +92,75 @@ public class ProtecaoDeForaTests
     [Theory]
     [InlineData("aleph")]
     [InlineData("qualquer um")]
-    public async Task Senha_certa_abre_com_qualquer_usuário(string usuário)
+    public async Task Senha_de_visitante_abre_com_qualquer_usuário_mas_sem_a_IA(string usuário)
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
 
         var (status, html) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic(usuário, Senha)]);
 
+        // ele lê a documentação inteira e testa o que é aberto; a IA, que é paga, não vem junto
+        Assert.Equal(200, status);
+        Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, html);
+        Assert.Contains("openapi.json", html);
+    }
+
+    // ---- dono de fora ---------------------------------------------------------
+
+    private const string SenhaDoDono = "senha-do-dono";
+
+    [Fact]
+    public async Task Senha_de_dono_abre_a_página_inteira_de_fora()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (status, html) = await api.GetAsync(
+            "/api/v1/docs/",
+            headers: [PeloFunnel, Basic("eu", SenhaDoDono)]);
+
         Assert.Equal(200, status);
         Assert.Contains(ApiDeTeste.ChaveDoAgent, html);
+
+        // a chave da API é mais fechada que a IA: nem pro dono de fora, que cola a dele à mão
+        Assert.DoesNotContain(ApiDeTeste.ChaveDaApi, html);
+        Assert.DoesNotContain("aleph.js", html);
+    }
+
+    [Fact]
+    public async Task As_duas_senhas_convivem_e_cada_uma_abre_o_seu()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (_, doVisitante) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("v", Senha)]);
+        var (_, doDono) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("d", SenhaDoDono)]);
+
+        Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, doVisitante);
+        Assert.Contains(ApiDeTeste.ChaveDoAgent, doDono);
+    }
+
+    [Fact]
+    public async Task Só_com_a_senha_de_dono_configurada_visitante_nenhum_entra()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDoDono: SenhaDoDono);
+
+        var (semSenha, _) = await api.GetAsync("/api/v1/docs/", headers: PeloFunnel);
+        var (comOutra, _) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("v", Senha)]);
+        var (dono, _) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("d", SenhaDoDono)]);
+
+        Assert.Equal(401, semSenha);
+        Assert.Equal(401, comOutra);
+        Assert.Equal(200, dono);
+    }
+
+    [Fact]
+    public async Task De_dentro_continua_dono_sem_senha_nenhuma()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (status, html) = await api.GetAsync("/api/v1/docs/");
+
+        Assert.Equal(200, status);
+        Assert.Contains(ApiDeTeste.ChaveDoAgent, html);
+        Assert.Contains("aleph.js", html);
     }
 
     [Fact]

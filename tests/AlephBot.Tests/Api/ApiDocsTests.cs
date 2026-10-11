@@ -203,13 +203,14 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
     }
 
     [Fact]
-    public async Task Pelo_Funnel_a_página_tem_a_IA_mas_não_a_chave_da_API()
+    public async Task Pelo_Funnel_não_vai_chave_nenhuma()
     {
         var html = await PáginaAsync(PeloFunnel);
         var config = ConfigDaPágina().Match(html).Value;
 
-        // a IA vem (a chave dela é do navegador, por natureza); a da API, não
-        Assert.Contains(ApiDeTeste.ChaveDoAgent, config);
+        // a IA é paga e a chave dela viaja no HTML de quem abre a página: de fora ela fica de
+        // fora, senão qualquer um com o link gasta as mensagens da casa. A da API também não vai
+        Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, html);
         Assert.DoesNotContain(ApiDeTeste.ChaveDaApi, html);
         Assert.DoesNotContain("aleph.js", html);
         Assert.Contains("\"persistAuth\":false", config);
