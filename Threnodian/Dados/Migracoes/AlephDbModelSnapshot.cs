@@ -118,6 +118,92 @@ namespace AlephBot.Threnodian.Dados.Migracoes
 
                     b.ToTable("config_do_servidor", "aleph");
                 });
+
+            modelBuilder.Entity("AlephBot.Threnodian.Dados.FaixaDaPlaylist", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Dados")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("dados");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordem");
+
+                    b.Property<long>("PlaylistId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("playlist_id");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("titulo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaylistId", "Ordem")
+                        .HasDatabaseName("ix_playlist_faixa_ordem");
+
+                    b.ToTable("playlist_faixa", "aleph");
+                });
+
+            modelBuilder.Entity("AlephBot.Threnodian.Dados.PlaylistSalva", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<long>("CriadaPor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("criada_por");
+
+                    b.Property<long>("GuildId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("guild_id");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("nome");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GuildId", "Nome")
+                        .IsUnique()
+                        .HasDatabaseName("ix_playlist_guild_nome");
+
+                    b.ToTable("playlist", "aleph");
+                });
+
+            modelBuilder.Entity("AlephBot.Threnodian.Dados.FaixaDaPlaylist", b =>
+                {
+                    b.HasOne("AlephBot.Threnodian.Dados.PlaylistSalva", null)
+                        .WithMany("Faixas")
+                        .HasForeignKey("PlaylistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AlephBot.Threnodian.Dados.PlaylistSalva", b =>
+                {
+                    b.Navigation("Faixas");
+                });
 #pragma warning restore 612, 618
         }
     }

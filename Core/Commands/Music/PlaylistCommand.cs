@@ -1,9 +1,12 @@
 using System.Text.Json;
 
 using AlephBot.Core.Personality;
+using AlephBot.Threnodian.Dados;
 using AlephBot.Threnodian.Youtube;
 
 using Lavalink4NET;
+
+using NetCord;
 
 using NetCord.Services;
 using NetCord.Services.ApplicationCommands;
@@ -20,14 +23,16 @@ namespace AlephBot.Core.Commands.Music;
 public sealed class PlaylistCommand : MusicSlashModule
 {
     private readonly YoutubeSearch _youtube;
+    private readonly PlaylistsSalvas _salvas;
 
-    public PlaylistCommand(IAudioService áudio, YoutubeSearch youtube) : base(áudio)
+    public PlaylistCommand(IAudioService áudio, YoutubeSearch youtube, PlaylistsSalvas salvas) : base(áudio)
     {
         _youtube = youtube;
+        _salvas = salvas;
     }
 
     public override string Name => "playlist";
-    public override string Description => "Põe uma playlist inteira do YouTube na fila.";
+    public override string Description => "Põe uma playlist do YouTube na fila, ou guarda a fila de agora.";
     public override string? Usage => Playlist.Uso;
 
     [RequireContext<ApplicationCommandContext>(RequiredContext.Guild)]
@@ -56,6 +61,141 @@ public sealed class PlaylistCommand : MusicSlashModule
             await EditarComErroAsync(falha);
         else
             await EditarRespostaAsync(resposta.Embed!);
+    }
+
+    // ---- as que ficam guardadas ----------------------------------------------
+
+    [RequireContext<ApplicationCommandContext>(RequiredContext.Guild)]
+    [SubSlashCommand("salvar", "Guarda a fila de agora com um nome, pra tocar outro dia.")]
+    public async Task SalvarAsync(
+        [SlashCommandParameter(Name = "nome", Description = "Como você vai chamar ela depois.")] string nome)
+    {
+        if (Context.Guild?.Id is not { } guildId)
+        {
+            await ErrorAsync(Denia.SóEmServidor());
+            return;
+        }
+
+        if (!PlaylistGuardada.NomeAceitável(nome))
+        {
+            await ErrorAsync(Denia.PlaylistNomeInválido(PlaylistSalva.NomeNoMáximo));
+            return;
+        }
+
+        var (player, erro) = await Music.PlayerAsync(Áudio, Context, Context.Channel, conectar: false);
+
+        if (erro is not null)
+        {
+            await ErrorAsync(erro);
+            return;
+        }
+
+        var faixas = PlaylistGuardada.DaFila(player!);
+
+        if (faixas.Count == 0)
+        {
+            await ErrorAsync(Denia.PlaylistFilaVazia());
+            return;
+        }
+
+        var resultado = await _salvas.GuardaAsync(guildId, nome.Trim(), Context.User.Id, faixas);
+
+        if (PlaylistGuardada.Recusa(resultado, nome) is { } recusa)
+        {
+            await ErrorAsync(recusa);
+            return;
+        }
+
+        await RespondAsync(PlaylistGuardada.Guardou(nome.Trim(), faixas.Count));
+    }
+
+    [RequireContext<ApplicationCommandContext>(RequiredContext.Guild)]
+    [SubSlashCommand("tocar", "Põe na fila uma playlist que foi guardada aqui.")]
+    public async Task TocarAsync(
+        [SlashCommandParameter(Name = "nome", Description = "O nome que você deu quando salvou.")] string nome)
+    {
+        if (Context.Guild?.Id is not { } guildId)
+        {
+            await ErrorAsync(Denia.SóEmServidor());
+            return;
+        }
+
+        // achar no banco, entrar no canal e enfileirar passa dos 3 segundos do Discord
+        await DeferAsync();
+
+        var playlist = await _salvas.AcharAsync(guildId, nome.Trim());
+
+        if (playlist is null)
+        {
+            await EditarComErroAsync(Denia.PlaylistNãoAchei(nome.Trim()));
+            return;
+        }
+
+        var (player, erro) = await Music.PlayerAsync(Áudio, Context, Context.Channel, conectar: true);
+
+        if (erro is not null)
+        {
+            await EditarComErroAsync(erro);
+            return;
+        }
+
+        var quantas = await PlaylistGuardada.ParaAFilaAsync(player!, playlist, Context.User.Username);
+
+        player!.Fotografar();
+
+        if (quantas == 0)
+        {
+            await EditarComErroAsync(Denia.PlaylistNadaTocável(playlist.Nome));
+            return;
+        }
+
+        await EditarRespostaAsync(PlaylistGuardada.Enfileirou(playlist, quantas));
+    }
+
+    [RequireContext<ApplicationCommandContext>(RequiredContext.Guild)]
+    [SubSlashCommand("lista", "Mostra as playlists guardadas neste servidor.")]
+    public async Task ListaAsync()
+    {
+        if (Context.Guild?.Id is not { } guildId)
+        {
+            await ErrorAsync(Denia.SóEmServidor());
+            return;
+        }
+
+        if (!_salvas.Disponível)
+        {
+            await ErrorAsync(Denia.PlaylistSemBanco());
+            return;
+        }
+
+        await RespondAsync(PlaylistGuardada.Lista(await _salvas.DoServidorAsync(guildId)));
+    }
+
+    [RequireContext<ApplicationCommandContext>(RequiredContext.Guild)]
+    [RequireUserPermissions<ApplicationCommandContext>(Permissions.ManageMessages)]
+    [SubSlashCommand("apagar", "Apaga uma playlist guardada.")]
+    public async Task ApagarAsync(
+        [SlashCommandParameter(Name = "nome", Description = "Qual delas apagar.")] string nome)
+    {
+        if (Context.Guild?.Id is not { } guildId)
+        {
+            await ErrorAsync(Denia.SóEmServidor());
+            return;
+        }
+
+        if (!_salvas.Disponível)
+        {
+            await ErrorAsync(Denia.PlaylistSemBanco());
+            return;
+        }
+
+        if (!await _salvas.ApagaAsync(guildId, nome.Trim()))
+        {
+            await ErrorAsync(Denia.PlaylistNãoAchei(nome.Trim()));
+            return;
+        }
+
+        await SuccessAsync(Denia.PlaylistApagada(nome.Trim()));
     }
 }
 

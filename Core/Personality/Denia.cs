@@ -740,6 +740,33 @@ public static class Denia
     public static string ConfigEsperaInválida(int mínimo, int máximo) =>
         $"A espera vai de {mínimo} a {máximo} minutos. Fora disso eu não aceito.";
 
+    // ---- playlists guardadas -------------------------------------------------
+
+    public static string PlaylistNomeInválido(int máximo) =>
+        $"Dá um nome de verdade pra ela: alguma coisa até {máximo} caracteres.";
+
+    public static string PlaylistFilaVazia() =>
+        "A fila está vazia. Põe música primeiro, aí eu guardo.";
+
+    public static string PlaylistNomeRepetido(string nome) =>
+        $"Já tem uma playlist chamada \"{nome}\" aqui. Escolhe outro nome, ou apaga aquela.";
+
+    public static string PlaylistServidorCheio(int máximo) =>
+        $"Este servidor já tem {máximo} playlists guardadas. Apaga alguma antes.";
+
+    public static string PlaylistNãoAchei(string nome) =>
+        $"Não tenho nenhuma playlist chamada \"{nome}\" aqui. Vê a lista com `/playlist lista`.";
+
+    public static string PlaylistNadaTocável(string nome) =>
+        $"Abri a \"{nome}\" e nenhuma faixa dela toca mais. Acontece com link velho.";
+
+    public static string PlaylistApagada(string nome) =>
+        $"Apaguei a \"{nome}\". Não tem volta.";
+
+    public static string PlaylistSemBanco() =>
+        "Playlist guardada eu não consigo agora: meu banco não está respondendo. " +
+        "Tocar e pular seguem funcionando.";
+
     public static string ConfigSemBanco() =>
         "Não consegui guardar: meu banco não está respondendo agora. " +
         "Até ele voltar, tudo aqui segue no padrão.";
