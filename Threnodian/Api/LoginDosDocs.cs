@@ -85,7 +85,7 @@ internal static class LoginDosDocs
                 Path = ApiDocs.Página,
             });
 
-            return Results.Redirect($"{ApiDocs.Página}/");
+            return Results.Content(HtmlDoSucesso(acesso), Tipo);
         })
         .ExcludeFromDescription();
 
@@ -108,17 +108,44 @@ internal static class LoginDosDocs
     /// e a pessoa vê o aviso. Sem WWW-Authenticate, que é o que faria o navegador abrir a
     /// janelinha de novo por cima da página.
     /// </summary>
+    private const string Tipo = "text/html; charset=utf-8";
+
     private static IResult Mostra(HttpContext http, bool errou) =>
         Results.Content(
-            Html(errou),
-            "text/html; charset=utf-8",
+            HtmlDaEntrada(errou),
+            Tipo,
             statusCode: errou ? StatusCodes.Status401Unauthorized : StatusCodes.Status200OK);
+
+    /// <summary>
+    /// A tela de quem acabou de entrar. Ela diz com que crachá, porque é isso que explica o
+    /// que a pessoa vai (e não vai) encontrar do outro lado: visitante não acha a IA lá, e
+    /// sem este aviso ia procurar.
+    /// </summary>
+    private static string HtmlDoSucesso(ProteçãoDeFora.Acesso acesso) => Moldura($$"""
+          <p class="selo">Tudo certo</p>
+          <h1>Você entrou{{(acesso == ProteçãoDeFora.Acesso.Dono ? " como dono" : " como visitante")}}</h1>
+          <p>{{(acesso == ProteçãoDeFora.Acesso.Dono
+              ? "A documentação abre inteira, com a IA do Scalar."
+              : "A documentação abre inteira. A IA do Scalar fica de fora, e as rotas que pedem chave seguem pedindo.")}}</p>
+          <a class="botão" href="{{ApiDocs.Página}}/">Abrir a documentação</a>
+        """);
 
     /// <summary>
     /// A cara é a mesma linha do Scalar: nada de tema, nada de fonte de fora, e o claro e o
     /// escuro saem do que a pessoa já escolheu no sistema.
     /// </summary>
-    private static string Html(bool errou) =>
+    private static string HtmlDaEntrada(bool errou) => Moldura($$"""
+          <h1>AlephBot API</h1>
+          <p>A documentação desta API pede senha.</p>
+          <form method="post">
+            <label for="{{Campo}}">Senha</label>
+            <input id="{{Campo}}" name="{{Campo}}" type="password" autocomplete="current-password" autofocus required>
+            <button type="submit">Entrar</button>
+            {{(errou ? """<p class="erro">Essa senha não abre nada aqui.</p>""" : "")}}
+          </form>
+        """);
+
+    private static string Moldura(string miolo) =>
         $$"""
         <!doctype html>
         <html lang="pt-BR">
@@ -142,30 +169,28 @@ internal static class LoginDosDocs
           h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
           p { margin: 0 0 24px; color: var(--fraco); font-size: 14px; }
           label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; }
-          input, button { width: 100%; padding: 9px 12px; border-radius: 6px; font: inherit; }
+          input, button, .botão { width: 100%; padding: 9px 12px; border-radius: 6px; font: inherit; }
           input {
             border: 1px solid var(--borda); background: var(--campo); color: var(--letra);
           }
           input:focus { outline: 2px solid var(--letra); outline-offset: -1px; }
-          button {
-            margin-top: 12px; border: 0; cursor: pointer;
-            background: var(--letra); color: var(--fundo); font-weight: 500;
+          button, .botão {
+            margin-top: 12px; border: 0; cursor: pointer; display: block; text-align: center;
+            background: var(--letra); color: var(--fundo); font-weight: 500; text-decoration: none;
           }
-          button:hover { opacity: 0.85; }
+          button:hover, .botão:hover { opacity: 0.85; }
           .erro { margin: 12px 0 0; color: #dc2626; font-size: 13px; }
           @media (prefers-color-scheme: dark) { .erro { color: #f87171; } }
+          .selo {
+            margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+            text-transform: uppercase; color: #16a34a;
+          }
+          @media (prefers-color-scheme: dark) { .selo { color: #4ade80; } }
         </style>
         </head>
         <body>
         <main>
-          <h1>AlephBot API</h1>
-          <p>A documentação desta API pede senha.</p>
-          <form method="post">
-            <label for="{{Campo}}">Senha</label>
-            <input id="{{Campo}}" name="{{Campo}}" type="password" autocomplete="current-password" autofocus required>
-            <button type="submit">Entrar</button>
-            {{(errou ? """<p class="erro">Essa senha não abre nada aqui.</p>""" : "")}}
-          </form>
+        {{miolo}}
         </main>
         </body>
         </html>

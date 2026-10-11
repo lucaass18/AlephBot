@@ -108,7 +108,7 @@ public class ProtecaoDeForaTests
     }
 
     /// <summary>Preenche a tela e manda, como o navegador faria; devolve o biscoito que voltou.</summary>
-    private static async Task<(int Status, string? Destino, string? Biscoito)> MandaASenhaAsync(
+    private static async Task<(int Status, string Html, string? Biscoito)> MandaASenhaAsync(
         ApiDeTeste api, string senha)
     {
         var contexto = await api.Servidor.SendAsync(http =>
@@ -123,9 +123,11 @@ public class ProtecaoDeForaTests
 
         var posto = contexto.Response.Headers.SetCookie.ToString();
 
+        using var leitor = new StreamReader(contexto.Response.Body);
+
         return (
             contexto.Response.StatusCode,
-            contexto.Response.Headers.Location,
+            await leitor.ReadToEndAsync(),
             posto.Length == 0 ? null : posto.Split(';')[0]);
     }
 
@@ -134,19 +136,21 @@ public class ProtecaoDeForaTests
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
 
-        var (status, destino, biscoito) = await MandaASenhaAsync(api, SenhaDoDono);
+        var (status, html, biscoito) = await MandaASenhaAsync(api, SenhaDoDono);
 
-        Assert.Equal(302, status);
-        Assert.Equal("/api/v1/docs/", destino);
+        // a tela de "entrou" diz com que crachá, que é o que explica o que tem do outro lado
+        Assert.Equal(200, status);
+        Assert.Contains("como dono", html);
+        Assert.Contains($"href=\"{ApiDocs.Página}/\"", html);
         Assert.NotNull(biscoito);
 
         // e com ele na mão a página abre, sem passar pela tela de novo
-        var (depois, html) = await api.GetAsync(
+        var (depois, docs) = await api.GetAsync(
             "/api/v1/docs/",
             headers: [PeloFunnel, ("Cookie", biscoito!)]);
 
         Assert.Equal(200, depois);
-        Assert.Contains(ApiDeTeste.ChaveDoAgent, html);
+        Assert.Contains(ApiDeTeste.ChaveDoAgent, docs);
     }
 
     [Fact]
@@ -154,8 +158,13 @@ public class ProtecaoDeForaTests
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
 
-        var (_, _, biscoito) = await MandaASenhaAsync(api, Senha);
+        var (_, entrou, biscoito) = await MandaASenhaAsync(api, Senha);
         var (status, html) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, ("Cookie", biscoito!)]);
+
+        // a tela avisa que a IA fica de fora, senão ele procuraria por ela do outro lado
+        Assert.Contains("como visitante", entrou);
+        Assert.Contains("IA do Scalar fica de fora", entrou);
+        Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, entrou);
 
         Assert.Equal(200, status);
         Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, html);
