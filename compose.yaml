@@ -50,6 +50,10 @@ services:
       # abaixo. Fixo aqui pra um API_PORT esquecido no Config/.env não desencontrar os dois
       API_PORT: "8080"
 
+      # o banco atende pelo nome do serviço na rede do compose. Vazio = o bot sobe sem
+      # banco e sem o que depende dele; música e comandos seguem funcionando
+      DATABASE_URL: ${DATABASE_URL:-Host=postgres;Database=aleph;Username=aleph;Password=${POSTGRES_PASSWORD:-}}
+
     # a API de status (só sobe com API_KEY no Config/.env). Publicada só no localhost da
     # máquina por padrão: a chave viaja em texto puro no HTTP, então pra abrir pra fora o
     # certo é um proxy com HTTPS na frente (Caddy, nginx). API_BIND=0.0.0.0 no .env da raiz
@@ -64,6 +68,8 @@ services:
     # e /ping e /ban não dependem de música pra funcionar
     depends_on:
       lavalink:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
 
     # os logs em arquivo do NLog (${basedir}/logs) e o token do YouTube sobrevivem ao recreate
@@ -356,8 +362,57 @@ services:
         limits:
           memory: 1G
 
+  # Onde mora o que o bot precisa lembrar de um boot pro outro: a configuração de cada
+  # servidor e, nas fases seguintes, o histórico e as playlists. Fica só na rede interna —
+  # sem `ports`, ninguém de fora alcança a 5432. Quem conversa com ele é o bot e o n8n.
+  postgres:
+    image: postgres:17-alpine
+    container_name: alephbot-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: aleph
+      POSTGRES_USER: aleph
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env da raiz}
+      TZ: America/Sao_Paulo
+
+    # a VPS tem 3,8 GB e sete contêineres, sem swap, e o n8n já foi morto pelo cgroup uma
+    # vez. O padrão do Postgres é generoso demais pra cá: o bot faz poucas consultas, e
+    # uma por vez. shared_buffers em 64 MB cabe no limite de 384 e sobra pro resto
+    command: >
+      postgres
+      -c shared_buffers=64MB
+      -c max_connections=30
+      -c work_mem=4MB
+      -c maintenance_work_mem=32MB
+
+    volumes:
+      - aleph-db:/var/lib/postgresql/data
+
+    # o bot só tenta conectar depois que ele aceita conexão de verdade, e não quando o
+    # contêiner existe: senão o boot abre com "connection refused", como já foi com o Lavalink
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aleph -d aleph"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
 volumes:
   aleph-logs:
   aleph-data:
+  aleph-db:
   lavalink-plugins:
   n8n-data:
