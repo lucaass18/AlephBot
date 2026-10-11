@@ -6,9 +6,12 @@
 # com o mesmo id é trocado pelo do repo — e o que você mudou nele pelo editor se perde.
 set -eu
 
-# o de erros fica de fora: o n8n chama ele sozinho quando um dos outros falha
-SOZINHOS="AlephSaude000001 AlephStats000001 AlephComandos001 AlephPainel00001 AlephBackup00001"
-ESPERADOS=5
+# o de erros fica de fora: o n8n chama ele sozinho quando um dos outros falha.
+# O de stats saiu de vez: quem anota os números agora é o próprio bot, de dentro, sem
+# passar pela API — e segue anotando mesmo com o n8n parado, que foi o que faltou quando
+# os fluxos caíram e a linha do tempo parou sem ninguém ver
+SOZINHOS="AlephSaude000001 AlephComandos001 AlephPainel00001 AlephBackup00001"
+ESPERADOS=4
 
 docker compose exec -T n8n n8n import:workflow --separate --input=/fluxos
 
