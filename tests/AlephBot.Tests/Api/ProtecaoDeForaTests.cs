@@ -3,6 +3,8 @@ using System.Text;
 
 using AlephBot.Threnodian.Api;
 
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace AlephBot.Tests.Api;
 
 /// <summary>
@@ -116,6 +118,10 @@ public class ProtecaoDeForaTests
             http.Request.Method = Microsoft.AspNetCore.Http.HttpMethods.Post;
             http.Request.Path = "/api/v1/docs/entrar";
             http.Request.Headers["Tailscale-Funnel-Request"] = "?1";
+
+            // o mesmo IP que o GetAsync usa: o castigo conta por IP, e sem isto cada pedido
+            // seria de um cliente diferente
+            http.Connection.RemoteIpAddress = IPAddress.Loopback;
             http.Request.ContentType = "application/x-www-form-urlencoded";
             http.Request.Form = new Microsoft.AspNetCore.Http.FormCollection(
                 new() { ["senha"] = senha });
@@ -192,6 +198,119 @@ public class ProtecaoDeForaTests
 
         // sem a assinatura do processo não adianta escrever "Dono" na mão
         Assert.Equal(302, status);
+    }
+
+    // ---- castigo de quem chuta senha ------------------------------------------
+
+    [Fact]
+    public async Task Depois_de_quatro_erros_nem_a_senha_certa_entra()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        // os três primeiros erros ainda pedem senha de novo
+        for (var i = 1; i < TentativasDeSenha.Limite; i++)
+        {
+            var (status, _, _) = await MandaASenhaAsync(api, $"chute {i}");
+            Assert.Equal(401, status);
+        }
+
+        // o quarto fecha a porta
+        var (quarto, aviso, _) = await MandaASenhaAsync(api, "chute 4");
+
+        Assert.Equal(429, quarto);
+        Assert.Contains("Muitas tentativas", aviso);
+
+        // e a senha certa, agora, também não abre
+        var (certa, html, biscoito) = await MandaASenhaAsync(api, SenhaDoDono);
+
+        Assert.Equal(429, certa);
+        Assert.Contains("Muitas tentativas", html);
+        Assert.Null(biscoito);
+    }
+
+    [Fact]
+    public async Task De_castigo_a_própria_tela_avisa_em_vez_de_pedir_senha()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
+
+        for (var i = 1; i <= TentativasDeSenha.Limite; i++)
+            await MandaASenhaAsync(api, "chutada");
+
+        var (status, html) = await api.GetAsync("/api/v1/docs/entrar", headers: PeloFunnel);
+
+        Assert.Equal(429, status);
+        Assert.Contains("Muitas tentativas", html);
+        Assert.DoesNotContain("type=\"password\"", html);
+    }
+
+    [Fact]
+    public async Task Acertar_antes_do_quarto_erro_zera_a_conta()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        for (var i = 1; i < TentativasDeSenha.Limite; i++)
+            await MandaASenhaAsync(api, "quase");
+
+        var (acertou, _, biscoito) = await MandaASenhaAsync(api, SenhaDoDono);
+
+        Assert.Equal(200, acertou);
+        Assert.NotNull(biscoito);
+
+        // zerou: dá pra errar de novo as três sem cair no castigo
+        for (var i = 1; i < TentativasDeSenha.Limite; i++)
+        {
+            var (status, _, _) = await MandaASenhaAsync(api, "quase");
+            Assert.Equal(401, status);
+        }
+    }
+
+    [Fact]
+    public async Task Errar_a_senha_no_header_também_conta()
+    {
+        // o chute por curl é o mesmo chute; contar só o formulário deixaria a porta aberta
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
+
+        for (var i = 1; i <= TentativasDeSenha.Limite; i++)
+            await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("a", $"chute {i}")]);
+
+        var (status, html) = await api.GetAsync("/api/v1/docs/entrar", headers: PeloFunnel);
+
+        Assert.Equal(429, status);
+        Assert.Contains("Muitas tentativas", html);
+    }
+
+    [Fact]
+    public async Task Quem_já_entrou_não_é_castigado_pelo_chute_de_outro()
+    {
+        // o biscoito vale mesmo de castigo: quem está lendo a documentação não está chutando
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (_, _, biscoito) = await MandaASenhaAsync(api, SenhaDoDono);
+
+        for (var i = 1; i <= TentativasDeSenha.Limite; i++)
+            await MandaASenhaAsync(api, "chutada");
+
+        var (status, _) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, ("Cookie", biscoito!)]);
+
+        Assert.Equal(200, status);
+    }
+
+    [Fact]
+    public void O_castigo_esquece_a_conta_quando_o_tempo_passa()
+    {
+        var contador = new TentativasDeSenha(NullLogger<TentativasDeSenha>.Instance);
+        const string quem = "203.0.113.9";
+
+        for (var i = 1; i <= TentativasDeSenha.Limite; i++)
+            contador.Errou(quem, agoraEmMs: 0);
+
+        Assert.NotNull(contador.Falta(quem, agoraEmMs: 0));
+
+        // batendo na porta durante o castigo, ele não recomeça do zero
+        contador.Errou(quem, agoraEmMs: 60_000);
+        Assert.NotNull(contador.Falta(quem, agoraEmMs: 60_000));
+
+        Assert.Null(contador.Falta(quem, (long)TentativasDeSenha.Castigo.TotalMilliseconds + 1));
     }
 
     [Fact]
