@@ -74,18 +74,32 @@ public static class ProteçãoDeFora
                 return next(http);
             }
 
-            // quem manda a senha no header entra na hora (curl, script); o navegador traz o
-            // biscoito que a tela de entrada deu
-            var doHeader = SenhaDoBasic(http) is { } senha ? AcessoDaSenha(senha, api) : null;
-
-            if ((doHeader ?? LoginDosDocs.Crachá(http)) is not { } acesso)
+            // o biscoito vale mesmo de castigo: quem já entrou não está chutando senha
+            if (LoginDosDocs.Crachá(http) is { } doBiscoito)
             {
-                http.Response.Redirect(LoginDosDocs.Entrar);
-                return Task.CompletedTask;
+                http.Items[Crachá] = doBiscoito;
+                return next(http);
             }
 
-            http.Items[Crachá] = acesso;
-            return next(http);
+            // quem manda a senha no header entra na hora (curl, script), e errar ali conta
+            // igual: o castigo é do chute, não do formulário
+            if (SenhaDoBasic(http) is { } senha)
+            {
+                var castigo = LoginDosDocs.Castigo(http);
+
+                if (castigo is null && AcessoDaSenha(senha, api) is { } doHeader)
+                {
+                    LoginDosDocs.Acertou(http);
+                    http.Items[Crachá] = doHeader;
+                    return next(http);
+                }
+
+                if (castigo is null)
+                    LoginDosDocs.Errou(http);
+            }
+
+            http.Response.Redirect(LoginDosDocs.Entrar);
+            return Task.CompletedTask;
         });
     }
 

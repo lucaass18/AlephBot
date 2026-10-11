@@ -91,6 +91,7 @@ public static class AlephApi
 
         builder.Services.AddSingleton(api);
         builder.Services.AddSingleton<ApiKeyFilter>();
+        builder.Services.AddSingleton<TentativasDeSenha>();
         builder.Services.AddSingleton<BotStatus>();
 
         builder.Services.AddSingleton<LavalinkMonitor>();

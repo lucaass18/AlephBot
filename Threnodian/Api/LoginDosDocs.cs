@@ -63,17 +63,26 @@ internal static class LoginDosDocs
         if (api.DocsPassword is null && api.DocsAdminPassword is null)
             return;
 
-        app.MapGet(Entrar, (HttpContext http) => Mostra(http, errou: false))
+        app.MapGet(Entrar, (HttpContext http) =>
+                Castigo(http) is { } falta ? DeCastigo(falta) : Mostra(http, errou: false))
             .ExcludeFromDescription();
 
         app.MapPost(Entrar, async (HttpContext http) =>
         {
+            if (Castigo(http) is { } falta)
+                return DeCastigo(falta);
+
             var tentada = http.Request.HasFormContentType
                 ? (await http.Request.ReadFormAsync())[Campo].ToString()
                 : "";
 
             if (ProteçãoDeFora.AcessoDaSenha(tentada, api) is not { } acesso)
-                return Mostra(http, errou: true);
+            {
+                Errou(http);
+                return Castigo(http) is { } agora ? DeCastigo(agora) : Mostra(http, errou: true);
+            }
+
+            Acertou(http);
 
             http.Response.Cookies.Append(Biscoito, Assina(http, acesso), new CookieOptions
             {
@@ -96,6 +105,50 @@ internal static class LoginDosDocs
         })
         .ExcludeFromDescription();
     }
+
+    private static (TentativasDeSenha Contador, string Cliente, long Agora) Conta(HttpContext http) => (
+        http.RequestServices.GetRequiredService<TentativasDeSenha>(),
+        TentativasDeSenha.ClienteDe(http.Connection.RemoteIpAddress),
+        Environment.TickCount64);
+
+    /// <summary>Quanto falta do castigo de quem errou demais, ou null se pode tentar.</summary>
+    public static TimeSpan? Castigo(HttpContext http)
+    {
+        var (contador, cliente, agora) = Conta(http);
+        return contador.Falta(cliente, agora);
+    }
+
+    public static void Errou(HttpContext http)
+    {
+        var (contador, cliente, agora) = Conta(http);
+        contador.Errou(cliente, agora);
+    }
+
+    public static void Acertou(HttpContext http)
+    {
+        var (contador, cliente, _) = Conta(http);
+        contador.Acertou(cliente);
+    }
+
+    /// <summary>
+    /// 429 com Retry-After, o mesmo que o limite de pedidos usa: quem é programa lê o header,
+    /// quem é gente lê a tela.
+    /// </summary>
+    private static IResult DeCastigo(TimeSpan falta)
+    {
+        var minutos = Math.Max(1, (int)Math.Ceiling(falta.TotalMinutes));
+
+        return Results.Content(
+            HtmlDoCastigo(minutos),
+            Tipo,
+            statusCode: StatusCodes.Status429TooManyRequests);
+    }
+
+    private static string HtmlDoCastigo(int minutos) => Moldura($$"""
+          <h1>Muitas tentativas</h1>
+          <p>Foram {{TentativasDeSenha.Limite}} senhas erradas daqui. Tente de novo em
+          {{minutos}} {{(minutos == 1 ? "minuto" : "minutos")}}.</p>
+        """);
 
     private static IDataProtector Protetor(HttpContext http) =>
         http.RequestServices.GetRequiredService<IDataProtectionProvider>().CreateProtector(Propósito);
