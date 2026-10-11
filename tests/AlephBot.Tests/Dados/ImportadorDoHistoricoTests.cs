@@ -44,6 +44,27 @@ public class ImportadorDoHistoricoTests
     }
 
     [Fact]
+    public void O_backup_das_3h_volta_a_ser_lido()
+    {
+        // o arquivo que o fluxo guarda toda noite tem que servir pra restaurar; senão é
+        // arquivo, não cópia de segurança
+        var backup = $$"""
+            {
+              "salvoEm": "2026-10-11T06:00:00Z",
+              "coletas": 1,
+              "servidores": 0,
+              "config": [],
+              "historico": {{UmaLinha}}
+            }
+            """;
+
+        var linha = Assert.Single(ImportadorDoHistorico.Lê(backup));
+
+        Assert.Equal(12, linha.Servidores);
+        Assert.Equal(3456, linha.Membros);
+    }
+
+    [Fact]
     public void Aceita_número_que_veio_como_texto()
     {
         // exportação que passou por CSV transforma tudo em string pelo caminho

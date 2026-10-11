@@ -84,16 +84,29 @@ public sealed class ImportadorDoHistorico(
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     /// <summary>
-    /// Aceita tanto a lista crua quanto o que a Data table do n8n exporta em volta dela
-    /// (um objeto com "data"), porque de onde o arquivo vem depende de como foi exportado.
+    /// Onde a lista pode estar escondida, por ordem: "data" é como a tabela do n8n exporta,
+    /// e "historico" é como o backup das 3h guarda. Aceitar os dois é o que faz o backup
+    /// servir pra restaurar — um arquivo que ninguém consegue ler de volta não é cópia de
+    /// segurança, é arquivo.
     /// </summary>
+    private static readonly string[] OndeAListaMora = ["data", "historico"];
+
     internal static IReadOnlyList<Linha> Lê(string json)
     {
         var raiz = JsonDocument.Parse(json).RootElement;
+        var lista = raiz;
 
-        var lista = raiz.ValueKind == JsonValueKind.Object && raiz.TryGetProperty("data", out var dentro)
-            ? dentro
-            : raiz;
+        if (raiz.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var nome in OndeAListaMora)
+            {
+                if (raiz.TryGetProperty(nome, out var dentro))
+                {
+                    lista = dentro;
+                    break;
+                }
+            }
+        }
 
         if (lista.ValueKind != JsonValueKind.Array)
             return [];
