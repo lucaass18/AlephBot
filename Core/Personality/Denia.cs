@@ -731,6 +731,19 @@ public static class Denia
     public static string NãoIdentifiquei() =>
         "Não consegui ver teus cargos neste servidor. Estranho, mas acontece.";
 
+    // ---- configuração do servidor --------------------------------------------
+
+    public static string ConfigPrefixoInválido() =>
+        "Prefixo assim não dá: uma coisa curta, sem espaço, até 16 caracteres. " +
+        $"Ou manda \"padrão\" que eu volto pro meu.";
+
+    public static string ConfigEsperaInválida(int mínimo, int máximo) =>
+        $"A espera vai de {mínimo} a {máximo} minutos. Fora disso eu não aceito.";
+
+    public static string ConfigSemBanco() =>
+        "Não consegui guardar: meu banco não está respondendo agora. " +
+        "Até ele voltar, tudo aqui segue no padrão.";
+
     // ---- desligamento --------------------------------------------------------
 
     /// <summary>A última fala dela: sai no console quando o processo encerra.</summary>

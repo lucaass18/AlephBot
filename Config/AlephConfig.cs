@@ -19,7 +19,8 @@ public sealed class AlephConfig
         Uri? youtubeAudioUri,
         string? malClientId,
         ApiConfig? api,
-        string? ambiente)
+        string? ambiente,
+        string? databaseUrl)
     {
         Token = token;
         Prefix = prefix;
@@ -34,6 +35,7 @@ public sealed class AlephConfig
         MalClientId = malClientId;
         Api = api;
         Ambiente = ambiente;
+        DatabaseUrl = databaseUrl;
     }
 
     public string Token { get; }
@@ -82,6 +84,14 @@ public sealed class AlephConfig
     /// chave seria o bot contando a vida dele pra quem passar na rua.
     /// </summary>
     public ApiConfig? Api { get; }
+
+    /// <summary>
+    /// Como chegar no Postgres (DATABASE_URL). Null = o bot sobe sem banco: a música, o
+    /// /ping e tudo que não precisa lembrar de nada seguem funcionando, e só o que depende
+    /// de guardar estado fica de fora. O banco guarda estado; ele não está no caminho de
+    /// tocar uma faixa.
+    /// </summary>
+    public string? DatabaseUrl { get; }
 
     /// <summary>O DOTNET_ENVIRONMENT: o compose põe "Production"; rodando em casa, fica vazio.</summary>
     public string? Ambiente { get; }
@@ -150,7 +160,8 @@ public sealed class AlephConfig
             youtubeAudioUri: env.OptionalUriOuNulo("YOUTUBE_AUDIO_URI"),
             malClientId: env.OptionalOuNulo("MAL_CLIENT_ID"),
             api: env.OptionalApi(),
-            ambiente: env.OptionalOuNulo("DOTNET_ENVIRONMENT"));
+            ambiente: env.OptionalOuNulo("DOTNET_ENVIRONMENT"),
+            databaseUrl: env.OptionalOuNulo("DATABASE_URL"));
     }
 
     /// <summary>Lê cada variável da fonte e converte; o que vem torto vira erro com o nome dela.</summary>

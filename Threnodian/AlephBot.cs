@@ -7,6 +7,7 @@ using AlephBot.Core.Commands;
 using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Activity;
 using AlephBot.Threnodian.Api;
+using AlephBot.Threnodian.Dados;
 using AlephBot.Threnodian.Diagnostics;
 using AlephBot.Threnodian.Handlers;
 using AlephBot.Threnodian.MyAnimeList;
@@ -25,6 +26,7 @@ using Lavalink4NET.NetCord;
 using LavalinkCore = Lavalink4NET.Extensions.ServiceCollectionExtensions;
 
 using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -139,6 +141,7 @@ public sealed class AlephBot
         builder.Services.AddHostedService<BotActivityService>();
         builder.Services.AddHostedService<CommandAuditService>();
 
+        ConfigureBanco(builder.Services);
         ConfigureMusic(builder.Services);
         ConfigureAnime(builder.Services);
 
@@ -168,6 +171,32 @@ public sealed class AlephBot
         // depois do gateway de propósito: os serviços param na ordem inversa, e este precisa
         // tirar a última foto dos players — com a posição exata — enquanto tudo ainda está de pé
         builder.Services.AddHostedService<PlayerResumeService>();
+    }
+
+    /// <summary>
+    /// O banco, se houver um. Sem DATABASE_URL eu subo sem ele e cada servidor fica com o
+    /// padrão do .env — que é exatamente como era antes de existir banco aqui. Nada do que
+    /// faz o bot responder passa por este caminho; o Postgres guarda escolha, não comando.
+    /// </summary>
+    private void ConfigureBanco(IServiceCollection services)
+    {
+        if (!string.IsNullOrWhiteSpace(_config.DatabaseUrl))
+        {
+            // fábrica, e não DbContext direto: quem lê a configuração é singleton (o prefixo
+            // é perguntado a cada mensagem), e singleton não pode depender de scoped
+            services.AddDbContextFactory<AlephDb>(options => options.UseNpgsql(
+                _config.DatabaseUrl,
+                npgsql => npgsql.MigrationsHistoryTable("__migracoes", AlephDb.Schema)));
+
+            services.AddSingleton<MigracaoDoBanco>();
+            services.AddHostedService(provider => provider.GetRequiredService<MigracaoDoBanco>());
+        }
+
+        services.AddSingleton<ConfigDosServidores>(provider => new ConfigDosServidores(
+            provider.GetService<IDbContextFactory<AlephDb>>(),
+            provider.GetService<MigracaoDoBanco>(),
+            _config,
+            provider.GetRequiredService<ILogger<ConfigDosServidores>>()));
     }
 
     /// <summary>
