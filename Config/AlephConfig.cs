@@ -177,7 +177,8 @@ public sealed class AlephConfig
                 OptionalPort("API_PORT", PortaDaApiPadrão),
                 OptionalOuNulo("SCALAR_AGENT_KEY"),
                 OptionalOuNulo("API_DOCS_PASSWORD"),
-                Lista("API_CORS_ORIGINS"));
+                Lista("API_CORS_ORIGINS"),
+                OptionalOuNulo("API_DOCS_ADMIN_PASSWORD"));
         }
 
         /// <summary>Uma variável com vários valores, separados por vírgula.</summary>
@@ -279,13 +280,15 @@ public sealed class ApiConfig
         int port,
         string? scalarAgentKey = null,
         string? docsPassword = null,
-        IReadOnlyList<string>? corsOrigins = null)
+        IReadOnlyList<string>? corsOrigins = null,
+        string? docsAdminPassword = null)
     {
         Key = key;
         Port = port;
         ScalarAgentKey = scalarAgentKey;
         DocsPassword = docsPassword;
         CorsOrigins = corsOrigins ?? [];
+        DocsAdminPassword = docsAdminPassword;
     }
 
     /// <summary>O que todo pedido tem que trazer no header X-Api-Key.</summary>
@@ -312,4 +315,11 @@ public sealed class ApiConfig
     /// volta a liberar qualquer uma.
     /// </summary>
     public IReadOnlyList<string> CorsOrigins { get; }
+
+    /// <summary>
+    /// A senha de dono dos docs (API_DOCS_ADMIN_PASSWORD): de fora, abre a página inteira, com
+    /// a IA. A <see cref="DocsPassword"/> ao lado abre a mesma página sem ela — visitante lê a
+    /// documentação sem gastar mensagem paga. Null = ninguém entra de fora como dono.
+    /// </summary>
+    public string? DocsAdminPassword { get; }
 }
