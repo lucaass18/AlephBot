@@ -123,12 +123,45 @@ public sealed class ApiDeTeste : IAsyncDisposable
 }
 
 /// <summary>
-/// Um IAudioService que não faz nada. O LavalinkMonitor só se inscreve nos eventos dele no
-/// construtor, e o proxy aceita a inscrição em silêncio.
+/// Um IAudioService que não faz nada, mas que responde o bastante pra rota existir. O
+/// LavalinkMonitor só se inscreve nos eventos dele no construtor, e o proxy aceita a inscrição
+/// em silêncio; o /stats, porém, lê <c>Players.Players</c>, e devolver null ali derrubava a
+/// rota com 500 dentro do teste — um bot sem música tocando é lista vazia, não nada.
 /// </summary>
 public class ÁudioDeMentira : DispatchProxy
 {
     public static IAudioService Criar() => Create<IAudioService, ÁudioDeMentira>();
 
-    protected override object? Invoke(MethodInfo? método, object?[]? argumentos) => null;
+    protected override object? Invoke(MethodInfo? método, object?[]? argumentos)
+    {
+        if (método?.ReturnType is not { } tipo || tipo == typeof(void))
+            return null;
+
+        // coleção vem vazia (nenhum player), e interface vira outro proxy igual, pra cadeia
+        // não parar num null no meio do caminho
+        if (ItemDaColeção(tipo) is { } item)
+            return Array.CreateInstance(item, 0);
+
+        if (tipo.IsInterface)
+            return Proxy(tipo);
+
+        return tipo.IsValueType ? Activator.CreateInstance(tipo) : null;
+    }
+
+    private static Type? ItemDaColeção(Type tipo) =>
+        tipo is { IsInterface: true, IsGenericType: true } && tipo.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+            ? tipo.GetGenericArguments()[0]
+            : null;
+
+    // o Create tem irmãos de mesmo nome, e pedir só pelo nome dá "ambiguous match": é o
+    // genérico de dois tipos e nenhum argumento
+    private static readonly MethodInfo CriaProxy = typeof(DispatchProxy)
+        .GetMethods(BindingFlags.Public | BindingFlags.Static)
+        .Single(método => método.Name == nameof(Create)
+            && método.IsGenericMethodDefinition
+            && método.GetGenericArguments().Length == 2
+            && método.GetParameters().Length == 0);
+
+    private static object Proxy(Type tipo) =>
+        CriaProxy.MakeGenericMethod(tipo, typeof(ÁudioDeMentira)).Invoke(null, null)!;
 }
