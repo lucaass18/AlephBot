@@ -38,7 +38,7 @@ public class CorsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 
         // 405 aqui é o bug de antes: sem licença, o navegador desiste antes de mandar a chave
         Assert.NotEqual(StatusCodes.Status405MethodNotAllowed, resposta.Status);
-        Assert.Equal("*", resposta.Headers["Access-Control-Allow-Origin"]);
+        Assert.Equal(DeOutroSite, resposta.Headers["Access-Control-Allow-Origin"]);
         Assert.Contains(
             ApiKeyFilter.Header,
             resposta.Headers["Access-Control-Allow-Headers"].ToString(),
@@ -83,10 +83,80 @@ public class CorsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 
         var lêem = resposta.Headers["Access-Control-Expose-Headers"].ToString();
 
-        Assert.Equal("*", resposta.Headers["Access-Control-Allow-Origin"]);
+        Assert.Equal(DeOutroSite, resposta.Headers["Access-Control-Allow-Origin"]);
         Assert.All(
             (string[])[LimiteDePedidos.CabeçalhoDaCota, LimiteDePedidos.CabeçalhoDaSobra, AlephApi.HeaderDeEspera],
             header => Assert.Contains(header, lêem, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData("https://site-qualquer.com")]
+    [InlineData("https://scalar.com.de-mentira.net")]
+    [InlineData("http://aleph.ts.net.de-mentira.com")]
+    public async Task Página_de_fora_da_lista_não_ganha_licença(string origem)
+    {
+        var resposta = await _api.FazAsync(
+            HttpMethods.Options,
+            "/api/v1/stats",
+            headers:
+            [
+                ("Origin", origem),
+                ("Access-Control-Request-Method", HttpMethods.Get),
+                ("Access-Control-Request-Headers", ApiKeyFilter.Header),
+            ]);
+
+        // sem a liberação o navegador não manda o pedido de verdade
+        Assert.True(
+            string.IsNullOrEmpty(resposta.Headers["Access-Control-Allow-Origin"]),
+            $"{origem} não devia ser liberada");
+    }
+
+    [Theory]
+    [InlineData("http://localhost:5173")]
+    [InlineData("https://aleph.tailc38add.ts.net")]
+    [InlineData("http://aleph")]
+    [InlineData("https://scalar.com")]
+    public async Task As_páginas_de_casa_e_a_do_Scalar_ganham_licença(string origem)
+    {
+        var resposta = await _api.FazAsync(
+            HttpMethods.Get,
+            "/api/v1/health",
+            headers: ("Origin", origem));
+
+        Assert.Equal(origem, resposta.Headers["Access-Control-Allow-Origin"]);
+    }
+
+    [Fact]
+    public async Task O_env_acrescenta_página_sem_mexer_em_código()
+    {
+        const string nova = "https://painel.exemplo.com";
+
+        await using var api = await ApiDeTeste.SubirAsync(
+            variáveis: new Dictionary<string, string> { ["API_CORS_ORIGINS"] = $"{nova},https://outra.com" });
+
+        var liberada = await api.FazAsync(HttpMethods.Get, "/api/v1/health", headers: ("Origin", nova));
+        var estranha = await api.FazAsync(
+            HttpMethods.Get,
+            "/api/v1/health",
+            headers: ("Origin", "https://nao-listada.com"));
+
+        Assert.Equal(nova, liberada.Headers["Access-Control-Allow-Origin"]);
+        Assert.True(string.IsNullOrEmpty(estranha.Headers["Access-Control-Allow-Origin"]));
+    }
+
+    [Fact]
+    public async Task Um_asterisco_no_env_volta_a_liberar_qualquer_página()
+    {
+        // a saída de emergência, se um dia faltar uma origem e não der pra esperar deploy
+        await using var api = await ApiDeTeste.SubirAsync(
+            variáveis: new Dictionary<string, string> { ["API_CORS_ORIGINS"] = "*" });
+
+        var resposta = await api.FazAsync(
+            HttpMethods.Get,
+            "/api/v1/health",
+            headers: ("Origin", "https://site-qualquer.com"));
+
+        Assert.Equal("*", resposta.Headers["Access-Control-Allow-Origin"]);
     }
 
     [Fact]

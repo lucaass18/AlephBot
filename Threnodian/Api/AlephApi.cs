@@ -83,7 +83,7 @@ public static class AlephApi
         // erro sai como application/problem+json, igual pra 401, 404 e exceção
         builder.Services.AddProblemDetails();
 
-        ConfiguraOCors(builder.Services);
+        ConfiguraOCors(builder.Services, api);
 
         builder.Services.AddSingleton(api);
         builder.Services.AddSingleton<ApiKeyFilter>();
@@ -121,26 +121,31 @@ public static class AlephApi
     /// de verdade nem sai — era o que derrubava /stats e /commands na IA dos docs, com a chave
     /// certa na mão. O health e o status escapavam por não precisarem de header nenhum.
     ///
-    /// Origem liberada porque aqui não há o que roubar de quem passa: a API é só leitura, não
-    /// usa cookie nem sessão (nada viaja sozinho junto do pedido), o que é aberto já é público
-    /// e o resto segue pedindo a chave, que nunca sai daqui pra página de terceiro.
+    /// De onde a página pode chamar quem decide é o <see cref="OrigensDeConfiança"/>.
     /// </summary>
-    private static void ConfiguraOCors(IServiceCollection services) =>
-        services.AddCors(cors => cors.AddPolicy(Cors, política => política
-            .AllowAnyOrigin()
-            .WithMethods(HttpMethods.Get, HttpMethods.Head)
-            .WithHeaders(ApiKeyFilter.Header)
+    private static void ConfiguraOCors(IServiceCollection services, ApiConfig api) =>
+        services.AddCors(cors => cors.AddPolicy(Cors, política =>
+        {
+            política
+                .WithMethods(HttpMethods.Get, HttpMethods.Head)
+                .WithHeaders(ApiKeyFilter.Header)
 
-            // sem dizer quais pode ler, o navegador entrega a resposta com os headers escondidos,
-            // e o documento promete estes três a quem usa a API
-            .WithExposedHeaders(
-                LimiteDePedidos.CabeçalhoDaCota,
-                LimiteDePedidos.CabeçalhoDaSobra,
-                HeaderDeEspera)
+                // sem dizer quais pode ler, o navegador entrega a resposta com os headers
+                // escondidos, e o documento promete estes três a quem usa a API
+                .WithExposedHeaders(
+                    LimiteDePedidos.CabeçalhoDaCota,
+                    LimiteDePedidos.CabeçalhoDaSobra,
+                    HeaderDeEspera)
 
-            // a permissão vale um tempo no navegador: sem isso, cada chamada vira duas (o
-            // OPTIONS e ela), e a cota do minuto acabaria na metade do caminho
-            .SetPreflightMaxAge(TimeSpan.FromHours(2))));
+                // a permissão vale um tempo no navegador: sem isso, cada chamada vira duas (o
+                // OPTIONS e ela), e a cota do minuto acabaria na metade do caminho
+                .SetPreflightMaxAge(TimeSpan.FromHours(2));
+
+            if (api.CorsOrigins.Contains(OrigensDeConfiança.Qualquer))
+                política.AllowAnyOrigin();
+            else
+                política.SetIsOriginAllowed(origem => OrigensDeConfiança.Confia(origem, api.CorsOrigins));
+        }));
 
     /// <summary>Quantos segundos esperar depois de um 429.</summary>
     internal const string HeaderDeEspera = "Retry-After";

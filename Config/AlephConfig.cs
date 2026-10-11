@@ -176,8 +176,15 @@ public sealed class AlephConfig
                 chave,
                 OptionalPort("API_PORT", PortaDaApiPadrão),
                 OptionalOuNulo("SCALAR_AGENT_KEY"),
-                OptionalOuNulo("API_DOCS_PASSWORD"));
+                OptionalOuNulo("API_DOCS_PASSWORD"),
+                Lista("API_CORS_ORIGINS"));
         }
+
+        /// <summary>Uma variável com vários valores, separados por vírgula.</summary>
+        private IReadOnlyList<string> Lista(string key) =>
+            OptionalOuNulo(key) is { } valor
+                ? [.. valor.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]
+                : [];
 
         public string Required(string key)
         {
@@ -267,12 +274,18 @@ public sealed class AlephConfig
 /// </summary>
 public sealed class ApiConfig
 {
-    public ApiConfig(string key, int port, string? scalarAgentKey = null, string? docsPassword = null)
+    public ApiConfig(
+        string key,
+        int port,
+        string? scalarAgentKey = null,
+        string? docsPassword = null,
+        IReadOnlyList<string>? corsOrigins = null)
     {
         Key = key;
         Port = port;
         ScalarAgentKey = scalarAgentKey;
         DocsPassword = docsPassword;
+        CorsOrigins = corsOrigins ?? [];
     }
 
     /// <summary>O que todo pedido tem que trazer no header X-Api-Key.</summary>
@@ -292,4 +305,11 @@ public sealed class ApiConfig
     /// mensagens. Null = página aberta; de dentro ela nunca é pedida.
     /// </summary>
     public string? DocsPassword { get; }
+
+    /// <summary>
+    /// Páginas a mais de onde o navegador pode chamar a API (API_CORS_ORIGINS, separadas por
+    /// vírgula), além das que o <see cref="OrigensDeConfiança"/> já conhece. Um "*" sozinho
+    /// volta a liberar qualquer uma.
+    /// </summary>
+    public IReadOnlyList<string> CorsOrigins { get; }
 }
