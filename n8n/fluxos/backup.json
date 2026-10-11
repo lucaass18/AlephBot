@@ -171,7 +171,5 @@
   "settings": {
     "errorWorkflow": "AlephErros000001",
     "executionOrder": "v1"
-  },
-  "active": false,
-  "pinData": {}
+  }
 }
