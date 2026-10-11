@@ -18,9 +18,51 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
     public DbSet<ColetaDeStats> ColetasDeStats => Set<ColetaDeStats>();
 
+    public DbSet<PlaylistSalva> Playlists => Set<PlaylistSalva>();
+
     protected override void OnModelCreating(ModelBuilder modelo)
     {
         modelo.HasDefaultSchema(Schema);
+
+        modelo.Entity<PlaylistSalva>(playlist =>
+        {
+            playlist.ToTable("playlist");
+            playlist.HasKey(p => p.Id);
+
+            playlist.Property(p => p.Id).HasColumnName("id");
+            playlist.Property(p => p.GuildId).HasColumnName("guild_id").HasConversion<long>();
+            playlist.Property(p => p.Nome).HasColumnName("nome").HasMaxLength(PlaylistSalva.NomeNoMáximo);
+            playlist.Property(p => p.CriadaPor).HasColumnName("criada_por").HasConversion<long>();
+            playlist.Property(p => p.CriadaEm).HasColumnName("criada_em");
+
+            // dois nomes iguais no mesmo servidor fariam "/playlist tocar fulano" virar
+            // sorteio; o banco é quem garante, não a conferência antes de gravar
+            playlist.HasIndex(p => new { p.GuildId, p.Nome })
+                .IsUnique()
+                .HasDatabaseName("ix_playlist_guild_nome");
+
+            // apagar a playlist leva as faixas junto: faixa órfã não toca nem aparece
+            playlist.HasMany(p => p.Faixas)
+                .WithOne()
+                .HasForeignKey(f => f.PlaylistId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelo.Entity<FaixaDaPlaylist>(faixa =>
+        {
+            faixa.ToTable("playlist_faixa");
+            faixa.HasKey(f => f.Id);
+
+            faixa.Property(f => f.Id).HasColumnName("id");
+            faixa.Property(f => f.PlaylistId).HasColumnName("playlist_id");
+            faixa.Property(f => f.Ordem).HasColumnName("ordem");
+
+            // o encoded do Lavalink não tem tamanho fixo; título longo a gente corta na hora
+            faixa.Property(f => f.Dados).HasColumnName("dados");
+            faixa.Property(f => f.Titulo).HasColumnName("titulo").HasMaxLength(200);
+
+            faixa.HasIndex(f => new { f.PlaylistId, f.Ordem }).HasDatabaseName("ix_playlist_faixa_ordem");
+        });
 
         modelo.Entity<ColetaDeStats>(coleta =>
         {

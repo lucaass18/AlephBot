@@ -234,6 +234,11 @@ public sealed class AlephBot
                 services.AddHostedService<ColetorDeStats>();
         }
 
+        services.AddSingleton<PlaylistsSalvas>(provider => new PlaylistsSalvas(
+            provider.GetService<IDbContextFactory<AlephDb>>(),
+            provider.GetService<MigracaoDoBanco>(),
+            provider.GetRequiredService<ILogger<PlaylistsSalvas>>()));
+
         services.AddSingleton<ConfigDosServidores>(provider => new ConfigDosServidores(
             provider.GetService<IDbContextFactory<AlephDb>>(),
             provider.GetService<MigracaoDoBanco>(),
