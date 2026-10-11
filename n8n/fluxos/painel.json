@@ -77,28 +77,26 @@
     },
     {
       "parameters": {
-        "resource": "row",
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "mode": "name",
-          "value": "aleph_stats"
-        },
-        "limit": 672,
-        "orderBy": true,
-        "orderByColumn": "coletado_em",
-        "orderByDirection": "DESC"
+        "operation": "executeQuery",
+        "query": "-- as colunas têm os mesmos nomes da tabela antiga do n8n, então a página não muda\nSELECT coletado_em, servidores, membros, online, comandos,\n       players, tocando, pausados, na_fila, memoria_mb, heap_mb\nFROM aleph.stats_historico\nORDER BY coletado_em DESC\nLIMIT 672;  -- 7 dias a cada 15 min",
+        "options": {}
       },
       "id": "2dbb2bad-2020-4e5d-8308-fd0ad1190929",
       "name": "Lê o histórico",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
       "alwaysOutputData": true,
       "onError": "continueRegularOutput",
       "position": [
         720,
         0
-      ]
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "AlephPostgres001",
+          "name": "Aleph Postgres"
+        }
+      }
     },
     {
       "parameters": {
