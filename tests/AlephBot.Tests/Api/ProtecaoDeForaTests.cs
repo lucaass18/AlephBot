@@ -65,14 +65,16 @@ public class ProtecaoDeForaTests
     }
 
     [Fact]
-    public async Task Com_senha_de_fora_o_navegador_pede_login()
+    public async Task De_fora_a_página_manda_pra_tela_de_entrada()
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
 
         var (status, corpo, headers) = await api.GetComHeadersAsync("/api/v1/docs/", headers: PeloFunnel);
 
-        Assert.Equal(401, status);
-        Assert.StartsWith("Basic", headers.WWWAuthenticate.ToString());
+        // a tela é da casa, no lugar da janelinha do navegador: nada de WWW-Authenticate
+        Assert.Equal(302, status);
+        Assert.Equal("/api/v1/docs/entrar", headers.Location);
+        Assert.Equal("", headers.WWWAuthenticate.ToString());
         Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, corpo);
     }
 
@@ -80,13 +82,120 @@ public class ProtecaoDeForaTests
     [InlineData("errada")]
     [InlineData("senha-dos-docs ")]
     [InlineData("")]
-    public async Task Senha_errada_não_abre(string tentativa)
+    public async Task Senha_errada_no_header_não_abre(string tentativa)
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha);
 
         var (status, _) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("aleph", tentativa)]);
 
+        Assert.Equal(302, status);
+    }
+
+    // ---- a tela de entrada ----------------------------------------------------
+
+    [Fact]
+    public async Task A_tela_de_entrada_abre_sem_senha_e_não_entrega_nada()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (status, html) = await api.GetAsync("/api/v1/docs/entrar", headers: PeloFunnel);
+
+        Assert.Equal(200, status);
+        Assert.Contains("name=\"senha\"", html);
+        Assert.Contains("type=\"password\"", html);
+        Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, html);
+        Assert.DoesNotContain(ApiDeTeste.ChaveDaApi, html);
+    }
+
+    /// <summary>Preenche a tela e manda, como o navegador faria; devolve o biscoito que voltou.</summary>
+    private static async Task<(int Status, string? Destino, string? Biscoito)> MandaASenhaAsync(
+        ApiDeTeste api, string senha)
+    {
+        var contexto = await api.Servidor.SendAsync(http =>
+        {
+            http.Request.Method = Microsoft.AspNetCore.Http.HttpMethods.Post;
+            http.Request.Path = "/api/v1/docs/entrar";
+            http.Request.Headers["Tailscale-Funnel-Request"] = "?1";
+            http.Request.ContentType = "application/x-www-form-urlencoded";
+            http.Request.Form = new Microsoft.AspNetCore.Http.FormCollection(
+                new() { ["senha"] = senha });
+        });
+
+        var posto = contexto.Response.Headers.SetCookie.ToString();
+
+        return (
+            contexto.Response.StatusCode,
+            contexto.Response.Headers.Location,
+            posto.Length == 0 ? null : posto.Split(';')[0]);
+    }
+
+    [Fact]
+    public async Task Quem_preenche_a_tela_recebe_o_biscoito_e_entra()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (status, destino, biscoito) = await MandaASenhaAsync(api, SenhaDoDono);
+
+        Assert.Equal(302, status);
+        Assert.Equal("/api/v1/docs/", destino);
+        Assert.NotNull(biscoito);
+
+        // e com ele na mão a página abre, sem passar pela tela de novo
+        var (depois, html) = await api.GetAsync(
+            "/api/v1/docs/",
+            headers: [PeloFunnel, ("Cookie", biscoito!)]);
+
+        Assert.Equal(200, depois);
+        Assert.Contains(ApiDeTeste.ChaveDoAgent, html);
+    }
+
+    [Fact]
+    public async Task O_biscoito_de_visitante_abre_a_página_sem_a_IA()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (_, _, biscoito) = await MandaASenhaAsync(api, Senha);
+        var (status, html) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, ("Cookie", biscoito!)]);
+
+        Assert.Equal(200, status);
+        Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, html);
+    }
+
+    [Fact]
+    public async Task Senha_errada_na_tela_não_dá_biscoito()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (status, _, biscoito) = await MandaASenhaAsync(api, "chutada");
+
         Assert.Equal(401, status);
+        Assert.Null(biscoito);
+    }
+
+    [Fact]
+    public async Task Biscoito_forjado_não_vale()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDosDocs: Senha, senhaDoDono: SenhaDoDono);
+
+        var (status, _) = await api.GetAsync(
+            "/api/v1/docs/",
+            headers: [PeloFunnel, ("Cookie", "aleph_docs=Dono|99999999999")]);
+
+        // sem a assinatura do processo não adianta escrever "Dono" na mão
+        Assert.Equal(302, status);
+    }
+
+    [Fact]
+    public async Task Sem_senha_configurada_não_há_tela_pedindo_nada()
+    {
+        // sem senha os docs são abertos, como sempre foram: o caminho da tela nem é registrado,
+        // e quem pedir por ele cai na própria página
+        await using var api = await ApiDeTeste.SubirAsync();
+
+        var (status, html) = await api.GetAsync("/api/v1/docs/entrar", headers: PeloFunnel);
+
+        Assert.Equal(200, status);
+        Assert.DoesNotContain("type=\"password\"", html);
     }
 
     [Theory]
@@ -146,8 +255,8 @@ public class ProtecaoDeForaTests
         var (comOutra, _) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("v", Senha)]);
         var (dono, _) = await api.GetAsync("/api/v1/docs/", headers: [PeloFunnel, Basic("d", SenhaDoDono)]);
 
-        Assert.Equal(401, semSenha);
-        Assert.Equal(401, comOutra);
+        Assert.Equal(302, semSenha);
+        Assert.Equal(302, comOutra);
         Assert.Equal(200, dono);
     }
 
@@ -184,7 +293,7 @@ public class ProtecaoDeForaTests
 
         var (status, _) = await api.GetAsync(caminho, headers: PeloFunnel);
 
-        Assert.Equal(401, status);
+        Assert.Equal(302, status);
     }
 
     [Fact]

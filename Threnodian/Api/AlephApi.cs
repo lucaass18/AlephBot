@@ -85,6 +85,10 @@ public static class AlephApi
 
         ConfiguraOCors(builder.Services, api);
 
+        // assina o biscoito da tela de entrada dos docs. As chaves ficam no processo: contêiner
+        // novo, biscoito velho não vale mais, e quem estava lendo a documentação entra de novo
+        builder.Services.AddDataProtection();
+
         builder.Services.AddSingleton(api);
         builder.Services.AddSingleton<ApiKeyFilter>();
         builder.Services.AddSingleton<BotStatus>();

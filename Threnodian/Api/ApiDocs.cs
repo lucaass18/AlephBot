@@ -250,6 +250,8 @@ public static partial class ApiDocs
         // /api/v1/openapi.json, e um arquivo novo pra cada versão que nascer
         app.MapOpenApi(Documento).WithDocumentPerVersion();
 
+        LoginDosDocs.Map(app, api);
+
         MapEndereçosDeAntes(app, versão);
 
         // a IA do Scalar não lê o formulário da página: ela só usa a chave que já estiver
