@@ -33,6 +33,7 @@ public class ProtecaoDeForaTests
         Assert.Equal("DENY", headers.XFrameOptions);
         Assert.Equal("frame-ancestors 'none'", headers.ContentSecurityPolicy);
         Assert.Equal("nosniff", headers.XContentTypeOptions);
+        Assert.Equal("no-referrer", headers["Referrer-Policy"]);
     }
 
     [Fact]

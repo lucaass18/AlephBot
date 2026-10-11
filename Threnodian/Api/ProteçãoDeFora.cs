@@ -26,6 +26,12 @@ public static class ProteçãoDeFora
             headers.XContentTypeOptions = "nosniff";
             headers.XFrameOptions = "DENY";
             headers.ContentSecurityPolicy = "frame-ancestors 'none'";
+
+            // o endereço daqui não viaja junto quando a página dos docs leva pra fora: o caminho
+            // conta qual versão e qual rota alguém estava olhando, e isso não é da conta do site
+            // de destino
+            headers["Referrer-Policy"] = "no-referrer";
+
             return next(http);
         });
 
