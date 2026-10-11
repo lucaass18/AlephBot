@@ -83,6 +83,8 @@ public static class AlephApi
         // erro sai como application/problem+json, igual pra 401, 404 e exceção
         builder.Services.AddProblemDetails();
 
+        ConfiguraOCors(builder.Services);
+
         builder.Services.AddSingleton(api);
         builder.Services.AddSingleton<ApiKeyFilter>();
         builder.Services.AddSingleton<BotStatus>();
@@ -109,6 +111,40 @@ public static class AlephApi
         LimiteDePedidos.Configure(builder.Services);
     }
 
+    /// <summary>O nome da política de CORS; o navegador é o único que se importa com ela.</summary>
+    public const string Cors = "api";
+
+    /// <summary>
+    /// Sem isto, chamar a API de dentro de uma página que não seja a dos docs não funciona: a
+    /// chave vai num header próprio (<c>X-Api-Key</c>), e header próprio obriga o navegador a
+    /// pedir permissão antes, num OPTIONS. Sem resposta a esse OPTIONS ele desiste e o pedido
+    /// de verdade nem sai — era o que derrubava /stats e /commands na IA dos docs, com a chave
+    /// certa na mão. O health e o status escapavam por não precisarem de header nenhum.
+    ///
+    /// Origem liberada porque aqui não há o que roubar de quem passa: a API é só leitura, não
+    /// usa cookie nem sessão (nada viaja sozinho junto do pedido), o que é aberto já é público
+    /// e o resto segue pedindo a chave, que nunca sai daqui pra página de terceiro.
+    /// </summary>
+    private static void ConfiguraOCors(IServiceCollection services) =>
+        services.AddCors(cors => cors.AddPolicy(Cors, política => política
+            .AllowAnyOrigin()
+            .WithMethods(HttpMethods.Get, HttpMethods.Head)
+            .WithHeaders(ApiKeyFilter.Header)
+
+            // sem dizer quais pode ler, o navegador entrega a resposta com os headers escondidos,
+            // e o documento promete estes três a quem usa a API
+            .WithExposedHeaders(
+                LimiteDePedidos.CabeçalhoDaCota,
+                LimiteDePedidos.CabeçalhoDaSobra,
+                HeaderDeEspera)
+
+            // a permissão vale um tempo no navegador: sem isso, cada chamada vira duas (o
+            // OPTIONS e ela), e a cota do minuto acabaria na metade do caminho
+            .SetPreflightMaxAge(TimeSpan.FromHours(2))));
+
+    /// <summary>Quantos segundos esperar depois de um 429.</summary>
+    internal const string HeaderDeEspera = "Retry-After";
+
     public static void Map(WebApplication app)
     {
         app.UseForwardedHeaders();
@@ -118,6 +154,11 @@ public static class AlephApi
         // a ordem conta: os headers de proteção valem até pro 429, e o limite vem antes da
         // senha dos docs, pra que chutar senha também gaste a cota
         ProteçãoDeFora.UseCabeçalhos(app);
+
+        // antes do limite de propósito: o OPTIONS de permissão não traz chave nem leva dado, e
+        // fazer ele gastar cota é cobrar do navegador duas vezes pela mesma chamada
+        app.UseCors(Cors);
+
         LimiteDePedidos.Use(app);
         ProteçãoDeFora.UseSenhaDosDocs(app, app.Services.GetRequiredService<ApiConfig>());
 
