@@ -387,6 +387,12 @@ services:
       -c work_mem=4MB
       -c maintenance_work_mem=32MB
 
+    # Publicado só no localhost da VPS, pra abrir o banco num cliente (DBeaver, psql) por
+    # um túnel SSH. NUNCA ponha 0.0.0.0 aqui: o Docker publica por cima do firewall (ufw),
+    # e um Postgres na internet é varrido por robô em questão de horas
+    ports:
+      - "${POSTGRES_BIND:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+
     volumes:
       - aleph-db:/var/lib/postgresql/data
 
