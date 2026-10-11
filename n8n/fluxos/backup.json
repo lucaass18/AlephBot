@@ -109,6 +109,75 @@
         1200,
         0
       ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- tudo num JSON só: duas tabelas em dois nós fariam o segundo rodar uma vez\n-- por linha do primeiro, e o backup sairia repetido\nSELECT json_build_object(\n  'config', (SELECT coalesce(json_agg(c ORDER BY c.guild_id), '[]'::json)\n             FROM aleph.config_do_servidor c),\n  'historico', (SELECT coalesce(json_agg(h ORDER BY h.coletado_em), '[]'::json)\n                FROM aleph.stats_historico h)\n) AS banco;",
+        "options": {}
+      },
+      "id": "b1a70001-0000-4000-8000-000000000001",
+      "name": "Lê o banco",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        220
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "postgres": {
+          "id": "AlephPostgres001",
+          "name": "Aleph Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// O schema se refaz sozinho pelas migrações do bot, então o que precisa estar guardado\n// são os dados. É por isso que um JSON basta aqui, e não um pg_dump.\nconst dia = $now.setZone('America/Sao_Paulo').toFormat('yyyy-LL-dd');\nconst banco = $input.first().json.banco ?? { config: [], historico: [] };\n\n// um arquivo vazio apagaria o backup bom do dia ao sobrescrever: se o banco não respondeu,\n// é melhor não salvar nada e deixar o de ontem de pé\nif (!banco.historico?.length && !banco.config?.length) {\n  return [];\n}\n\nreturn [{\n  json: {\n    arquivo: `aleph-banco-${dia}.json`,\n    conteudo: JSON.stringify({\n      salvoEm: new Date().toISOString(),\n      coletas: banco.historico.length,\n      servidores: banco.config.length,\n      ...banco,\n    }, null, 2),\n  },\n}];"
+      },
+      "id": "b1a70001-0000-4000-8000-000000000002",
+      "name": "Vira backup do banco",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "conteudo",
+        "binaryPropertyName": "data",
+        "options": {
+          "fileName": "={{ $json.arquivo }}"
+        }
+      },
+      "id": "b1a70001-0000-4000-8000-000000000003",
+      "name": "Vira arquivo do banco",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ '/home/node/.n8n-files/backups/' + $('Vira backup do banco').first().json.arquivo }}",
+        "dataPropertyName": "data",
+        "options": {}
+      },
+      "id": "b1a70001-0000-4000-8000-000000000004",
+      "name": "Salva o banco",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        960,
+        220
+      ]
     }
   ],
   "connections": {
@@ -117,6 +186,11 @@
         [
           {
             "node": "Pede o status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Lê o banco",
             "type": "main",
             "index": 0
           }
@@ -161,6 +235,39 @@
         [
           {
             "node": "Salva o backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lê o banco": {
+      "main": [
+        [
+          {
+            "node": "Vira backup do banco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vira backup do banco": {
+      "main": [
+        [
+          {
+            "node": "Vira arquivo do banco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vira arquivo do banco": {
+      "main": [
+        [
+          {
+            "node": "Salva o banco",
             "type": "main",
             "index": 0
           }
