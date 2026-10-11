@@ -62,50 +62,55 @@ public static class ProteçãoDeFora
     /// </summary>
     public static void UseSenhaDosDocs(WebApplication app, ApiConfig api)
     {
-        var doDono = api.DocsAdminPassword is { } dono ? Hash(dono) : null;
-        var doVisitante = api.DocsPassword is { } visitante ? Hash(visitante) : null;
-
-        if (doDono is null && doVisitante is null)
+        if (api.DocsPassword is null && api.DocsAdminPassword is null)
             return;
 
         app.Use((http, next) =>
         {
-            if (!http.Request.Path.StartsWithSegments(ApiDocs.Página) || RedeDeDentro.ÉDeDentro(http))
+            if (!http.Request.Path.StartsWithSegments(ApiDocs.Página)
+                || LoginDosDocs.ÉTelaDeEntrada(http.Request.Path)
+                || RedeDeDentro.ÉDeDentro(http))
+            {
                 return next(http);
+            }
 
-            if (SenhaTentada(http) is not { } tentada)
-                return PedeSenha(http);
+            // quem manda a senha no header entra na hora (curl, script); o navegador traz o
+            // biscoito que a tela de entrada deu
+            var doHeader = SenhaDoBasic(http) is { } senha ? AcessoDaSenha(senha, api) : null;
 
-            // a de dono primeiro: se as duas forem iguais por descuido, quem configurou leva o
-            // acesso maior, não o menor
-            if (Confere(tentada, doDono))
-                http.Items[Crachá] = Acesso.Dono;
-            else if (Confere(tentada, doVisitante))
-                http.Items[Crachá] = Acesso.Visitante;
-            else
-                return PedeSenha(http);
+            if ((doHeader ?? LoginDosDocs.Crachá(http)) is not { } acesso)
+            {
+                http.Response.Redirect(LoginDosDocs.Entrar);
+                return Task.CompletedTask;
+            }
 
+            http.Items[Crachá] = acesso;
             return next(http);
         });
     }
 
-    private static bool Confere(byte[] tentada, byte[]? esperada) =>
-        esperada is not null && CryptographicOperations.FixedTimeEquals(tentada, esperada);
-
-    /// <summary>O Basic do HTTP: o navegador mostra a janelinha de usuário e senha sozinho.</summary>
-    private static Task PedeSenha(HttpContext http)
+    /// <summary>
+    /// Que porta esta senha abre — nenhuma, se não for uma das duas. A de dono é conferida
+    /// primeiro: se as duas forem iguais por descuido, quem configurou leva o acesso maior.
+    /// </summary>
+    public static Acesso? AcessoDaSenha(string senha, ApiConfig api)
     {
-        http.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        http.Response.Headers.WWWAuthenticate = "Basic realm=\"AlephBot\", charset=\"UTF-8\"";
-        return Task.CompletedTask;
+        var tentada = Hash(senha);
+
+        if (api.DocsAdminPassword is { } dono && CryptographicOperations.FixedTimeEquals(tentada, Hash(dono)))
+            return Acesso.Dono;
+
+        if (api.DocsPassword is { } visitante && CryptographicOperations.FixedTimeEquals(tentada, Hash(visitante)))
+            return Acesso.Visitante;
+
+        return null;
     }
 
     /// <summary>
-    /// A senha que veio no Basic, já em hash — o usuário tanto faz, quem diz quem é a pessoa é
-    /// a senha. Em hash porque daí a comparação tem tempo fixo, como a da chave da API: quanto
-    /// ela demora não conta nada pra quem está chutando.
+    /// A senha que veio no header, pra quem não é navegador. O usuário tanto faz: quem diz quem
+    /// é a pessoa é a senha.
     /// </summary>
-    private static byte[]? SenhaTentada(HttpContext http)
+    private static string? SenhaDoBasic(HttpContext http)
     {
         var cabeçalho = http.Request.Headers.Authorization.ToString();
 
@@ -125,7 +130,7 @@ public static class ProteçãoDeFora
 
         var separador = credenciais.IndexOf(':');
 
-        return separador < 0 ? null : Hash(credenciais[(separador + 1)..]);
+        return separador < 0 ? null : credenciais[(separador + 1)..];
     }
 
     private static byte[] Hash(string texto) => SHA256.HashData(Encoding.UTF8.GetBytes(texto));
