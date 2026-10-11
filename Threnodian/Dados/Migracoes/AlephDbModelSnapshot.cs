@@ -23,6 +23,67 @@ namespace AlephBot.Threnodian.Dados.Migracoes
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("AlephBot.Threnodian.Dados.ColetaDeStats", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("ColetadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("coletado_em");
+
+                    b.Property<int>("Comandos")
+                        .HasColumnType("integer")
+                        .HasColumnName("comandos");
+
+                    b.Property<double>("HeapMb")
+                        .HasColumnType("double precision")
+                        .HasColumnName("heap_mb");
+
+                    b.Property<int>("Membros")
+                        .HasColumnType("integer")
+                        .HasColumnName("membros");
+
+                    b.Property<double>("MemoriaMb")
+                        .HasColumnType("double precision")
+                        .HasColumnName("memoria_mb");
+
+                    b.Property<int>("NaFila")
+                        .HasColumnType("integer")
+                        .HasColumnName("na_fila");
+
+                    b.Property<int>("Online")
+                        .HasColumnType("integer")
+                        .HasColumnName("online");
+
+                    b.Property<int>("Pausados")
+                        .HasColumnType("integer")
+                        .HasColumnName("pausados");
+
+                    b.Property<int>("Players")
+                        .HasColumnType("integer")
+                        .HasColumnName("players");
+
+                    b.Property<int>("Servidores")
+                        .HasColumnType("integer")
+                        .HasColumnName("servidores");
+
+                    b.Property<int>("Tocando")
+                        .HasColumnType("integer")
+                        .HasColumnName("tocando");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ColetadoEm")
+                        .HasDatabaseName("ix_stats_historico_coletado_em");
+
+                    b.ToTable("stats_historico", "aleph");
+                });
+
             modelBuilder.Entity("AlephBot.Threnodian.Dados.ConfigDoServidor", b =>
                 {
                     b.Property<long>("GuildId")

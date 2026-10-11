@@ -223,6 +223,15 @@ public sealed class AlephBot
 
             services.AddSingleton<MigracaoDoBanco>();
             services.AddHostedService(provider => provider.GetRequiredService<MigracaoDoBanco>());
+
+            // o que ficou na tabela do n8n entra antes de tudo, pra linha do tempo não
+            // nascer com um buraco entre o histórico velho e a primeira coleta nova
+            services.AddHostedService<ImportadorDoHistorico>();
+
+            // quem sabe os números é o BotStatus, que só existe junto da API: sem API_KEY
+            // não há o que coletar, e o histórico simplesmente não começa
+            if (_config.Api is not null)
+                services.AddHostedService<ColetorDeStats>();
         }
 
         services.AddSingleton<ConfigDosServidores>(provider => new ConfigDosServidores(

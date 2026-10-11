@@ -11,11 +11,39 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 {
     public const string Schema = "aleph";
 
+    /// <summary>Onde o n8n guarda o que é dele. O bot não cria nem mexe em nada aqui.</summary>
+    public const string SchemaDoN8n = "n8n";
+
     public DbSet<ConfigDoServidor> ConfigsDosServidores => Set<ConfigDoServidor>();
+
+    public DbSet<ColetaDeStats> ColetasDeStats => Set<ColetaDeStats>();
 
     protected override void OnModelCreating(ModelBuilder modelo)
     {
         modelo.HasDefaultSchema(Schema);
+
+        modelo.Entity<ColetaDeStats>(coleta =>
+        {
+            coleta.ToTable("stats_historico");
+            coleta.HasKey(c => c.Id);
+
+            coleta.Property(c => c.Id).HasColumnName("id");
+            coleta.Property(c => c.ColetadoEm).HasColumnName("coletado_em");
+            coleta.Property(c => c.Servidores).HasColumnName("servidores");
+            coleta.Property(c => c.Membros).HasColumnName("membros");
+            coleta.Property(c => c.Online).HasColumnName("online");
+            coleta.Property(c => c.Comandos).HasColumnName("comandos");
+            coleta.Property(c => c.Players).HasColumnName("players");
+            coleta.Property(c => c.Tocando).HasColumnName("tocando");
+            coleta.Property(c => c.Pausados).HasColumnName("pausados");
+            coleta.Property(c => c.NaFila).HasColumnName("na_fila");
+            coleta.Property(c => c.MemoriaMb).HasColumnName("memoria_mb");
+            coleta.Property(c => c.HeapMb).HasColumnName("heap_mb");
+
+            // toda leitura do painel é "o que houve entre tal e tal hora", e sem índice
+            // isso vira varredura da tabela inteira assim que o histórico encorpar
+            coleta.HasIndex(c => c.ColetadoEm).HasDatabaseName("ix_stats_historico_coletado_em");
+        });
 
         modelo.Entity<ConfigDoServidor>(config =>
         {
