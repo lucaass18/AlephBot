@@ -112,3 +112,47 @@ public class ConfigCommandTests
         Assert.False(ConfigCommand.ÉPadrão("!"));
     }
 }
+
+/// <summary>
+/// Como o bot decide se uma mensagem é comando. Quem fazia essa conta era o NetCord, pelo
+/// options.Prefix; desde que o prefixo passou a mudar por servidor, a conta é nossa — e o
+/// que o NetCord fazia de graça tem que continuar valendo.
+/// </summary>
+public class TamanhoDoPrefixoTests
+{
+    [Theory]
+    [InlineData("!ping", "!", 1)]
+    [InlineData("?play algo", "?", 1)]
+    [InlineData("alephping", "aleph", 5)]
+    [InlineData("!!ping", "!!", 2)]
+    public void O_prefixo_certo_diz_onde_o_comando_começa(string conteúdo, string prefixo, int tamanho)
+    {
+        Assert.Equal(tamanho, AlephBot.Threnodian.AlephBot.TamanhoDoPrefixo(conteúdo, prefixo));
+    }
+
+    [Theory]
+    [InlineData("ping", "!")]
+    [InlineData("oi, tudo bem?", "!")]
+    [InlineData("", "!")]
+    [InlineData("?ping", "!")]
+    public void Mensagem_que_não_começa_com_o_prefixo_não_é_comando(string conteúdo, string prefixo)
+    {
+        Assert.True(AlephBot.Threnodian.AlephBot.TamanhoDoPrefixo(conteúdo, prefixo) < 0);
+    }
+
+    [Theory]
+    [InlineData("ALEPHping")]
+    [InlineData("Alephping")]
+    public void A_caixa_do_prefixo_não_importa(string conteúdo)
+    {
+        Assert.Equal(5, AlephBot.Threnodian.AlephBot.TamanhoDoPrefixo(conteúdo, "aleph"));
+    }
+
+    [Fact]
+    public void O_negativo_é_o_que_o_NetCord_entende_como_não_é_pra_mim()
+    {
+        // o NetCord testa "< 0" antes de cortar o prefixo fora do texto; um 0 aqui faria
+        // ele tratar a mensagem inteira como comando
+        Assert.True(AlephBot.Threnodian.AlephBot.NãoÉComando < 0);
+    }
+}

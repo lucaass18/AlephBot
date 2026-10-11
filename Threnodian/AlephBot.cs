@@ -161,7 +161,24 @@ public sealed class AlephBot
             .AddComponentInteractions()            // botões, selects, modais
             .AddCommands<CommandContext>((options, provider) =>
             {
-                options.Prefix = _config.Prefix;
+                // o prefixo pode ser outro em cada servidor (/config), com o do .env atrás.
+                // Sem isto o /config guardava a escolha e nada a lia: o bot seguia ouvindo
+                // só o prefixo do arquivo, e quem trocou ficava sem comando de texto
+                options.GetPrefixLengthAsync = async (mensagem, _, serviços) =>
+                {
+                    // o caminho pronto do NetCord (options.Prefix) ignora mensagem de bot
+                    // sozinho; assumindo o lugar dele, a conta é minha — sem isto o bot
+                    // obedeceria outro bot, e a si mesmo, que é como nasce um laço
+                    if (mensagem.Author.IsBot)
+                        return NãoÉComando;
+
+                    var prefixo = mensagem.GuildId is { } servidor
+                        ? await serviços.GetRequiredService<ConfigDosServidores>().PrefixoAsync(servidor)
+                        : _config.Prefix;
+
+                    return TamanhoDoPrefixo(mensagem.Content, prefixo);
+                };
+
                 options.IgnoreCase = true;
 
                 // sem isso as falhas voltam em inglês, direto da NetCord
@@ -172,6 +189,22 @@ public sealed class AlephBot
         // tirar a última foto dos players — com a posição exata — enquanto tudo ainda está de pé
         builder.Services.AddHostedService<PlayerResumeService>();
     }
+
+    /// <summary>
+    /// O que devolver quando a mensagem não é pra mim. Qualquer negativo serve: o NetCord
+    /// testa <c>&lt; 0</c> antes de cortar o prefixo fora do texto.
+    /// </summary>
+    internal const int NãoÉComando = -1;
+
+    /// <summary>
+    /// Quantas letras o prefixo ocupa nesta mensagem, ou <see cref="NãoÉComando"/> quando
+    /// ela não é. A comparação ignora maiúscula: com prefixo de uma letra tanto faz, mas
+    /// quem puser "aleph" no /config não vai querer explicar a diferença pro servidor.
+    /// </summary>
+    internal static int TamanhoDoPrefixo(string conteúdo, string prefixo) =>
+        conteúdo.StartsWith(prefixo, StringComparison.OrdinalIgnoreCase)
+            ? prefixo.Length
+            : NãoÉComando;
 
     /// <summary>
     /// O banco, se houver um. Sem DATABASE_URL eu subo sem ele e cada servidor fica com o
