@@ -120,6 +120,9 @@ internal static class MyAnimelist
     private const int MaxSinopse = 3000;
     private const int MaxCampo = 1024;
 
+    /// <summary>Onde o título acaba e o subtítulo começa, do jeito que o MAL escreve.</summary>
+    private static readonly char[] Separadores = ['~', ':', '—', '–'];
+
     // o MAL assina as sinopses que reescreveu; a assinatura não é parte da história
     private static readonly Regex AssinaturaDoMal = new(
         @"\s*\[Written by MAL Rewrite\]\s*",
@@ -161,10 +164,15 @@ internal static class MyAnimelist
         try
         {
             resultados = await mal.ProcurarAsync(tipo, busca, cancellationToken);
+
+            // ninguém copia o título de um isekai inteiro e acerta: o subtítulo colado vem
+            // com "~" onde o catálogo usa ":", e aí a busca inteira não devolve nada
+            if (resultados.Count == 0 && SemSubtítulo(busca) is { } começo)
+                resultados = await mal.ProcurarAsync(tipo, começo, cancellationToken);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
-            // só a API oficial recusa credencial; o Jikan nem pede
+            // só a API oficial recusa credencial; o AniList nem pede
             return (null, Denia.MalCredencialRecusada());
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
@@ -177,7 +185,32 @@ internal static class MyAnimelist
 
         var (sinopse, traduzida) = await SinopseAsync(tradutor, obra.Sinopse, cancellationToken);
 
-        return (Embed(obra, sinopse, traduzida, mal.Nome, quemPediu), null);
+        // a fonte sai da obra, e não da cadeia: quem respondeu pode ter sido a reserva
+        return (Embed(obra, sinopse, traduzida, obra.Fonte, quemPediu), null);
+    }
+
+    /// <summary>
+    /// O que vem antes do subtítulo: "Nome ~o resto~" vira "Nome". Null quando não há
+    /// separador, ou quando o que sobra é curto demais pra procurar com ele.
+    /// </summary>
+    internal static string? SemSubtítulo(string busca)
+    {
+        busca = busca.Trim();
+
+        var corte = busca.IndexOfAny(Separadores);
+
+        // o hífen só separa quando está solto: "Boukensha-dou" é uma palavra só
+        var hífen = busca.IndexOf(" - ", StringComparison.Ordinal);
+
+        if (hífen >= 0 && (corte < 0 || hífen < corte))
+            corte = hífen;
+
+        if (corte < 0)
+            return null;
+
+        var começo = busca[..corte].Trim();
+
+        return começo.Length >= BuscaMínima && começo.Length < busca.Length ? começo : null;
     }
 
     /// <summary>

@@ -73,7 +73,7 @@ public sealed class AlephConfig
     public Uri? YoutubeAudioUri { get; }
 
     /// <summary>
-    /// Client ID da API oficial do MyAnimeList. Opcional: sem ele o /ma pergunta ao Jikan,
+    /// Client ID da API oficial do MyAnimeList. Opcional: sem ele o /ma pergunta ao AniList,
     /// que não pede chave mas só enxerga o MAL quando o MAL deixa. Com ele a busca vai
     /// direto na fonte.
     /// </summary>

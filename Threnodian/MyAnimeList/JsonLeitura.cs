@@ -5,7 +5,7 @@ namespace AlephBot.Threnodian.MyAnimeList;
 /// <summary>
 /// Leitura tolerante de JSON: campo ausente, null ou do tipo errado vira null, em vez de
 /// exceção. O MAL deixa de fora o que não sabe (a nota de quem não estreou, o estúdio de
-/// quem não tem), e o Jikan manda null no mesmo lugar — as duas fontes passam por aqui.
+/// quem não tem), e o AniList manda null no mesmo lugar — as duas fontes passam por aqui.
 /// </summary>
 internal static class JsonLeitura
 {
