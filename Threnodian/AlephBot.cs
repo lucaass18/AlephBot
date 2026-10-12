@@ -303,18 +303,23 @@ public sealed class AlephBot
     }
 
     /// <summary>
-    /// O /ma: quem procura no MyAnimeList e quem traduz a sinopse. A fonte é escolhida aqui,
-    /// uma vez — com Client ID no .env vai pela API oficial; sem ele, pelo Jikan, que não
-    /// pede chave mas só enxerga o MAL quando o MAL deixa.
+    /// O /ma: quem procura no MyAnimeList e quem traduz a sinopse. As fontes são montadas em
+    /// fila — com Client ID no .env a API oficial atende primeiro, e o AniList fica de
+    /// reserva pra quando ela cair ou não conhecer a obra. Sem chave, só o AniList, que não
+    /// pede nada. A fila existe porque antes era uma fonte só, e o /ma caiu junto com ela.
     /// </summary>
     private void ConfigureAnime(IServiceCollection services)
     {
         services.AddSingleton<GoogleTranslator>();
 
-        services.AddSingleton<IMyAnimeList>(_ =>
-            _config.MalClientId is { } clientId
-                ? new MalApi(clientId)
-                : new Jikan());
+        services.AddSingleton<IMyAnimeList>(provider =>
+        {
+            List<IMyAnimeList> fontes = _config.MalClientId is { } clientId
+                ? [new MalApi(clientId), new AniList()]
+                : [new AniList()];
+
+            return new FontesEmCadeia(provider.GetRequiredService<ILogger<FontesEmCadeia>>(), fontes);
+        });
     }
 
     private void ConfigureLogging(IHostApplicationBuilder builder)

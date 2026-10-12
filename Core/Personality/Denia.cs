@@ -614,7 +614,7 @@ public static class Denia
         "O MAL tá fora do ar, ou fingindo que tá. Tenta mais tarde.");
 
     public static string MalCredencialRecusada() =>
-        "O MyAnimeList recusou meu Client ID. Confere o `MAL_CLIENT_ID` no `.env` — ou apaga ele, que eu me viro pelo Jikan.";
+        "O MyAnimeList recusou meu Client ID. Confere o `MAL_CLIENT_ID` no `.env` — ou apaga ele, que eu me viro pelo AniList.";
 
     public static string MalTipoDesconhecido(string tipo, string uso) =>
         $"Não sei o que é `{tipo}`. É `anime` ou `mangá` — uso: `{uso}`";
@@ -695,7 +695,7 @@ public static class Denia
         // demografia
         ["Kids"] = "Infantil",
 
-        // gêneros que o MAL aposentou, mas que o Jikan ainda devolve em obra antiga
+        // gêneros que o MAL aposentou, mas que as fontes ainda devolvem em obra antiga
         ["Cars"] = "Carros",
         ["Demons"] = "Demônios",
         ["Game"] = "Jogos",

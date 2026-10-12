@@ -62,13 +62,17 @@ public readonly record struct DataParcial(int? Ano, int? Mês, int? Dia)
 }
 
 /// <summary>
-/// Um anime ou mangá do jeito que o /ma precisa: o mesmo formato venha do Jikan ou da API
-/// oficial, pra quem monta o embed não saber (nem precisar saber) de onde veio.
+/// Um anime ou mangá do jeito que o /ma precisa: o mesmo formato venha do AniList ou da
+/// API oficial, pra quem monta o embed não saber (nem precisar saber) de onde veio.
 /// </summary>
 public sealed record Obra
 {
+    /// <summary>Quem respondeu, do jeito que o rodapé do embed apresenta: nem sempre é o MAL.</summary>
+    public string Fonte { get; init; } = "MyAnimeList";
+
     public required TipoDeObra Tipo { get; init; }
 
+    /// <summary>O id no MyAnimeList; quando a fonte não sabe o do MAL, o id dela mesma.</summary>
     public required int Id { get; init; }
 
     /// <summary>O título principal do MAL, quase sempre o romaji.</summary>
@@ -128,7 +132,13 @@ public sealed record Obra
     /// </summary>
     public string? Classificação { get; init; }
 
-    public string Link => $"https://myanimelist.net/{Caminho(Tipo)}/{Id}";
+    /// <summary>
+    /// O endereço da obra na fonte que respondeu, quando ela não está no MAL. Fica null no
+    /// caso normal, que é a obra existir lá e o link apontar pra ficha de sempre.
+    /// </summary>
+    public string? Endereço { get; init; }
+
+    public string Link => Endereço ?? $"https://myanimelist.net/{Caminho(Tipo)}/{Id}";
 
     public static string Caminho(TipoDeObra tipo) =>
         tipo == TipoDeObra.Anime ? "anime" : "manga";
@@ -171,9 +181,9 @@ public sealed record Obra
 }
 
 /// <summary>
-/// Quem sabe procurar no MyAnimeList. Tem duas: a API oficial, que pede Client ID, e o
-/// Jikan, que não pede nada mas depende do humor do MAL. Qual das duas atende é decidido
-/// no boot, pela config.
+/// Quem sabe procurar anime e mangá. Tem duas: a API oficial do MAL, que pede Client ID, e
+/// o AniList, que não pede nada. Quem atende é a <see cref="FontesEmCadeia"/>, montada no
+/// boot pela config — e ela chama a segunda quando a primeira não responde.
 /// </summary>
 public interface IMyAnimeList
 {

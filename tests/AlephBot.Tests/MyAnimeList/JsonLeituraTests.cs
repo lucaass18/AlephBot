@@ -4,7 +4,7 @@ using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>O MAL deixa de fora o que não sabe e o Jikan manda null: nada disso pode virar exceção.</summary>
+/// <summary>O MAL deixa de fora o que não sabe e o AniList manda null: nada disso pode virar exceção.</summary>
 public class JsonLeituraTests
 {
     private static readonly JsonElement Json = JsonDocument.Parse(
