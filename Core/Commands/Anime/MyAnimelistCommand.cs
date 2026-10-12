@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -170,9 +169,9 @@ internal static class MyAnimelist
             if (resultados.Count == 0 && SemSubtítulo(busca) is { } começo)
                 resultados = await mal.ProcurarAsync(tipo, começo, cancellationToken);
         }
-        catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        catch (CredencialRecusadaException)
         {
-            // só a API oficial recusa credencial; o AniList nem pede
+            // só a API oficial pede chave; quem levanta isto é ela, e não o código HTTP
             return (null, Denia.MalCredencialRecusada());
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)

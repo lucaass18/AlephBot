@@ -1,4 +1,7 @@
+using System.Net;
+
 using AlephBot.Core.Commands.Anime;
+using AlephBot.Core.Personality;
 using AlephBot.Threnodian.MyAnimeList;
 using AlephBot.Threnodian.Translation;
 
@@ -57,6 +60,33 @@ public class BuscaDoMaTests
         Assert.Equal(["coisa nenhuma"], fonte.Buscas);
     }
 
+    /// <summary>
+    /// 403 do AniList é "desliguei a API por instabilidade", não "sua chave está errada".
+    /// Mandar o dono conferir um Client ID que ele nem configurou é mandar pro lugar errado.
+    /// </summary>
+    [Fact]
+    public async Task Fonte_fora_do_ar_com_403_não_fala_em_Client_ID()
+    {
+        var fonte = new FonteQueFalha(new HttpRequestException("desligada", null, HttpStatusCode.Forbidden));
+
+        var (_, erro) = await MyAnimelist.ProcurarAsync(
+            fonte, Tradutor, TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
+
+        Assert.NotNull(erro);
+        Assert.NotEqual(Denia.MalCredencialRecusada(), erro);
+    }
+
+    [Fact]
+    public async Task Credencial_recusada_manda_conferir_o_Client_ID()
+    {
+        var fonte = new FonteQueFalha(new CredencialRecusadaException("recusou"));
+
+        var (_, erro) = await MyAnimelist.ProcurarAsync(
+            fonte, Tradutor, TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
+
+        Assert.Equal(Denia.MalCredencialRecusada(), erro);
+    }
+
     [Theory]
     [InlineData("Título ~subtítulo~", "Título")]
     [InlineData("Título: subtítulo", "Título")]
@@ -88,6 +118,15 @@ public class BuscaDoMaTests
 
             return Task.FromResult(achados);
         }
+    }
+
+    private sealed class FonteQueFalha(Exception erro) : IMyAnimeList
+    {
+        public string Nome => "Falsa";
+
+        public Task<IReadOnlyList<Obra>> ProcurarAsync(
+            TipoDeObra tipo, string busca, CancellationToken cancellationToken = default) =>
+            Task.FromException<IReadOnlyList<Obra>>(erro);
     }
 
     private sealed class FonteQueSempreAcha : IMyAnimeList

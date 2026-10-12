@@ -65,18 +65,36 @@ public class FontesEmCadeiaTests
     /// Client ID errado é erro meu, não queda do MAL: tem que chegar na cara de quem
     /// configurou, e não ser escondido por uma reserva que responde.
     /// </summary>
-    [Theory]
-    [InlineData(HttpStatusCode.Unauthorized)]
-    [InlineData(HttpStatusCode.Forbidden)]
-    public async Task Credencial_recusada_não_cai_pra_reserva(HttpStatusCode status)
+    [Fact]
+    public async Task Credencial_recusada_não_cai_pra_reserva()
     {
         var reserva = new FonteFalsa { Resposta = [Achado] };
-        var recusada = new FonteFalsa { Erro = new HttpRequestException("recusou", null, status) };
+        var recusada = new FonteFalsa { Erro = new CredencialRecusadaException("recusou") };
+        var cadeia = Cadeia(recusada, reserva);
 
-        await Assert.ThrowsAsync<HttpRequestException>(
-            () => Cadeia(recusada, reserva).ProcurarAsync(TipoDeObra.Anime, "naruto", TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<CredencialRecusadaException>(
+            () => cadeia.ProcurarAsync(TipoDeObra.Anime, "naruto", TestContext.Current.CancellationToken));
 
         Assert.Equal(0, reserva.Chamadas);
+    }
+
+    /// <summary>
+    /// 403 nem sempre é credencial: é assim que o AniList avisa que desligou a API por
+    /// instabilidade. Isso é queda, e queda é exatamente o que a reserva existe pra cobrir.
+    /// </summary>
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden)]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    public async Task Fonte_sem_chave_que_responde_403_cai_pra_reserva(HttpStatusCode status)
+    {
+        var reserva = new FonteFalsa { Resposta = [Achado] };
+        var fora = new FonteFalsa { Erro = new HttpRequestException("desligada", null, status) };
+        var cadeia = Cadeia(fora, reserva);
+
+        var obras = await cadeia.ProcurarAsync(TipoDeObra.Anime, "naruto", TestContext.Current.CancellationToken);
+
+        Assert.Single(obras);
+        Assert.Equal(1, reserva.Chamadas);
     }
 
     /// <summary>Todas caíram: quem chamou precisa saber que foi queda, e não "não achei".</summary>

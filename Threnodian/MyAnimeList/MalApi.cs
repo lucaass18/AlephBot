@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 
 namespace AlephBot.Threnodian.MyAnimeList;
@@ -42,6 +43,10 @@ public sealed class MalApi : IMyAnimeList, IDisposable
         var url = $"{Obra.Caminho(tipo)}?q={Uri.EscapeDataString(busca)}&limit={Limite}&fields={campos}";
 
         using var resposta = await _http.GetAsync(url, cancellationToken);
+
+        // só esta fonte pede chave, então só ela sabe dizer que a recusa foi da credencial
+        if (resposta.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new CredencialRecusadaException($"O MyAnimeList recusou o Client ID ({(int)resposta.StatusCode}).");
 
         resposta.EnsureSuccessStatusCode();
 
