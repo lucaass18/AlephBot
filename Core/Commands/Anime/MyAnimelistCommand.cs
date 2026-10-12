@@ -25,11 +25,13 @@ public sealed class MyAnimelistCommand : AlephSlashModule
 {
     private readonly IMyAnimeList _mal;
     private readonly GoogleTranslator _tradutor;
+    private readonly IFichasGuardadas _guarda;
 
-    public MyAnimelistCommand(IMyAnimeList mal, GoogleTranslator tradutor)
+    public MyAnimelistCommand(IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda)
     {
         _mal = mal;
         _tradutor = tradutor;
+        _guarda = guarda;
     }
 
     public override string Name => "ma";
@@ -52,7 +54,7 @@ public sealed class MyAnimelistCommand : AlephSlashModule
         // perguntar ao MAL e depois ao tradutor passa fácil dos 3 segundos que o Discord dá; peço tempo
         await DeferAsync();
 
-        var (embed, erro) = await MyAnimelist.ProcurarAsync(_mal, _tradutor, tipo, nome, Context.User.Username);
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(_mal, _tradutor, _guarda, tipo, nome, Context.User.Username);
 
         if (erro is not null)
             await EditarComErroAsync(erro);
@@ -66,11 +68,13 @@ public sealed class MyAnimelistTextCommand : AlephTextModule
 {
     private readonly IMyAnimeList _mal;
     private readonly GoogleTranslator _tradutor;
+    private readonly IFichasGuardadas _guarda;
 
-    public MyAnimelistTextCommand(IMyAnimeList mal, GoogleTranslator tradutor)
+    public MyAnimelistTextCommand(IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda)
     {
         _mal = mal;
         _tradutor = tradutor;
+        _guarda = guarda;
     }
 
     public override string Name => "ma";
@@ -94,7 +98,7 @@ public sealed class MyAnimelistTextCommand : AlephTextModule
         // a resposta demora uns segundos; o "digitando..." é o jeito de dizer que eu ouvi
         await Context.Client.Rest.TriggerTypingAsync(Context.Message.ChannelId);
 
-        var (embed, erro) = await MyAnimelist.ProcurarAsync(_mal, _tradutor, tipoDeObra, nome, Context.User.Username);
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(_mal, _tradutor, _guarda, tipoDeObra, nome, Context.User.Username);
 
         if (erro is not null)
             await ErrorAsync(erro);
@@ -109,6 +113,12 @@ internal static class MyAnimelist
 
     /// <summary>O MAL não procura por menos que isso: devolve 400 "invalid q".</summary>
     internal const int BuscaMínima = 3;
+
+    /// <summary>
+    /// Por quanto tempo a ficha guardada responde sozinha. Título e sinopse não mudam;
+    /// nota e ranking mudam na terceira casa decimal, então uma semana não engana ninguém.
+    /// </summary>
+    internal static readonly TimeSpan Validade = TimeSpan.FromDays(7);
 
     /// <summary>O azul do MyAnimeList.</summary>
     private const int Azul = 0x2E51A2;
@@ -148,6 +158,7 @@ internal static class MyAnimelist
     internal static async Task<(EmbedProperties? Embed, string? Erro)> ProcurarAsync(
         IMyAnimeList mal,
         GoogleTranslator tradutor,
+        IFichasGuardadas guarda,
         TipoDeObra tipo,
         string busca,
         string quemPediu,
@@ -157,6 +168,11 @@ internal static class MyAnimelist
 
         if (busca.Length < BuscaMínima)
             return (null, Denia.MalBuscaCurta(BuscaMínima));
+
+        // o que já se sabe e ainda vale não precisa ser perguntado de novo: poupa o limite
+        // de pedidos da fonte, que é de todo mundo no servidor, e responde na hora
+        if (await Guardada(guarda, tipo, busca, Validade, cancellationToken) is { } fresca)
+            return (await FichaAsync(fresca, tradutor, quemPediu, cancellationToken), null);
 
         IReadOnlyList<Obra> resultados;
 
@@ -176,16 +192,50 @@ internal static class MyAnimelist
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
+            // a fonte caiu: ficha velha vale mais que embed vermelho, e o rodapé diz a idade
+            if (await Guardada(guarda, tipo, busca, validade: null, cancellationToken) is { } velha)
+                return (await FichaAsync(velha, tradutor, quemPediu, cancellationToken), null);
+
             return (null, Denia.MalFora());
         }
 
         if (Escolhe(resultados, busca) is not { } obra)
             return (null, Denia.MalNãoAchei(tipo, busca));
 
+        await Guardar(guarda, busca, obra, cancellationToken);
+
+        return (await FichaAsync(obra, tradutor, quemPediu, cancellationToken), null);
+    }
+
+    /// <summary>A ficha pronta: a sinopse traduzida e o embed montado em volta dela.</summary>
+    private static async Task<EmbedProperties> FichaAsync(
+        Obra obra, GoogleTranslator tradutor, string quemPediu, CancellationToken cancellationToken)
+    {
         var (sinopse, traduzida) = await SinopseAsync(tradutor, obra.Sinopse, cancellationToken);
 
         // a fonte sai da obra, e não da cadeia: quem respondeu pode ter sido a reserva
-        return (Embed(obra, sinopse, traduzida, obra.Fonte, quemPediu), null);
+        return Embed(obra, sinopse, traduzida, obra.Fonte, quemPediu);
+    }
+
+    /// <summary>
+    /// O banco é conveniência, não dependência: se ele falhar, a busca segue pela fonte e
+    /// ninguém fica sabendo. Guardar vale o mesmo — ficha não guardada só custa uma busca
+    /// a mais amanhã.
+    /// </summary>
+    private static async Task<Obra?> Guardada(
+        IFichasGuardadas guarda, TipoDeObra tipo, string busca, TimeSpan? validade, CancellationToken cancellationToken)
+    {
+        if (!guarda.Disponível)
+            return null;
+
+        return await guarda.AcharAsync(tipo, busca, validade, cancellationToken);
+    }
+
+    private static async Task Guardar(
+        IFichasGuardadas guarda, string busca, Obra obra, CancellationToken cancellationToken)
+    {
+        if (guarda.Disponível)
+            await guarda.GuardarAsync(busca, obra, cancellationToken);
     }
 
     /// <summary>
@@ -285,14 +335,38 @@ internal static class MyAnimelist
                 Campo(Denia.MalCampoAutoria(obra.Tipo), Lista(obra.Autoria)),
                 Campo(Denia.MalCampoGêneros, Lista(obra.Gêneros.Select(Denia.MalGênero)), inline: false),
             ],
-            Footer = new EmbedFooterProperties { Text = Denia.MalRodapé(fonte, quemPediu, traduzida) },
+            Footer = new EmbedFooterProperties { Text = Rodapé(obra, fonte, quemPediu, traduzida) },
             Timestamp = DateTimeOffset.UtcNow,
         };
+
+        // elenco só de obra que tem elenco: campo vazio é sujeira, não informação
+        if (Elenco(obra) is { } elenco)
+            embed.Fields = [.. embed.Fields!, Campo(Denia.MalCampoElenco, elenco, inline: false)];
 
         if (obra.Imagem is { } capa)
             embed.Thumbnail = new EmbedThumbnailProperties(capa);
 
         return embed;
+    }
+
+    /// <summary>Os personagens numa linha só, principais primeiro, como a fonte devolveu.</summary>
+    private static string? Elenco(Obra obra)
+    {
+        if (obra.Personagens.Count == 0)
+            return null;
+
+        return Recorta(string.Join(" · ", obra.Personagens.Select(quem => Markdown.Escapa(quem.Nome))), MaxCampo);
+    }
+
+    /// <summary>
+    /// O rodapé de sempre; ficha que veio do banco ganha a data, porque nota de dias atrás
+    /// mostrada como se fosse de agora é mentira dita com confiança.
+    /// </summary>
+    private static string Rodapé(Obra obra, string fonte, string quemPediu, bool traduzida)
+    {
+        var rodapé = Denia.MalRodapé(fonte, quemPediu, traduzida);
+
+        return obra.VistoEm is { } quando ? $"{rodapé} · {Denia.MalDoCache(quando)}" : rodapé;
     }
 
     /// <summary>Os outros nomes em cima, a sinopse embaixo, e o aviso quando ela ficou em inglês.</summary>

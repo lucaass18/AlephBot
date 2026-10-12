@@ -23,13 +23,16 @@ public class BuscaDoMaTests
 
     private static readonly GoogleTranslator Tradutor = new(NullLogger<GoogleTranslator>.Instance);
 
+    /// <summary>Estes testes são sobre a busca, não sobre o cache: aqui o bot roda sem banco.</summary>
+    private static readonly GuardaFalsa SemBanco = new() { Disponível = false };
+
     [Fact]
     public async Task Quando_o_título_inteiro_não_acha_tenta_sem_o_subtítulo()
     {
         var fonte = new FonteQueSóSabeOComeço();
 
         var (embed, erro) = await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, TipoDeObra.Manga, Inteiro, "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, TipoDeObra.Manga, Inteiro, "alguém", TestContext.Current.CancellationToken);
 
         Assert.Null(erro);
         Assert.NotNull(embed);
@@ -42,7 +45,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueSempreAcha();
 
         await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, TipoDeObra.Manga, Inteiro, "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, TipoDeObra.Manga, Inteiro, "alguém", TestContext.Current.CancellationToken);
 
         Assert.Equal([Inteiro], fonte.Buscas);
     }
@@ -54,7 +57,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueSóSabeOComeço();
 
         var (_, erro) = await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, TipoDeObra.Anime, "coisa nenhuma", "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, TipoDeObra.Anime, "coisa nenhuma", "alguém", TestContext.Current.CancellationToken);
 
         Assert.NotNull(erro);
         Assert.Equal(["coisa nenhuma"], fonte.Buscas);
@@ -70,7 +73,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueFalha(new HttpRequestException("desligada", null, HttpStatusCode.Forbidden));
 
         var (_, erro) = await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
 
         Assert.NotNull(erro);
         Assert.NotEqual(Denia.MalCredencialRecusada(), erro);
@@ -82,7 +85,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueFalha(new CredencialRecusadaException("recusou"));
 
         var (_, erro) = await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
 
         Assert.Equal(Denia.MalCredencialRecusada(), erro);
     }

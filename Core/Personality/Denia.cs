@@ -456,6 +456,7 @@ public static class Denia
     public const string MalCampoRanking = "🏆 Ranking";
     public const string MalCampoSituação = "📡 Situação";
     public const string MalCampoGêneros = "🏷️ Gêneros";
+    public const string MalCampoElenco = "🎭 Elenco";
 
     public static string MalCampoFormato(TipoDeObra tipo) =>
         tipo == TipoDeObra.Anime ? "📺 Formato" : "📖 Formato";
@@ -597,6 +598,13 @@ public static class Denia
         sinopseTraduzida
             ? $"{Assinatura} · dados do {fonte}, sinopse traduzida por máquina · pedido por {quem}"
             : $"{Assinatura} · dados do {fonte} · pedido por {quem}";
+
+    /// <summary>
+    /// A ficha veio do banco porque a fonte não respondeu. A data importa: nota de uma
+    /// semana atrás mostrada como se fosse de agora é mentira dita com confiança.
+    /// </summary>
+    public static string MalDoCache(DateTimeOffset quando) =>
+        $"dados de {quando.ToLocalTime():dd/MM} que eu já tinha aqui";
 
     // ---- MyAnimeList: recusas ------------------------------------------------
 
