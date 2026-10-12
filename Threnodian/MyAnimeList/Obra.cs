@@ -181,6 +181,14 @@ public sealed record Obra
 }
 
 /// <summary>
+/// A fonte recusou a credencial: Client ID errado, vencido ou ausente. É erro de quem
+/// configurou, e não queda — por isso tem tipo próprio em vez de ser adivinhado pelo código
+/// HTTP. O AniList responde 403 quando desliga a API por instabilidade, e aquilo é queda.
+/// </summary>
+public sealed class CredencialRecusadaException(string mensagem, Exception? causa = null)
+    : Exception(mensagem, causa);
+
+/// <summary>
 /// Quem sabe procurar anime e mangá. Tem duas: a API oficial do MAL, que pede Client ID, e
 /// o AniList, que não pede nada. Quem atende é a <see cref="FontesEmCadeia"/>, montada no
 /// boot pela config — e ela chama a segunda quando a primeira não responde.

@@ -1,4 +1,3 @@
-using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
 
@@ -40,11 +39,11 @@ public sealed class FontesEmCadeia : IMyAnimeList
             {
                 resultados = await fonte.ProcurarAsync(tipo, busca, cancellationToken);
             }
-            catch (HttpRequestException ex)
-                when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            catch (CredencialRecusadaException)
             {
                 // credencial recusada é erro de configuração, não queda: tapar isso com a
-                // reserva faria o Client ID errado funcionar calado pra sempre
+                // reserva faria o Client ID errado funcionar calado pra sempre. 403 sozinho
+                // não serve de pista — é como o AniList avisa que desligou a API
                 throw;
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
