@@ -283,6 +283,10 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                         .HasColumnType("text")
                         .HasColumnName("sinopse");
 
+                    b.Property<bool>("SinopseEmPortugues")
+                        .HasColumnType("boolean")
+                        .HasColumnName("sinopse_em_portugues");
+
                     b.Property<int>("Situacao")
                         .HasColumnType("integer")
                         .HasColumnName("situacao");

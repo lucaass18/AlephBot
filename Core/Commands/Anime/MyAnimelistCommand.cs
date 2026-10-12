@@ -26,12 +26,15 @@ public sealed class MyAnimelistCommand : AlephSlashModule
     private readonly IMyAnimeList _mal;
     private readonly GoogleTranslator _tradutor;
     private readonly IFichasGuardadas _guarda;
+    private readonly ISinopseEmPortuguês _mangadex;
 
-    public MyAnimelistCommand(IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda)
+    public MyAnimelistCommand(
+        IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda, ISinopseEmPortuguês mangadex)
     {
         _mal = mal;
         _tradutor = tradutor;
         _guarda = guarda;
+        _mangadex = mangadex;
     }
 
     public override string Name => "ma";
@@ -54,7 +57,8 @@ public sealed class MyAnimelistCommand : AlephSlashModule
         // perguntar ao MAL e depois ao tradutor passa fácil dos 3 segundos que o Discord dá; peço tempo
         await DeferAsync();
 
-        var (embed, erro) = await MyAnimelist.ProcurarAsync(_mal, _tradutor, _guarda, tipo, nome, Context.User.Username);
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+            _mal, _tradutor, _guarda, _mangadex, tipo, nome, Context.User.Username);
 
         if (erro is not null)
             await EditarComErroAsync(erro);
@@ -69,12 +73,15 @@ public sealed class MyAnimelistTextCommand : AlephTextModule
     private readonly IMyAnimeList _mal;
     private readonly GoogleTranslator _tradutor;
     private readonly IFichasGuardadas _guarda;
+    private readonly ISinopseEmPortuguês _mangadex;
 
-    public MyAnimelistTextCommand(IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda)
+    public MyAnimelistTextCommand(
+        IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda, ISinopseEmPortuguês mangadex)
     {
         _mal = mal;
         _tradutor = tradutor;
         _guarda = guarda;
+        _mangadex = mangadex;
     }
 
     public override string Name => "ma";
@@ -98,7 +105,8 @@ public sealed class MyAnimelistTextCommand : AlephTextModule
         // a resposta demora uns segundos; o "digitando..." é o jeito de dizer que eu ouvi
         await Context.Client.Rest.TriggerTypingAsync(Context.Message.ChannelId);
 
-        var (embed, erro) = await MyAnimelist.ProcurarAsync(_mal, _tradutor, _guarda, tipoDeObra, nome, Context.User.Username);
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+            _mal, _tradutor, _guarda, _mangadex, tipoDeObra, nome, Context.User.Username);
 
         if (erro is not null)
             await ErrorAsync(erro);
@@ -159,6 +167,7 @@ internal static class MyAnimelist
         IMyAnimeList mal,
         GoogleTranslator tradutor,
         IFichasGuardadas guarda,
+        ISinopseEmPortuguês mangadex,
         TipoDeObra tipo,
         string busca,
         string quemPediu,
@@ -202,6 +211,10 @@ internal static class MyAnimelist
         if (Escolhe(resultados, busca) is not { } obra)
             return (null, Denia.MalNãoAchei(tipo, busca));
 
+        // a sinopse em portugues entra antes de guardar: assim a ficha do banco ja vem com
+        // ela, e nem o MangaDex nem o tradutor sao incomodados de novo
+        obra = await EmPortuguêsAsync(mangadex, obra, cancellationToken);
+
         await Guardar(guarda, busca, obra, cancellationToken);
 
         return (await FichaAsync(obra, tradutor, quemPediu, cancellationToken), null);
@@ -211,10 +224,25 @@ internal static class MyAnimelist
     private static async Task<EmbedProperties> FichaAsync(
         Obra obra, GoogleTranslator tradutor, string quemPediu, CancellationToken cancellationToken)
     {
-        var (sinopse, traduzida) = await SinopseAsync(tradutor, obra.Sinopse, cancellationToken);
+        var (sinopse, origem) = await SinopseAsync(tradutor, obra, cancellationToken);
 
         // a fonte sai da obra, e não da cadeia: quem respondeu pode ter sido a reserva
-        return Embed(obra, sinopse, traduzida, obra.Fonte, quemPediu);
+        return Embed(obra, sinopse, origem, obra.Fonte, quemPediu);
+    }
+
+    /// <summary>
+    /// A obra com a sinopse em português, quando o MangaDex confirma que é a mesma. Mangá
+    /// que já veio de lá não precisa: a sinopse dele já é a melhor que existe.
+    /// </summary>
+    private static async Task<Obra> EmPortuguêsAsync(
+        ISinopseEmPortuguês mangadex, Obra obra, CancellationToken cancellationToken)
+    {
+        if (obra.Tipo != TipoDeObra.Manga || obra.SinopseEmPortuguês)
+            return obra;
+
+        var português = await mangadex.ParaAsync(obra, cancellationToken);
+
+        return português is null ? obra : obra with { Sinopse = português, SinopseEmPortuguês = true };
     }
 
     /// <summary>
@@ -292,17 +320,21 @@ internal static class MyAnimelist
     }
 
     /// <summary>A sinopse pronta pra mostrar e se ela chegou a ser traduzida. Sem sinopse, null.</summary>
-    private static async Task<(string? Texto, bool Traduzida)> SinopseAsync(
-        GoogleTranslator tradutor, string? original, CancellationToken cancellationToken)
+    private static async Task<(string? Texto, OrigemDaSinopse Origem)> SinopseAsync(
+        GoogleTranslator tradutor, Obra obra, CancellationToken cancellationToken)
     {
-        var limpa = Limpa(original);
+        var limpa = Limpa(obra.Sinopse);
 
         if (limpa is null)
-            return (null, false);
+            return (null, OrigemDaSinopse.DaFonte);
+
+        // já está em português: passar pelo tradutor seria estragar texto bom
+        if (obra.SinopseEmPortuguês)
+            return (limpa, obra.Fonte == "MangaDex" ? OrigemDaSinopse.DaFonte : OrigemDaSinopse.DoMangaDex);
 
         var traduzida = await tradutor.TraduzirAsync(limpa, cancellationToken: cancellationToken);
 
-        return traduzida is null ? (limpa, false) : (traduzida, true);
+        return traduzida is null ? (limpa, OrigemDaSinopse.DaFonte) : (traduzida, OrigemDaSinopse.Traduzida);
     }
 
     private static string? Limpa(string? sinopse)
@@ -317,13 +349,13 @@ internal static class MyAnimelist
 
     // ---- embed ---------------------------------------------------------------
 
-    private static EmbedProperties Embed(Obra obra, string? sinopse, bool traduzida, string fonte, string quemPediu)
+    private static EmbedProperties Embed(Obra obra, string? sinopse, OrigemDaSinopse origem, string fonte, string quemPediu)
     {
         var embed = new EmbedProperties
         {
             Title = Recorta(Denia.MalTítulo(obra.Tipo, obra.Título), MaxTítulo),
             Url = obra.Link,
-            Description = Descrição(obra, sinopse, traduzida),
+            Description = Descrição(obra, sinopse, origem),
             Color = new Color(Azul),
             Fields =
             [
@@ -335,7 +367,7 @@ internal static class MyAnimelist
                 Campo(Denia.MalCampoAutoria(obra.Tipo), Lista(obra.Autoria)),
                 Campo(Denia.MalCampoGêneros, Lista(obra.Gêneros.Select(Denia.MalGênero)), inline: false),
             ],
-            Footer = new EmbedFooterProperties { Text = Rodapé(obra, fonte, quemPediu, traduzida) },
+            Footer = new EmbedFooterProperties { Text = Rodapé(obra, fonte, quemPediu, origem) },
             Timestamp = DateTimeOffset.UtcNow,
         };
 
@@ -362,15 +394,15 @@ internal static class MyAnimelist
     /// O rodapé de sempre; ficha que veio do banco ganha a data, porque nota de dias atrás
     /// mostrada como se fosse de agora é mentira dita com confiança.
     /// </summary>
-    private static string Rodapé(Obra obra, string fonte, string quemPediu, bool traduzida)
+    private static string Rodapé(Obra obra, string fonte, string quemPediu, OrigemDaSinopse origem)
     {
-        var rodapé = Denia.MalRodapé(fonte, quemPediu, traduzida);
+        var rodapé = Denia.MalRodapé(fonte, quemPediu, origem);
 
         return obra.VistoEm is { } quando ? $"{rodapé} · {Denia.MalDoCache(quando)}" : rodapé;
     }
 
     /// <summary>Os outros nomes em cima, a sinopse embaixo, e o aviso quando ela ficou em inglês.</summary>
-    private static string Descrição(Obra obra, string? sinopse, bool traduzida)
+    private static string Descrição(Obra obra, string? sinopse, OrigemDaSinopse origem)
     {
         var texto = new StringBuilder();
 
@@ -390,7 +422,8 @@ internal static class MyAnimelist
         else
             texto.Append(corpo);
 
-        if (!traduzida)
+        // o aviso é sobre ter ficado em inglês; português não leva aviso nenhum
+        if (origem == OrigemDaSinopse.DaFonte && !obra.SinopseEmPortuguês)
             texto.Append("\n\n").Append(Denia.MalSinopseEmInglês());
 
         return texto.ToString();

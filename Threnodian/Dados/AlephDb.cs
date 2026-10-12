@@ -55,6 +55,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
             obra.Property(o => o.Posicao).HasColumnName("posicao");
             obra.Property(o => o.Popularidade).HasColumnName("popularidade");
             obra.Property(o => o.Sinopse).HasColumnName("sinopse");
+            obra.Property(o => o.SinopseEmPortugues).HasColumnName("sinopse_em_portugues");
             obra.Property(o => o.Generos).HasColumnName("generos");
             obra.Property(o => o.Autoria).HasColumnName("autoria");
             obra.Property(o => o.Classificacao).HasColumnName("classificacao");

@@ -59,6 +59,12 @@ public sealed class ObraGuardada
 
     public string? Sinopse { get; set; }
 
+    /// <summary>
+    /// A sinopse já está em português e não pode ser mandada pro tradutor de novo quando a
+    /// ficha voltar do banco — texto bom passado por tradutor de máquina vira lixo.
+    /// </summary>
+    public bool SinopseEmPortugues { get; set; }
+
     public List<string> Generos { get; set; } = [];
 
     public List<string> Autoria { get; set; } = [];

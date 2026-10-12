@@ -32,7 +32,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueSóSabeOComeço();
 
         var (embed, erro) = await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, SemBanco, TipoDeObra.Manga, Inteiro, "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, new SemMangaDex(), TipoDeObra.Manga, Inteiro, "alguém", TestContext.Current.CancellationToken);
 
         Assert.Null(erro);
         Assert.NotNull(embed);
@@ -45,7 +45,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueSempreAcha();
 
         await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, SemBanco, TipoDeObra.Manga, Inteiro, "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, new SemMangaDex(), TipoDeObra.Manga, Inteiro, "alguém", TestContext.Current.CancellationToken);
 
         Assert.Equal([Inteiro], fonte.Buscas);
     }
@@ -57,7 +57,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueSóSabeOComeço();
 
         var (_, erro) = await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, SemBanco, TipoDeObra.Anime, "coisa nenhuma", "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, new SemMangaDex(), TipoDeObra.Anime, "coisa nenhuma", "alguém", TestContext.Current.CancellationToken);
 
         Assert.NotNull(erro);
         Assert.Equal(["coisa nenhuma"], fonte.Buscas);
@@ -73,7 +73,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueFalha(new HttpRequestException("desligada", null, HttpStatusCode.Forbidden));
 
         var (_, erro) = await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, SemBanco, TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, new SemMangaDex(), TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
 
         Assert.NotNull(erro);
         Assert.NotEqual(Denia.MalCredencialRecusada(), erro);
@@ -85,7 +85,7 @@ public class BuscaDoMaTests
         var fonte = new FonteQueFalha(new CredencialRecusadaException("recusou"));
 
         var (_, erro) = await MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, SemBanco, TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, SemBanco, new SemMangaDex(), TipoDeObra.Anime, "naruto", "alguém", TestContext.Current.CancellationToken);
 
         Assert.Equal(Denia.MalCredencialRecusada(), erro);
     }

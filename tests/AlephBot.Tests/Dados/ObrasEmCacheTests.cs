@@ -77,4 +77,47 @@ public class ObrasEmCacheTests
         Assert.Contains("aot", procura);
         Assert.Contains("進撃の巨人", procura);
     }
+
+    /// <summary>
+    /// A ficha tem que voltar do banco igualzinha. O que mais dói aqui é a marca de sinopse
+    /// em português: perdida, o bot manda pro tradutor de máquina um texto que já está em
+    /// português, e o resultado é lixo.
+    /// </summary>
+    [Fact]
+    public void Ida_e_volta_preserva_a_ficha()
+    {
+        var original = new Obra
+        {
+            Fonte = "MangaDex",
+            Tipo = TipoDeObra.Manga,
+            Id = 13,
+            Título = "One Piece",
+            TítuloEmJaponês = "ワンピース",
+            Sinônimos = ["Wan Pisu"],
+            Formato = "manga",
+            Situação = Situação.EmAndamento,
+            Capítulos = 1100,
+            Volumes = 108,
+            Início = new DataParcial(1997, 7, 22),
+            Fim = DataParcial.Vazia,
+            Nota = 9.2,
+            Posição = 1,
+            Sinopse = "Gol D. Roger escondeu seu tesouro.",
+            SinopseEmPortuguês = true,
+            Gêneros = ["Adventure", "Shounen"],
+            Autoria = ["Oda Eiichirou"],
+            Personagens = [new Personagem { Nome = "Monkey D. Luffy", NomeNativo = "ルフィ", Principal = true }],
+        };
+
+        var devolta = ObrasEmCache.Converte(ObrasEmCache.Guardada(original));
+
+        Assert.Equal(original.Título, devolta.Título);
+        Assert.Equal(original.Início, devolta.Início);
+        Assert.Equal(DataParcial.Vazia, devolta.Fim);
+        Assert.Equal(original.Nota, devolta.Nota);
+        Assert.Equal(original.Sinopse, devolta.Sinopse);
+        Assert.True(devolta.SinopseEmPortuguês);
+        Assert.Equal(original.Gêneros, devolta.Gêneros);
+        Assert.Equal("Monkey D. Luffy", Assert.Single(devolta.Personagens).Nome);
+    }
 }
