@@ -49,11 +49,73 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
             + "&includes[]=author&includes[]=artist&includes[]=cover_art",
             cancellationToken);
 
-        return json.RootElement
+        var achados = json.RootElement
             .Lista("data")
-            .Select(Ler)
-            .OfType<Obra>()
+            .Select(item => (Id: item.Texto("id"), Obra: Ler(item)))
+            .Where(achado => achado is { Id: not null, Obra: not null })
             .ToList();
+
+        // a nota não vem na busca, e sem ela o embed diria "ninguém se animou a votar"
+        // sobre obra com milhares de votos. Uma requisição resolve a página inteira
+        var notas = await NotasAsync(achados.Select(achado => achado.Id!), cancellationToken);
+
+        return achados
+            .Select(achado => notas.TryGetValue(achado.Id!, out var nota)
+                ? achado.Obra! with { Nota = nota }
+                : achado.Obra!)
+            .ToList();
+    }
+
+    /// <summary>
+    /// As notas de várias obras numa requisição só. Falhar aqui não derruba a busca: ficha
+    /// sem nota ainda serve, ficha nenhuma não serve pra nada.
+    /// </summary>
+    private async Task<Dictionary<string, double>> NotasAsync(
+        IEnumerable<string> ids, CancellationToken cancellationToken)
+    {
+        var lista = ids.ToList();
+
+        if (lista.Count == 0)
+            return [];
+
+        try
+        {
+            var query = string.Join("&", lista.Select(id => $"manga[]={Uri.EscapeDataString(id)}"));
+
+            using var json = await PedeAsync($"statistics/manga?{query}", cancellationToken);
+
+            return LerNotas(json.RootElement);
+        }
+        catch (Exception erro) when (erro is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// A nota de cada obra do "statistics". A bayesiana é a que o site deles mostra e a que
+    /// compara com a do MAL; sem ela vale a média simples. Sem nenhuma, a obra fica de fora
+    /// — zero seria uma nota péssima, e o que se quer dizer é "não sei".
+    /// </summary>
+    internal static Dictionary<string, double> LerNotas(JsonElement raiz)
+    {
+        var notas = new Dictionary<string, double>();
+
+        if (raiz.Campo("statistics") is not { ValueKind: JsonValueKind.Object } estatísticas)
+            return notas;
+
+        foreach (var obra in estatísticas.EnumerateObject())
+        {
+            if (obra.Value.Campo("rating") is not { } nota)
+                continue;
+
+            var valor = nota.Decimal("bayesian") ?? nota.Decimal("average");
+
+            if (valor is > 0)
+                notas[obra.Name] = valor.Value;
+        }
+
+        return notas;
     }
 
     /// <summary>

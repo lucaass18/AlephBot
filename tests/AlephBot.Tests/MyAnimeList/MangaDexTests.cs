@@ -256,4 +256,63 @@ public class MangaDexTests
 
         Assert.Empty(achados);
     }
+
+    /// <summary>
+    /// A busca deles não traz nota; ela mora em /statistics/manga, que aceita várias obras
+    /// numa requisição só. Sem isso o embed dizia "ninguém se animou a votar" sobre obra
+    /// com dez mil votos — que foi o bug que o dono do bot viu.
+    /// </summary>
+    [Fact]
+    public void Lê_as_notas_da_resposta_de_estatísticas()
+    {
+        var json = JsonDocument.Parse(
+            """
+            {
+              "result": "ok",
+              "statistics": {
+                "801513ba-a712-498c-8f57-cae55b38cc92": {
+                  "follows": 214795,
+                  "rating": { "average": 9.6944, "bayesian": 9.688376946778083 }
+                },
+                "a1c7c817-4e59-43b7-9365-09675a149a6f": {
+                  "follows": 141390,
+                  "rating": { "average": 9.5624, "bayesian": 9.554036539311955 }
+                }
+              }
+            }
+            """).RootElement;
+
+        var notas = MangaDex.LerNotas(json);
+
+        // a bayesiana é a que o site deles mostra, e é a que compara com a nota do MAL
+        Assert.Equal(9.688376946778083, notas["801513ba-a712-498c-8f57-cae55b38cc92"]);
+        Assert.Equal(9.554036539311955, notas["a1c7c817-4e59-43b7-9365-09675a149a6f"]);
+    }
+
+    /// <summary>Obra sem nota nenhuma não pode virar zero: zero seria uma nota péssima, não "não sei".</summary>
+    [Fact]
+    public void Obra_sem_nota_fica_de_fora_do_mapa()
+    {
+        var json = JsonDocument.Parse(
+            """
+            {
+              "statistics": {
+                "sem-nota": { "follows": 3, "rating": { "average": null, "bayesian": null } },
+                "sem-rating": { "follows": 1 }
+              }
+            }
+            """).RootElement;
+
+        Assert.Empty(MangaDex.LerNotas(json));
+    }
+
+    /// <summary>Sem a bayesiana vale a média simples: melhor a nota que eles têm do que nenhuma.</summary>
+    [Fact]
+    public void Sem_a_bayesiana_vale_a_média()
+    {
+        var json = JsonDocument.Parse(
+            """{ "statistics": { "x": { "rating": { "average": 7.5 } } } }""").RootElement;
+
+        Assert.Equal(7.5, MangaDex.LerNotas(json)["x"]);
+    }
 }
