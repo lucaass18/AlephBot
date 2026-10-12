@@ -32,3 +32,13 @@ internal sealed class GuardaFalsa : IFichasGuardadas
         return Task.CompletedTask;
     }
 }
+
+/// <summary>
+/// O MangaDex que nunca casa a obra. Serve aos testes que não são sobre a sinopse em
+/// português: com ele, a ficha segue o caminho de sempre.
+/// </summary>
+internal sealed class SemMangaDex : ISinopseEmPortuguês
+{
+    public Task<string?> ParaAsync(Obra obra, CancellationToken cancellationToken = default) =>
+        Task.FromResult<string?>(null);
+}

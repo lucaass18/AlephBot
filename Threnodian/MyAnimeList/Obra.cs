@@ -117,8 +117,14 @@ public sealed record Obra
     /// <summary>Posição no ranking de popularidade (quantas listas a obra está).</summary>
     public int? Popularidade { get; init; }
 
-    /// <summary>A sinopse em inglês, como o MAL guarda.</summary>
+    /// <summary>A sinopse como a fonte guarda — quase sempre em inglês.</summary>
     public string? Sinopse { get; init; }
+
+    /// <summary>
+    /// A sinopse já está em português e não passa pelo tradutor. Só o MangaDex tem isso,
+    /// escrito por gente; vale pra ficha dele e pra ficha que ele enriqueceu.
+    /// </summary>
+    public bool SinopseEmPortuguês { get; init; }
 
     /// <summary>Gêneros, temas e demografia, em inglês, como o MAL nomeia.</summary>
     public IReadOnlyList<string> Gêneros { get; init; } = [];
@@ -218,6 +224,16 @@ public sealed record Personagem
 /// </summary>
 public sealed class CredencialRecusadaException(string mensagem, Exception? causa = null)
     : Exception(mensagem, causa);
+
+/// <summary>
+/// Quem sabe trazer a sinopse de uma obra em português, já achada por outra fonte. Hoje é o
+/// MangaDex; a interface existe pra quem monta a ficha não depender dele pra responder.
+/// </summary>
+public interface ISinopseEmPortuguês
+{
+    /// <summary>A sinopse em português, ou null quando não há como garantir que é a mesma obra.</summary>
+    Task<string?> ParaAsync(Obra obra, CancellationToken cancellationToken = default);
+}
 
 /// <summary>
 /// Onde as fichas já mostradas ficam guardadas. Quem implementa é o banco; a interface

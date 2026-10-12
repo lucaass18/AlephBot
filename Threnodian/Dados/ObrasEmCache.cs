@@ -147,6 +147,16 @@ public sealed class ObrasEmCache(
 
     // ---- conversão -----------------------------------------------------------
 
+    /// <summary>A ficha pronta pra gravar; separada pra dar pra conferir a ida e a volta sem banco.</summary>
+    internal static ObraGuardada Guardada(Obra obra)
+    {
+        var guardada = new ObraGuardada();
+
+        Preenche(guardada, obra);
+
+        return guardada;
+    }
+
     private static void Preenche(ObraGuardada guardada, Obra obra)
     {
         guardada.Fonte = obra.Fonte;
@@ -170,6 +180,7 @@ public sealed class ObrasEmCache(
         guardada.Posicao = obra.Posição;
         guardada.Popularidade = obra.Popularidade;
         guardada.Sinopse = obra.Sinopse;
+        guardada.SinopseEmPortugues = obra.SinopseEmPortuguês;
         guardada.Generos = [.. obra.Gêneros];
         guardada.Autoria = [.. obra.Autoria];
         guardada.Classificacao = obra.Classificação;
@@ -189,7 +200,7 @@ public sealed class ObrasEmCache(
             })];
     }
 
-    private static Obra Converte(ObraGuardada guardada) => new()
+    internal static Obra Converte(ObraGuardada guardada) => new()
     {
         Fonte = guardada.Fonte,
         Tipo = guardada.Tipo,
@@ -212,6 +223,7 @@ public sealed class ObrasEmCache(
         Posição = guardada.Posicao,
         Popularidade = guardada.Popularidade,
         Sinopse = guardada.Sinopse,
+        SinopseEmPortuguês = guardada.SinopseEmPortugues,
         Gêneros = guardada.Generos,
         Autoria = guardada.Autoria,
         Classificação = guardada.Classificacao,

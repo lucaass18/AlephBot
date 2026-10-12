@@ -26,7 +26,7 @@ public class CacheDoMaTests
     private static Task<(NetCord.Rest.EmbedProperties? Embed, string? Erro)> ProcurarAsync(
         IMyAnimeList fonte, IFichasGuardadas guarda, string busca = "naruto") =>
         MyAnimelist.ProcurarAsync(
-            fonte, Tradutor, guarda, TipoDeObra.Anime, busca, "alguém", TestContext.Current.CancellationToken);
+            fonte, Tradutor, guarda, new SemMangaDex(), TipoDeObra.Anime, busca, "alguém", TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task Ficha_recente_no_banco_não_incomoda_a_fonte()

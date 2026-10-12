@@ -19,7 +19,7 @@ public class FichaDoMaTests
     private static async Task<EmbedProperties> EmbedDe(Obra obra)
     {
         var (embed, erro) = await MyAnimelist.ProcurarAsync(
-            new FonteFixa(obra), Tradutor, SemBanco, obra.Tipo, "naruto", "alguém",
+            new FonteFixa(obra), Tradutor, SemBanco, new SemMangaDex(), obra.Tipo, "naruto", "alguém",
             TestContext.Current.CancellationToken);
 
         Assert.Null(erro);

@@ -319,11 +319,16 @@ public sealed class AlephBot
     {
         services.AddSingleton<GoogleTranslator>();
 
+        // o MangaDex é dois papéis no mesmo objeto: reserva de mangá na fila, e quem traz a
+        // sinopse em português das fichas que as outras fontes acharam
+        services.AddSingleton<MangaDex>();
+        services.AddSingleton<ISinopseEmPortuguês>(provider => provider.GetRequiredService<MangaDex>());
+
         services.AddSingleton<IMyAnimeList>(provider =>
         {
             List<IMyAnimeList> fontes = _config.MalClientId is { } clientId
-                ? [new MalApi(clientId), new AniList()]
-                : [new AniList()];
+                ? [new MalApi(clientId), new AniList(), provider.GetRequiredService<MangaDex>()]
+                : [new AniList(), provider.GetRequiredService<MangaDex>()];
 
             return new FontesEmCadeia(provider.GetRequiredService<ILogger<FontesEmCadeia>>(), fontes);
         });

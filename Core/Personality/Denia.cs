@@ -12,6 +12,19 @@ namespace AlephBot.Core.Personality;
 ///
 /// Todo texto que o usuário lê sai deste arquivo. Mudar o tom dela é mexer só aqui.
 /// </summary>
+/// <summary>De onde saiu a sinopse que o embed mostra; o rodapé diz isso em uma linha.</summary>
+public enum OrigemDaSinopse
+{
+    /// <summary>Como a fonte guarda, quase sempre em inglês.</summary>
+    DaFonte,
+
+    /// <summary>Passada pelo tradutor de máquina.</summary>
+    Traduzida,
+
+    /// <summary>Em português, escrita por gente, trazida do MangaDex.</summary>
+    DoMangaDex,
+}
+
 public static class Denia
 {
     /// <summary>A fala de saudação dela; serve de assinatura nos rodapés.</summary>
@@ -594,10 +607,17 @@ public static class Denia
         "*(…continua no MyAnimeList — o título leva lá)*";
 
     /// <summary>Quem forneceu os dados e, quando houve tradução, o aviso de que foi máquina.</summary>
-    public static string MalRodapé(string fonte, string quem, bool sinopseTraduzida) =>
-        sinopseTraduzida
-            ? $"{Assinatura} · dados do {fonte}, sinopse traduzida por máquina · pedido por {quem}"
-            : $"{Assinatura} · dados do {fonte} · pedido por {quem}";
+    public static string MalRodapé(string fonte, string quem, OrigemDaSinopse sinopse) => sinopse switch
+    {
+        OrigemDaSinopse.Traduzida =>
+            $"{Assinatura} · dados do {fonte}, sinopse traduzida por máquina · pedido por {quem}",
+
+        // português escrito por gente merece crédito, e dizer "traduzida" ali seria mentira
+        OrigemDaSinopse.DoMangaDex =>
+            $"{Assinatura} · dados do {fonte}, sinopse do MangaDex · pedido por {quem}",
+
+        _ => $"{Assinatura} · dados do {fonte} · pedido por {quem}",
+    };
 
     /// <summary>
     /// A ficha veio do banco porque a fonte não respondeu. A data importa: nota de uma
