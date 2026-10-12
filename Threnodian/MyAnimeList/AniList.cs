@@ -46,6 +46,17 @@ public sealed class AniList : IMyAnimeList, IDisposable
               studios(isMain: true) { nodes { name } }
               staff { edges { role node { name { full } } } }
               rankings { rank type allTime }
+
+              # o elenco é subcampo da obra: vem no mesmo pedido, sem custar requisição
+              characters(sort: ROLE, perPage: 10) {
+                edges {
+                  role
+                  node {
+                    name { full native alternative }
+                    image { large }
+                  }
+                }
+              }
             }
           }
         }
@@ -152,7 +163,35 @@ public sealed class AniList : IMyAnimeList, IDisposable
 
             // classificação indicativa é coisa do MAL; o AniList só separa adulto de não adulto
             Classificação = null,
+
+            Personagens = Elenco(media),
         };
+    }
+
+    /// <summary>
+    /// O elenco na ordem que veio (o sort: ROLE põe protagonista na frente). O nome que o
+    /// AniList marca como spoiler fica de fora: numa ficha de busca ele não informa, estraga.
+    /// </summary>
+    private static List<Personagem> Elenco(JsonElement media)
+    {
+        var elenco = new List<Personagem>();
+
+        foreach (var papel in media.Campo("characters")?.Lista("edges") ?? [])
+        {
+            if (papel.Campo("node") is not { } quem || quem.Campo("name")?.Texto("full") is not { } nome)
+                continue;
+
+            elenco.Add(new Personagem
+            {
+                Nome = nome,
+                NomeNativo = quem.Campo("name")?.Texto("native"),
+                OutrosNomes = quem.Campo("name")?.Textos("alternative") ?? [],
+                Principal = string.Equals(papel.Texto("role"), "MAIN", StringComparison.Ordinal),
+                Imagem = quem.Campo("image")?.Texto("large"),
+            });
+        }
+
+        return elenco;
     }
 
     private static string? Título(JsonElement? títulos) =>

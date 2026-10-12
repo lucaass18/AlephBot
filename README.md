@@ -81,6 +81,11 @@ chave — o link do embed continua indo pro MyAnimeList. Com um `MAL_CLIENT_ID` 
 atende primeiro é a [API oficial](https://myanimelist.net/apiconfig), e o AniList fica de
 reserva pra quando ela cair — veja [Configuração](#configuração).
 
+A ficha que o bot mostra fica guardada no banco por uma semana, com o elenco principal junto:
+a mesma busca não sai pra internet duas vezes, e quando a fonte está fora o `/ma` responde do
+que já tem, dizendo no rodapé de quando é o dado. Nada é varrido ou baixado em massa — o banco
+só guarda o que alguém procurou. Sem Postgres o comando funciona igual, só sem a memória.
+
 <br>
 
 ### Geral

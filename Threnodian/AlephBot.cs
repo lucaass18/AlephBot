@@ -239,6 +239,13 @@ public sealed class AlephBot
             provider.GetService<MigracaoDoBanco>(),
             provider.GetRequiredService<ILogger<PlaylistsSalvas>>()));
 
+        // as fichas que o /ma já mostrou. Sem banco ela se declara indisponível e o comando
+        // volta a perguntar à fonte toda vez, como fazia antes de existir cache
+        services.AddSingleton<IFichasGuardadas>(provider => new ObrasEmCache(
+            provider.GetService<IDbContextFactory<AlephDb>>(),
+            provider.GetService<MigracaoDoBanco>(),
+            provider.GetRequiredService<ILogger<ObrasEmCache>>()));
+
         services.AddSingleton<ConfigDosServidores>(provider => new ConfigDosServidores(
             provider.GetService<IDbContextFactory<AlephDb>>(),
             provider.GetService<MigracaoDoBanco>(),

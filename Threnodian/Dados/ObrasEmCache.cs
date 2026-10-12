@@ -1,0 +1,291 @@
+using System.Globalization;
+using System.Text;
+
+using AlephBot.Threnodian.MyAnimeList;
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace AlephBot.Threnodian.Dados;
+
+/// <summary>
+/// As fichas do /ma que já foram mostradas. Sem banco não há ficha guardada — e isso não
+/// cala o comando: ele volta a perguntar à fonte toda vez, que é como ele viveu até aqui.
+/// Nada do que acontece neste arquivo pode derrubar uma resposta em andamento.
+/// </summary>
+public sealed class ObrasEmCache(
+    IDbContextFactory<AlephDb>? fábrica,
+    MigracaoDoBanco? banco,
+    ILogger<ObrasEmCache> logger) : IFichasGuardadas
+{
+    public bool Disponível => fábrica is not null && banco?.Pronto == true;
+
+    public async Task<Obra?> AcharAsync(
+        TipoDeObra tipo, string busca, TimeSpan? validade, CancellationToken cancellationToken = default)
+    {
+        if (!Disponível)
+            return null;
+
+        var termo = Normaliza(busca);
+
+        try
+        {
+            await using var db = await fábrica!.CreateDbContextAsync(cancellationToken);
+
+            var guardada = await PeloTermoAsync(db, tipo, termo, validade, cancellationToken)
+                ?? await PeloNomeAsync(db, tipo, termo, validade, cancellationToken);
+
+            return guardada is null ? null : Converte(guardada);
+        }
+        catch (Exception erro)
+        {
+            logger.LogWarning(erro, "Não consegui ler a ficha guardada de {Busca}", busca);
+
+            return null;
+        }
+    }
+
+    /// <summary>A ficha que alguém já viu procurando exatamente isto.</summary>
+    private static async Task<ObraGuardada?> PeloTermoAsync(
+        AlephDb db, TipoDeObra tipo, string termo, TimeSpan? validade, CancellationToken cancellationToken)
+    {
+        var buscas = db.Buscas.Where(b => b.Termo == termo && b.Tipo == tipo);
+
+        if (validade is { } prazo)
+        {
+            var limite = DateTimeOffset.UtcNow - prazo;
+            buscas = buscas.Where(b => b.VistoEm >= limite);
+        }
+
+        var achada = await buscas
+            .Include(b => b.Obra!)
+            .ThenInclude(o => o.Personagens)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return achada?.Obra;
+    }
+
+    /// <summary>
+    /// Ninguém procurou por este termo ainda, mas a obra pode estar aqui por outro nome.
+    /// Só vale com a fonte fora (validade nula): com ela de pé, quem acha é ela.
+    /// </summary>
+    private static async Task<ObraGuardada?> PeloNomeAsync(
+        AlephDb db, TipoDeObra tipo, string termo, TimeSpan? validade, CancellationToken cancellationToken)
+    {
+        if (validade is not null)
+            return null;
+
+        return await db.Obras
+            .Where(o => o.Tipo == tipo && o.Procura.Contains(termo))
+            .OrderByDescending(o => o.VistoEm)
+            .Include(o => o.Personagens)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task GuardarAsync(string busca, Obra obra, CancellationToken cancellationToken = default)
+    {
+        if (!Disponível)
+            return;
+
+        var termo = Normaliza(busca);
+
+        if (termo.Length > BuscaGuardada.TermoNoMaximo)
+            termo = termo[..BuscaGuardada.TermoNoMaximo];
+
+        try
+        {
+            await using var db = await fábrica!.CreateDbContextAsync(cancellationToken);
+
+            var guardada = await db.Obras
+                .Include(o => o.Personagens)
+                .FirstOrDefaultAsync(
+                    o => o.Fonte == obra.Fonte && o.Tipo == obra.Tipo && o.IdNaFonte == obra.Id,
+                    cancellationToken);
+
+            if (guardada is null)
+            {
+                guardada = new ObraGuardada();
+                db.Obras.Add(guardada);
+            }
+            else
+            {
+                // o elenco é regravado inteiro: comparar personagem a personagem custaria
+                // mais código do que apagar e pôr de novo dez linhas
+                db.RemoveRange(guardada.Personagens);
+                guardada.Personagens.Clear();
+            }
+
+            Preenche(guardada, obra);
+
+            await db.SaveChangesAsync(cancellationToken);
+            await GuardaOTermoAsync(db, termo, obra.Tipo, guardada.Id, cancellationToken);
+        }
+        catch (Exception erro)
+        {
+            // ficha não guardada só custa uma busca a mais amanhã; não vale estragar a resposta
+            logger.LogWarning(erro, "Não consegui guardar a ficha de {Busca}", busca);
+        }
+    }
+
+    private static async Task GuardaOTermoAsync(
+        AlephDb db, string termo, TipoDeObra tipo, long obraId, CancellationToken cancellationToken)
+    {
+        var busca = await db.Buscas.FirstOrDefaultAsync(
+            b => b.Termo == termo && b.Tipo == tipo, cancellationToken);
+
+        if (busca is null)
+        {
+            busca = new BuscaGuardada { Termo = termo, Tipo = tipo };
+            db.Buscas.Add(busca);
+        }
+
+        busca.ObraId = obraId;
+        busca.VistoEm = DateTimeOffset.UtcNow;
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    // ---- conversão -----------------------------------------------------------
+
+    private static void Preenche(ObraGuardada guardada, Obra obra)
+    {
+        guardada.Fonte = obra.Fonte;
+        guardada.Tipo = obra.Tipo;
+        guardada.IdNaFonte = obra.Id;
+        guardada.Endereco = obra.Endereço;
+        guardada.Titulo = obra.Título;
+        guardada.TituloEmIngles = obra.TítuloEmInglês;
+        guardada.TituloEmJapones = obra.TítuloEmJaponês;
+        guardada.Sinonimos = [.. obra.Sinônimos];
+        guardada.Imagem = obra.Imagem;
+        guardada.Formato = obra.Formato;
+        guardada.Situacao = obra.Situação;
+        guardada.Episodios = obra.Episódios;
+        guardada.Capitulos = obra.Capítulos;
+        guardada.Volumes = obra.Volumes;
+        guardada.Inicio = EmTexto(obra.Início);
+        guardada.Fim = EmTexto(obra.Fim);
+        guardada.Nota = obra.Nota;
+        guardada.Votos = obra.Votos;
+        guardada.Posicao = obra.Posição;
+        guardada.Popularidade = obra.Popularidade;
+        guardada.Sinopse = obra.Sinopse;
+        guardada.Generos = [.. obra.Gêneros];
+        guardada.Autoria = [.. obra.Autoria];
+        guardada.Classificacao = obra.Classificação;
+        guardada.Procura = LinhaDeProcura(obra);
+        guardada.VistoEm = DateTimeOffset.UtcNow;
+
+        guardada.Personagens = [.. obra.Personagens
+            .Take(ObraGuardada.PersonagensNoMaximo)
+            .Select((quem, ordem) => new PersonagemGuardado
+            {
+                Ordem = ordem,
+                Nome = quem.Nome,
+                NomeNativo = quem.NomeNativo,
+                OutrosNomes = [.. quem.OutrosNomes],
+                Principal = quem.Principal,
+                Imagem = quem.Imagem,
+            })];
+    }
+
+    private static Obra Converte(ObraGuardada guardada) => new()
+    {
+        Fonte = guardada.Fonte,
+        Tipo = guardada.Tipo,
+        Id = guardada.IdNaFonte,
+        Endereço = guardada.Endereco,
+        Título = guardada.Titulo,
+        TítuloEmInglês = guardada.TituloEmIngles,
+        TítuloEmJaponês = guardada.TituloEmJapones,
+        Sinônimos = guardada.Sinonimos,
+        Imagem = guardada.Imagem,
+        Formato = guardada.Formato,
+        Situação = guardada.Situacao,
+        Episódios = guardada.Episodios,
+        Capítulos = guardada.Capitulos,
+        Volumes = guardada.Volumes,
+        Início = DataParcial.De(guardada.Inicio),
+        Fim = DataParcial.De(guardada.Fim),
+        Nota = guardada.Nota,
+        Votos = guardada.Votos,
+        Posição = guardada.Posicao,
+        Popularidade = guardada.Popularidade,
+        Sinopse = guardada.Sinopse,
+        Gêneros = guardada.Generos,
+        Autoria = guardada.Autoria,
+        Classificação = guardada.Classificacao,
+        VistoEm = guardada.VistoEm,
+
+        Personagens = [.. guardada.Personagens
+            .OrderBy(quem => quem.Ordem)
+            .Select(quem => new Personagem
+            {
+                Nome = quem.Nome,
+                NomeNativo = quem.NomeNativo,
+                OutrosNomes = quem.OutrosNomes,
+                Principal = quem.Principal,
+                Imagem = quem.Imagem,
+            })],
+    };
+
+    /// <summary>A data parcial de volta ao texto do MAL: "2002", "2002-10" ou "2002-10-03".</summary>
+    private static string? EmTexto(DataParcial data) => (data.Ano, data.Mês, data.Dia) switch
+    {
+        (null, _, _) => null,
+        ({ } ano, null, _) => $"{ano:D4}",
+        ({ } ano, { } mês, null) => $"{ano:D4}-{mês:D2}",
+        ({ } ano, { } mês, { } dia) => $"{ano:D4}-{mês:D2}-{dia:D2}",
+    };
+
+    /// <summary>
+    /// Todos os nomes da obra numa linha, normalizados. É o que permite achar a ficha pelo
+    /// título em inglês ou por um sinônimo quando a fonte não está respondendo.
+    /// </summary>
+    internal static string LinhaDeProcura(Obra obra)
+    {
+        var nomes = new List<string> { obra.Título };
+
+        if (obra.TítuloEmInglês is { Length: > 0 } inglês)
+            nomes.Add(inglês);
+
+        if (obra.TítuloEmJaponês is { Length: > 0 } japonês)
+            nomes.Add(japonês);
+
+        nomes.AddRange(obra.Sinônimos);
+
+        return string.Join(" | ", nomes.Select(Normaliza).Distinct());
+    }
+
+    /// <summary>
+    /// Sem acento, em minúscula e sem espaço sobrando: "NARUTO ", "naruto" e "Naruto" são a
+    /// mesma pergunta, e quem digita de celular não vai acertar o acento do título.
+    /// </summary>
+    internal static string Normaliza(string texto)
+    {
+        var decomposto = texto.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var saída = new StringBuilder(decomposto.Length);
+        var espaço = false;
+
+        foreach (var c in decomposto)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+                continue;
+
+            if (char.IsWhiteSpace(c))
+            {
+                // "Mangá   do    Berserk" e "Mangá do Berserk" são a mesma pergunta
+                espaço = true;
+                continue;
+            }
+
+            if (espaço && saída.Length > 0)
+                saída.Append(' ');
+
+            espaço = false;
+            saída.Append(c);
+        }
+
+        return saída.ToString().Normalize(NormalizationForm.FormC);
+    }
+}

@@ -127,6 +127,18 @@ public sealed record Obra
     public IReadOnlyList<string> Autoria { get; init; } = [];
 
     /// <summary>
+    /// O elenco, na ordem em que a fonte devolve (protagonistas primeiro). Vem junto da
+    /// ficha, no mesmo pedido; fonte que não traz elenco deixa a lista vazia.
+    /// </summary>
+    public IReadOnlyList<Personagem> Personagens { get; init; } = [];
+
+    /// <summary>
+    /// Quando esta ficha foi buscada na fonte. Null é ficha recém-chegada; preenchida, veio
+    /// do banco, e o embed avisa a data pra ninguém achar que a nota é de agora.
+    /// </summary>
+    public DateTimeOffset? VistoEm { get; init; }
+
+    /// <summary>
     /// A classificação indicativa, só de anime, normalizada pro código do MAL: "g", "pg",
     /// "pg 13", "r", "r+", "rx".
     /// </summary>
@@ -181,12 +193,51 @@ public sealed record Obra
 }
 
 /// <summary>
+/// Alguém da obra. O nome principal é o romanizado, que é como se escreve o personagem em
+/// inglês; o nativo é o japonês. Os outros nomes são localização oficial e apelido — o que
+/// o AniList marca como spoiler não entra, porque entregaria reviravolta numa busca.
+/// </summary>
+public sealed record Personagem
+{
+    public required string Nome { get; init; }
+
+    public string? NomeNativo { get; init; }
+
+    public IReadOnlyList<string> OutrosNomes { get; init; } = [];
+
+    /// <summary>Protagonista, e não parte do elenco de apoio ou de fundo.</summary>
+    public bool Principal { get; init; }
+
+    public string? Imagem { get; init; }
+}
+
+/// <summary>
 /// A fonte recusou a credencial: Client ID errado, vencido ou ausente. É erro de quem
 /// configurou, e não queda — por isso tem tipo próprio em vez de ser adivinhado pelo código
 /// HTTP. O AniList responde 403 quando desliga a API por instabilidade, e aquilo é queda.
 /// </summary>
 public sealed class CredencialRecusadaException(string mensagem, Exception? causa = null)
     : Exception(mensagem, causa);
+
+/// <summary>
+/// Onde as fichas já mostradas ficam guardadas. Quem implementa é o banco; a interface
+/// existe pra quem procura não precisar saber disso — e pra continuar funcionando sem banco
+/// nenhum, que é quando <see cref="Disponível"/> é falso e ninguém guarda nada.
+/// </summary>
+public interface IFichasGuardadas
+{
+    /// <summary>Falso quando não há Postgres: aí o /ma trabalha como trabalhava antes do cache.</summary>
+    bool Disponível { get; }
+
+    /// <summary>
+    /// A ficha guardada pra esta busca, ou null. <paramref name="validade"/> é a idade
+    /// máxima aceita; null aceita qualquer idade, que é o caso de a fonte ter caído.
+    /// </summary>
+    Task<Obra?> AcharAsync(TipoDeObra tipo, string busca, TimeSpan? validade, CancellationToken cancellationToken = default);
+
+    /// <summary>Guarda a ficha que foi mostrada, ligada ao que a pessoa digitou.</summary>
+    Task GuardarAsync(string busca, Obra obra, CancellationToken cancellationToken = default);
+}
 
 /// <summary>
 /// Quem sabe procurar anime e mangá. Tem duas: a API oficial do MAL, que pede Client ID, e

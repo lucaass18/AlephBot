@@ -20,9 +20,97 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
     public DbSet<PlaylistSalva> Playlists => Set<PlaylistSalva>();
 
+    public DbSet<ObraGuardada> Obras => Set<ObraGuardada>();
+
+    public DbSet<BuscaGuardada> Buscas => Set<BuscaGuardada>();
+
     protected override void OnModelCreating(ModelBuilder modelo)
     {
         modelo.HasDefaultSchema(Schema);
+
+        modelo.Entity<ObraGuardada>(obra =>
+        {
+            obra.ToTable("obra");
+            obra.HasKey(o => o.Id);
+
+            obra.Property(o => o.Id).HasColumnName("id");
+            obra.Property(o => o.Fonte).HasColumnName("fonte").HasMaxLength(40);
+            obra.Property(o => o.Tipo).HasColumnName("tipo").HasConversion<int>();
+            obra.Property(o => o.IdNaFonte).HasColumnName("id_na_fonte");
+            obra.Property(o => o.Endereco).HasColumnName("endereco");
+            obra.Property(o => o.Titulo).HasColumnName("titulo");
+            obra.Property(o => o.TituloEmIngles).HasColumnName("titulo_em_ingles");
+            obra.Property(o => o.TituloEmJapones).HasColumnName("titulo_em_japones");
+            obra.Property(o => o.Sinonimos).HasColumnName("sinonimos");
+            obra.Property(o => o.Imagem).HasColumnName("imagem");
+            obra.Property(o => o.Formato).HasColumnName("formato");
+            obra.Property(o => o.Situacao).HasColumnName("situacao").HasConversion<int>();
+            obra.Property(o => o.Episodios).HasColumnName("episodios");
+            obra.Property(o => o.Capitulos).HasColumnName("capitulos");
+            obra.Property(o => o.Volumes).HasColumnName("volumes");
+            obra.Property(o => o.Inicio).HasColumnName("inicio").HasMaxLength(10);
+            obra.Property(o => o.Fim).HasColumnName("fim").HasMaxLength(10);
+            obra.Property(o => o.Nota).HasColumnName("nota");
+            obra.Property(o => o.Votos).HasColumnName("votos");
+            obra.Property(o => o.Posicao).HasColumnName("posicao");
+            obra.Property(o => o.Popularidade).HasColumnName("popularidade");
+            obra.Property(o => o.Sinopse).HasColumnName("sinopse");
+            obra.Property(o => o.Generos).HasColumnName("generos");
+            obra.Property(o => o.Autoria).HasColumnName("autoria");
+            obra.Property(o => o.Classificacao).HasColumnName("classificacao");
+            obra.Property(o => o.Procura).HasColumnName("procura");
+            obra.Property(o => o.VistoEm).HasColumnName("visto_em");
+
+            // a mesma obra na mesma fonte é uma linha só: buscar de novo atualiza, não duplica
+            obra.HasIndex(o => new { o.Fonte, o.Tipo, o.IdNaFonte })
+                .IsUnique()
+                .HasDatabaseName("ix_obra_fonte_tipo_id");
+
+            // com a fonte fora, achar a ficha é casar o que a pessoa digitou com os nomes
+            obra.HasIndex(o => o.Procura).HasDatabaseName("ix_obra_procura");
+
+            obra.HasMany(o => o.Personagens)
+                .WithOne()
+                .HasForeignKey(p => p.ObraId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelo.Entity<PersonagemGuardado>(personagem =>
+        {
+            personagem.ToTable("obra_personagem");
+            personagem.HasKey(p => p.Id);
+
+            personagem.Property(p => p.Id).HasColumnName("id");
+            personagem.Property(p => p.ObraId).HasColumnName("obra_id");
+            personagem.Property(p => p.Ordem).HasColumnName("ordem");
+            personagem.Property(p => p.Nome).HasColumnName("nome");
+            personagem.Property(p => p.NomeNativo).HasColumnName("nome_nativo");
+            personagem.Property(p => p.OutrosNomes).HasColumnName("outros_nomes");
+            personagem.Property(p => p.Principal).HasColumnName("principal");
+            personagem.Property(p => p.Imagem).HasColumnName("imagem");
+        });
+
+        modelo.Entity<BuscaGuardada>(busca =>
+        {
+            busca.ToTable("obra_busca");
+            busca.HasKey(b => b.Id);
+
+            busca.Property(b => b.Id).HasColumnName("id");
+            busca.Property(b => b.Termo).HasColumnName("termo").HasMaxLength(BuscaGuardada.TermoNoMaximo);
+            busca.Property(b => b.Tipo).HasColumnName("tipo").HasConversion<int>();
+            busca.Property(b => b.ObraId).HasColumnName("obra_id");
+            busca.Property(b => b.VistoEm).HasColumnName("visto_em");
+
+            // o mesmo termo procurado de novo tem que cair na mesma ficha, não criar outra
+            busca.HasIndex(b => new { b.Termo, b.Tipo })
+                .IsUnique()
+                .HasDatabaseName("ix_obra_busca_termo_tipo");
+
+            busca.HasOne(b => b.Obra)
+                .WithMany()
+                .HasForeignKey(b => b.ObraId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelo.Entity<PlaylistSalva>(playlist =>
         {

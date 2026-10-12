@@ -36,7 +36,29 @@ public class AniListTests
             { "rank": 317, "type": "RATED", "allTime": true },
             { "rank": 12, "type": "POPULAR", "allTime": true },
             { "rank": 3, "type": "RATED", "allTime": false }
-          ]
+          ],
+          "characters": { "edges": [
+            {
+              "role": "MAIN",
+              "node": {
+                "name": {
+                  "full": "Naruto Uzumaki",
+                  "native": "うずまきナルト",
+                  "alternative": ["Nanadaime Hokage"],
+                  "alternativeSpoiler": ["o nome que entrega o final"]
+                },
+                "image": { "large": "https://img/naruto.png" }
+              }
+            },
+            {
+              "role": "SUPPORTING",
+              "node": {
+                "name": { "full": "Itachi Uchiha", "native": "うちはイタチ", "alternative": [] },
+                "image": { "large": "https://img/itachi.png" }
+              }
+            },
+            { "role": "BACKGROUND", "node": { "name": { "full": "Alguem" } } }
+          ] }
         }
         """).RootElement;
 
@@ -222,6 +244,50 @@ public class AniListTests
         var json = JsonDocument.Parse("""{ "id": 1, "idMal": 1, "title": { "romaji": null } }""").RootElement;
 
         Assert.Null(AniList.Ler(TipoDeObra.Anime, json));
+    }
+
+    /// <summary>O elenco vem no mesmo pedido da ficha, então não custa requisição nenhuma.</summary>
+    [Fact]
+    public void Lê_o_elenco_na_ordem_em_que_veio()
+    {
+        var elenco = AniList.Ler(TipoDeObra.Anime, Anime)!.Personagens;
+
+        Assert.Equal(3, elenco.Count);
+        Assert.Equal("Naruto Uzumaki", elenco[0].Nome);
+        Assert.Equal("うずまきナルト", elenco[0].NomeNativo);
+        Assert.Equal("https://img/naruto.png", elenco[0].Imagem);
+        Assert.True(elenco[0].Principal);
+        Assert.False(elenco[1].Principal);
+    }
+
+    /// <summary>
+    /// O nome romanizado do AniList já é o que se escreve em inglês; o que sobra em
+    /// "alternative" é localização e apelido, e isso vale guardar.
+    /// </summary>
+    [Fact]
+    public void Guarda_os_outros_nomes_do_personagem()
+    {
+        var naruto = AniList.Ler(TipoDeObra.Anime, Anime)!.Personagens[0];
+
+        Assert.Equal(["Nanadaime Hokage"], naruto.OutrosNomes);
+    }
+
+    /// <summary>
+    /// O "alternativeSpoiler" é o nome que entrega reviravolta. Numa ficha de busca isso
+    /// não é informação, é estrago.
+    /// </summary>
+    [Fact]
+    public void Nome_que_é_spoiler_fica_de_fora()
+    {
+        var naruto = AniList.Ler(TipoDeObra.Anime, Anime)!.Personagens[0];
+
+        Assert.DoesNotContain(naruto.OutrosNomes, nome => nome.Contains("entrega o final"));
+    }
+
+    [Fact]
+    public void Obra_sem_elenco_não_quebra()
+    {
+        Assert.Empty(AniList.Ler(TipoDeObra.Manga, Mangá)!.Personagens);
     }
 
     /// <summary>O rodapé do embed diz de onde vieram os dados, e aqui não vieram do MAL.</summary>
