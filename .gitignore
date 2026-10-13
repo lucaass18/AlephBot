@@ -25,3 +25,7 @@ Config/.env
 n8n/arquivos/**
 !n8n/arquivos/**/
 !n8n/arquivos/**/.gitkeep
+
+# o Python do yt-audio compila ao rodar os testes; nada disso entra no repo
+__pycache__/
+*.pyc
