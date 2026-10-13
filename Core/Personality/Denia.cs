@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 using AlephBot.Core.Commands.Interface;
 using AlephBot.Threnodian.MyAnimeList;
@@ -242,6 +243,7 @@ public static class Denia
     // ---- música: títulos e rótulos -------------------------------------------
 
     public const string MúsicaTítuloTocando = "🎧 Tocando agora";
+    public const string MúsicaTítuloPausada = "⏸️ Em pausa";
     public const string MúsicaTítuloNaFila = "➕ Entrou na fila";
     public const string MúsicaTítuloPlaylist = "📚 Playlist na fila";
     public const string MúsicaTítuloFila = "📋 A fila";
@@ -251,8 +253,6 @@ public static class Denia
     public const string MúsicaCampoDuração = "⏱️ Duração";
     public const string MúsicaCampoPedidoPor = "🙋 Pedido por";
     public const string MúsicaCampoPosição = "🔢 Posição";
-    public const string MúsicaCampoFonte = "📡 Fonte";
-    public const string MúsicaCampoVolume = "🔊 Volume";
     public const string MúsicaCampoRepetição = "🔁 Repetição";
     public const string MúsicaCampoAgora = "▶️ Agora";
     public const string MúsicaCampoASeguir = "⏭️ A seguir";
@@ -261,8 +261,23 @@ public static class Denia
     /// <summary>Faixa sem fim: não tem barra de progresso nem duração pra mostrar.</summary>
     public const string MúsicaAoVivo = "🔴 ao vivo";
 
-    public static string MúsicaRodapé(string quem) =>
-        $"{Assinatura} · pedido por {quem}";
+    /// <summary>
+    /// O rodapé recolhe o que não merece um campo só pra si: de onde veio a faixa e quem
+    /// pediu. Os dois são opcionais — playlist não tem fonte única, e faixa que entrou
+    /// sozinha depois de um restart não tem dono.
+    /// </summary>
+    public static string MúsicaRodapé(string? quem, string? fonte)
+    {
+        var texto = new StringBuilder(Assinatura);
+
+        if (!string.IsNullOrWhiteSpace(fonte))
+            texto.Append(" · ").Append(fonte);
+
+        if (!string.IsNullOrWhiteSpace(quem))
+            texto.Append(" · pedido por ").Append(quem);
+
+        return texto.ToString();
+    }
 
     // ---- música: recusas -----------------------------------------------------
 
@@ -317,17 +332,18 @@ public static class Denia
 
     // ---- música: o que aconteceu ---------------------------------------------
 
-    public static string MúsicaComeçou(string faixa) => Pick(
-        $"Botei **{faixa}** pra tocar. Aproveita.",
-        $"**{faixa}**, tocando. Não me peça pra dançar.",
-        $"Tocando **{faixa}**. Eu ia dormir, mas tudo bem.");
+    public static string MúsicaComeçou() => Pick(
+        "Botei pra tocar. Aproveita.",
+        "Tocando. Não me peça pra dançar.",
+        "Tocando. Eu ia dormir, mas tudo bem.");
 
-    public static string MúsicaEntrouNaFila(string faixa, int posição) =>
-        $"**{faixa}** entrou na fila, na posição **{posição}**.";
+    public static string MúsicaEntrouNaFila() => Pick(
+        "Anotei. Toca quando chegar a vez.",
+        "Entrou na fila. Vai ter que esperar.");
 
-    public static string MúsicaPlaylistEntrou(string nome, int quantas) => Pick(
-        $"Peguei **{quantas}** faixas de **{nome}**. Isso vai demorar.",
-        $"**{quantas}** faixas de **{nome}** na fila. Espero que você tenha bom gosto.");
+    public static string MúsicaPlaylistEntrou(int quantas) => Pick(
+        $"Peguei **{quantas}** faixas. Isso vai demorar.",
+        $"**{quantas}** faixas na fila. Espero que você tenha bom gosto.");
 
     /// <summary>
     /// Quando tem próxima, quem apresenta ela é o anúncio automático do player — por isso
@@ -409,13 +425,13 @@ public static class Denia
 
     // ---- música: a volta depois de um restart --------------------------------
 
-    public static string MúsicaVoltei(string faixa, string posição) => Pick(
-        $"Reiniciei no meio de **{faixa}**. Voltei pra onde parou: `{posição}`.",
-        $"Caí, levantei. **{faixa}** continua de `{posição}`.");
+    public static string MúsicaVoltei(string posição) => Pick(
+        $"Reiniciei no meio. Voltei pra onde parou: `{posição}`.",
+        $"Caí, levantei. Continua de `{posição}`.");
 
-    public static string MúsicaVolteiDoComeço(string faixa) => Pick(
-        $"Reiniciei e perdi o ponto de **{faixa}**. Vai do começo de novo.",
-        $"Caí, levantei. **{faixa}** de novo, do começo — o ponto ficou pra trás.");
+    public static string MúsicaVolteiDoComeço() => Pick(
+        "Reiniciei e perdi o ponto. Vai do começo de novo.",
+        "Caí, levantei. Do começo de novo — o ponto ficou pra trás.");
 
     public static string MúsicaVolteiPausada() =>
         "Estava em pausa; deixei como estava.";
