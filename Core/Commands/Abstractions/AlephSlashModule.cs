@@ -32,10 +32,18 @@ public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCom
 
     
     protected Task RespondAsync(EmbedProperties embed, bool ephemeral = false) =>
+        RespondAsync(embed, null, ephemeral);
+
+    /// <summary>
+    /// A mesma resposta com um arquivo junto — a capa da faixa, que como anexo fica maior
+    /// que a largura que o embed permite.
+    /// </summary>
+    protected Task RespondAsync(EmbedProperties embed, AttachmentProperties? anexo, bool ephemeral = false) =>
         Context.Interaction.SendResponseAsync(
             InteractionCallback.Message(new InteractionMessageProperties
             {
                 Embeds = [embed],
+                Attachments = anexo is null ? null : [anexo],
                 Flags = ephemeral ? MessageFlags.Ephemeral : null,
             }));
 

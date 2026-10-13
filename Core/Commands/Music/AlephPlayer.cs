@@ -114,7 +114,12 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         if (track.Track is not { } faixa)
             return;
 
-        await FalarAsync(Music.EmbedTocando(faixa, Music.QuemPediu(track), Music.Próxima(this)), cancellationToken);
+        var capa = await CapaDaFaixa.BaixarAsync(faixa, _logger, cancellationToken);
+
+        await FalarAsync(
+            Music.EmbedTocando(faixa, Music.QuemPediu(track), Music.Próxima(this)),
+            capa,
+            cancellationToken);
     }
 
     /// <summary>
@@ -253,7 +258,12 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     /// Fala no canal onde o player nasceu. Canal apagado ou permissão retirada não pode
     /// derrubar a música: o erro vira log e a faixa segue tocando.
     /// </summary>
-    internal async ValueTask FalarAsync(EmbedProperties embed, CancellationToken cancellationToken)
+    internal ValueTask FalarAsync(EmbedProperties embed, CancellationToken cancellationToken) =>
+        FalarAsync(embed, null, cancellationToken);
+
+    /// <summary>O mesmo recado com a capa anexada — ela não cabe na largura do embed.</summary>
+    internal async ValueTask FalarAsync(
+        EmbedProperties embed, AttachmentProperties? anexo, CancellationToken cancellationToken)
     {
         if (_canal is null)
             return;
@@ -261,7 +271,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         try
         {
             await _canal.SendMessageAsync(
-                new MessageProperties { Embeds = [embed] },
+                new MessageProperties { Embeds = [embed], Attachments = anexo is null ? null : [anexo] },
                 cancellationToken: cancellationToken);
         }
         catch (RestException ex)
