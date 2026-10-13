@@ -20,14 +20,14 @@ public abstract class AlephTextModule : CommandModule<CommandContext>, ICommand
         Context.Message.ReplyAsync(content);
 
     protected Task<RestMessage> ReplyAsync(EmbedProperties embed) =>
-        ReplyAsync(embed, null);
+        Context.Message.ReplyAsync(new ReplyMessageProperties { Embeds = [embed] });
 
-    /// <summary>A resposta com a capa junto, como anexo. Ver o módulo de barra.</summary>
-    protected Task<RestMessage> ReplyAsync(EmbedProperties embed, AttachmentProperties? anexo) =>
+    /// <summary>A resposta no formato novo. Ver o módulo de barra.</summary>
+    protected Task<RestMessage> ReplyAsync(ComponentContainerProperties cartão) =>
         Context.Message.ReplyAsync(new ReplyMessageProperties
         {
-            Embeds = [embed],
-            Attachments = anexo is null ? null : [anexo],
+            Components = [cartão],
+            Flags = MessageFlags.IsComponentsV2,
         });
 
     protected Task<RestMessage> ErrorAsync(string message) =>

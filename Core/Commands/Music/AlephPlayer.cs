@@ -114,12 +114,8 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         if (track.Track is not { } faixa)
             return;
 
-        var capa = await CapaDaFaixa.BaixarAsync(faixa, _logger, cancellationToken);
-
         await FalarAsync(
-            Music.EmbedTocando(faixa, Music.QuemPediu(track), Music.Próxima(this)),
-            capa,
-            cancellationToken);
+            Music.CartãoTocando(faixa, Music.QuemPediu(track), Music.Próxima(this)), cancellationToken);
     }
 
     /// <summary>
@@ -259,20 +255,22 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     /// derrubar a música: o erro vira log e a faixa segue tocando.
     /// </summary>
     internal ValueTask FalarAsync(EmbedProperties embed, CancellationToken cancellationToken) =>
-        FalarAsync(embed, null, cancellationToken);
+        FalarAsync(new MessageProperties { Embeds = [embed] }, cancellationToken);
 
-    /// <summary>O mesmo recado com a capa anexada — ela não cabe na largura do embed.</summary>
-    internal async ValueTask FalarAsync(
-        EmbedProperties embed, AttachmentProperties? anexo, CancellationToken cancellationToken)
+    /// <summary>O anúncio no formato novo, com a capa grande dentro do card.</summary>
+    internal ValueTask FalarAsync(ComponentContainerProperties cartão, CancellationToken cancellationToken) =>
+        FalarAsync(
+            new MessageProperties { Components = [cartão], Flags = MessageFlags.IsComponentsV2 },
+            cancellationToken);
+
+    private async ValueTask FalarAsync(MessageProperties mensagem, CancellationToken cancellationToken)
     {
         if (_canal is null)
             return;
 
         try
         {
-            await _canal.SendMessageAsync(
-                new MessageProperties { Embeds = [embed], Attachments = anexo is null ? null : [anexo] },
-                cancellationToken: cancellationToken);
+            await _canal.SendMessageAsync(mensagem, cancellationToken: cancellationToken);
         }
         catch (RestException ex)
         {
