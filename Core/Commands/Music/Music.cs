@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 
 using AlephBot.Core.Personality;
 
@@ -398,7 +399,7 @@ internal static class Music
             Color = new Color(Roxo),
             Fields =
             [
-                new EmbedFieldProperties { Name = Denia.MúsicaCampoArtista, Value = Escapa(faixa.Author), Inline = true },
+                new EmbedFieldProperties { Name = Denia.MúsicaCampoArtista, Value = Artista(faixa), Inline = true },
                 new EmbedFieldProperties { Name = Denia.MúsicaCampoDuração, Value = $"`{DuraçãoDe(faixa)}`", Inline = true },
             ],
         };
@@ -493,7 +494,7 @@ internal static class Music
             Color = new Color(Roxo),
             Fields =
             [
-                new EmbedFieldProperties { Name = Denia.MúsicaCampoArtista, Value = Escapa(faixa.Author), Inline = true },
+                new EmbedFieldProperties { Name = Denia.MúsicaCampoArtista, Value = Artista(faixa), Inline = true },
                 new EmbedFieldProperties { Name = Denia.MúsicaCampoDuração, Value = $"`{DuraçãoDe(faixa)}`", Inline = true },
             ],
         };
@@ -539,6 +540,33 @@ internal static class Music
         faixa.Uri is { } uri
             ? $"[{Escapa(faixa.Title)}]({uri})"
             : $"**{Escapa(faixa.Title)}**";
+
+    /// <summary>
+    /// O artista, clicável quando dá pra chegar nele. O plugin do YouTube manda só o nome,
+    /// então o link vai pra busca — o canal é quase sempre o primeiro resultado. Fontes que
+    /// mandam o endereço do artista (o LavaSrc faz isso) ganham o link de verdade.
+    /// </summary>
+    internal static string Artista(LavalinkTrack faixa)
+    {
+        var nome = Escapa(faixa.Author);
+
+        if (string.IsNullOrWhiteSpace(faixa.Author))
+            return nome;
+
+        return $"[{nome}]({CanalDoArtista(faixa)})";
+    }
+
+    private static string CanalDoArtista(LavalinkTrack faixa)
+    {
+        if (faixa.AdditionalInformation.TryGetValue("artistUrl", out var valor)
+            && valor.ValueKind is JsonValueKind.String
+            && valor.GetString() is { Length: > 0 } endereço)
+        {
+            return endereço;
+        }
+
+        return $"https://www.youtube.com/results?search_query={Uri.EscapeDataString(faixa.Author!)}";
+    }
 
     /// <summary>O <see cref="Markdown.Escapa"/> de quem não tem título: faixa sem nome vira "?".</summary>
     internal static string Escapa(string? texto) =>
