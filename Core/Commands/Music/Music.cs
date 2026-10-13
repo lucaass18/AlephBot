@@ -319,14 +319,27 @@ internal static class Music
         Base(Denia.MúsicaTítuloNaFila, faixa, quemPediu, Denia.MúsicaEntrouNaFila())
             .ComCampo(Denia.MúsicaCampoPosição, $"#{posição}", inline: true);
 
+    /// <summary>
+    /// A playlist inteira num embed só. <paramref name="começouAgora"/> diz se a primeira
+    /// faixa já saiu tocando ou se ela vai esperar a vez — a linha que nomeia ela muda de
+    /// rótulo por causa disso, porque "Agora" numa faixa que não está tocando mente.
+    /// </summary>
     internal static EmbedProperties EmbedPlaylist(
-        string nome, IReadOnlyList<LavalinkTrack> faixas, string? quemPediu)
+        string nome, IReadOnlyList<LavalinkTrack> faixas, string? quemPediu, bool começouAgora)
     {
+        var descrição = new StringBuilder(Denia.MúsicaPlaylistEntrou(faixas.Count));
+
+        if (faixas.Count > 0)
+        {
+            var rótulo = começouAgora ? Denia.MúsicaCampoAgora : Denia.MúsicaPlaylistComeçaPor;
+            descrição.Append('\n').Append(rótulo).Append(": ").Append(Link(faixas[0]));
+        }
+
         var embed = new EmbedProperties
         {
             Author = new EmbedAuthorProperties { Name = Denia.MúsicaTítuloPlaylist },
             Title = Título(nome),
-            Description = Denia.MúsicaPlaylistEntrou(faixas.Count),
+            Description = descrição.ToString(),
             Color = new Color(Roxo),
             Fields =
             [

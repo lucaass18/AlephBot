@@ -256,6 +256,9 @@ public static class Denia
     public const string MúsicaCampoRepetição = "🔁 Repetição";
     public const string MúsicaCampoAgora = "▶️ Agora";
     public const string MúsicaCampoASeguir = "⏭️ A seguir";
+
+    /// <summary>A primeira da playlist quando ela entra atrás de uma fila que já existe.</summary>
+    public const string MúsicaPlaylistComeçaPor = "⏭️ Começa por";
     public const string MúsicaCampoTotal = "🧮 No total";
 
     /// <summary>Faixa sem fim: não tem barra de progresso nem duração pra mostrar.</summary>
