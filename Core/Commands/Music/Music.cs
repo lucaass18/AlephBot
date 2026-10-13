@@ -297,8 +297,23 @@ internal static class Music
 
     // ---- embeds --------------------------------------------------------------
 
-    internal static EmbedProperties EmbedTocando(LavalinkTrack faixa, string? quemPediu) =>
-        Base(Denia.MúsicaTítuloTocando, faixa, quemPediu, Denia.MúsicaComeçou());
+    /// <summary>
+    /// O anúncio da faixa que começou. Com fila atrás dela, a próxima entra numa linha
+    /// embaixo — quem está ouvindo quer saber o que vem, e o espaço já estava lá.
+    /// </summary>
+    internal static EmbedProperties EmbedTocando(
+        LavalinkTrack faixa, string? quemPediu, LavalinkTrack? próxima = null)
+    {
+        var descrição = próxima is null
+            ? Denia.MúsicaComeçou()
+            : $"{Denia.MúsicaComeçou()}\n{Denia.MúsicaCampoASeguir}: {Link(próxima)}";
+
+        return Base(Denia.MúsicaTítuloTocando, faixa, quemPediu, descrição);
+    }
+
+    /// <summary>A primeira da fila, ou null quando a faixa de agora é a última.</summary>
+    internal static LavalinkTrack? Próxima(AlephPlayer player) =>
+        player.Queue.Count > 0 ? player.Queue[0].Track : null;
 
     internal static EmbedProperties EmbedNaFila(LavalinkTrack faixa, int posição, string? quemPediu) =>
         Base(Denia.MúsicaTítuloNaFila, faixa, quemPediu, Denia.MúsicaEntrouNaFila())
@@ -322,11 +337,12 @@ internal static class Music
                     Inline = true,
                 },
             ],
-            Timestamp = DateTimeOffset.UtcNow,
         };
 
+        // miniatura, não capa grande: logo abaixo vem o "tocando agora" com a mesma arte,
+        // e dois blocos iguais seguidos empurram o resto do canal pra fora da tela
         if (faixas.Count > 0 && faixas[0].ArtworkUri is { } capa)
-            embed.Image = new EmbedImageProperties(capa.ToString());
+            embed.Thumbnail = new EmbedThumbnailProperties(capa.ToString());
 
         return embed.ComRodapé(quemPediu, faixas.Count > 0 ? faixas[0].SourceName : null);
     }
@@ -352,7 +368,6 @@ internal static class Music
             Url = faixa.Uri?.ToString(),
             Description = texto.ToString(),
             Color = new Color(Roxo),
-            Timestamp = DateTimeOffset.UtcNow,
         };
 
         if (faixa.ArtworkUri is { } capa)
@@ -385,7 +400,6 @@ internal static class Music
                 new EmbedFieldProperties { Name = Denia.MúsicaCampoArtista, Value = Escapa(faixa.Author), Inline = true },
                 new EmbedFieldProperties { Name = Denia.MúsicaCampoDuração, Value = $"`{DuraçãoDe(faixa)}`", Inline = true },
             ],
-            Timestamp = DateTimeOffset.UtcNow,
         };
 
         // a repetição só ocupa um campo quando está ligada; desligada ela não diz nada
@@ -450,7 +464,6 @@ internal static class Music
                 },
             ],
             Footer = new EmbedFooterProperties { Text = Denia.Assinatura },
-            Timestamp = DateTimeOffset.UtcNow,
         };
     }
 
@@ -482,7 +495,6 @@ internal static class Music
                 new EmbedFieldProperties { Name = Denia.MúsicaCampoArtista, Value = Escapa(faixa.Author), Inline = true },
                 new EmbedFieldProperties { Name = Denia.MúsicaCampoDuração, Value = $"`{DuraçãoDe(faixa)}`", Inline = true },
             ],
-            Timestamp = DateTimeOffset.UtcNow,
         };
 
         if (faixa.ArtworkUri is { } capa)

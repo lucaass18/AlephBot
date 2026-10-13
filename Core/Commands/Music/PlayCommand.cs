@@ -103,7 +103,7 @@ internal static class Play
         var posição = await player.PlayAsync(item, enqueue: true, cancellationToken: cancellationToken);
 
         if (posição == 0)
-            return Music.Resposta.Ok(Music.EmbedTocando(faixa, quemPediu));
+            return Music.Resposta.Ok(Music.EmbedTocando(faixa, quemPediu, Music.Próxima(player)));
 
         // entrou na fila e não começou: quem anuncia, quando chegar a vez dela, é o player
         item.JáAnunciada = false;
