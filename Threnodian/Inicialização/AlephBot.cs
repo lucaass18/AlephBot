@@ -44,7 +44,7 @@ using NetCord.Services.Commands;
 using NLog.Extensions.Logging;
 
 
-namespace AlephBot.Threnodian;
+namespace AlephBot.Threnodian.Inicialização;
 
 public sealed class AlephBot
 {
