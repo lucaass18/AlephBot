@@ -327,7 +327,7 @@ internal static class Music
         };
 
         if (faixas.Count > 0 && faixas[0].ArtworkUri is { } capa)
-            embed.Thumbnail = new EmbedThumbnailProperties(capa.ToString());
+            embed.Image = new EmbedImageProperties(capa.ToString());
 
         return quemPediu is null ? embed : embed.ComRodapé(quemPediu);
     }
@@ -355,7 +355,7 @@ internal static class Music
         };
 
         if (faixa.ArtworkUri is { } capa)
-            embed.Thumbnail = new EmbedThumbnailProperties(capa.ToString());
+            embed.Image = new EmbedImageProperties(capa.ToString());
 
         return embed;
     }
@@ -384,7 +384,7 @@ internal static class Music
         };
 
         if (faixa.ArtworkUri is { } capa)
-            embed.Thumbnail = new EmbedThumbnailProperties(capa.ToString());
+            embed.Image = new EmbedImageProperties(capa.ToString());
 
         return QuemPediu(player.CurrentItem) is { } quem ? embed.ComRodapé(quem) : embed;
     }
@@ -470,7 +470,7 @@ internal static class Music
         };
 
         if (faixa.ArtworkUri is { } capa)
-            embed.Thumbnail = new EmbedThumbnailProperties(capa.ToString());
+            embed.Image = new EmbedImageProperties(capa.ToString());
 
         if (!string.IsNullOrWhiteSpace(faixa.SourceName))
             embed.Fields = [.. embed.Fields!, new EmbedFieldProperties { Name = Denia.MúsicaCampoFonte, Value = faixa.SourceName, Inline = true }];
