@@ -113,7 +113,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- tudo num JSON só: duas tabelas em dois nós fariam o segundo rodar uma vez\n-- por linha do primeiro, e o backup sairia repetido\nSELECT json_build_object(\n  'config', (SELECT coalesce(json_agg(c ORDER BY c.guild_id), '[]'::json)\n             FROM aleph.config_do_servidor c),\n  'historico', (SELECT coalesce(json_agg(h ORDER BY h.coletado_em), '[]'::json)\n                FROM aleph.stats_historico h)\n) AS banco;",
+        "query": "-- tudo num JSON só: duas tabelas em dois nós fariam o segundo rodar uma vez\n-- por linha do primeiro, e o backup sairia repetido\nSELECT json_build_object(\n  'config', (SELECT coalesce(json_agg(c ORDER BY c.guild_id), '[]'::json)\n             FROM aleph.config_do_servidor c),\n  'historico', (SELECT coalesce(json_agg(h ORDER BY h.coletado_em), '[]'::json)\n                FROM stats.stats_historico h)\n) AS banco;",
         "options": {}
       },
       "id": "b1a70001-0000-4000-8000-000000000001",

@@ -3,13 +3,27 @@ using Microsoft.EntityFrameworkCore;
 namespace AlephBot.Threnodian.Dados;
 
 /// <summary>
-/// O banco do bot. Mora no schema <c>aleph</c>, do qual ele é dono: o n8n escreve no schema
-/// dele e aqui só lê. Dois serviços escrevendo na mesma linha é briga que ninguém ganha, e
-/// separar por schema deixa claro de quem é cada tabela sem precisar combinar nada.
+/// O banco do bot, dividido por assunto: cada parte dele mora num schema seu, e o n8n tem
+/// o dele, onde o bot só lê. Dois serviços escrevendo na mesma linha é briga que ninguém
+/// ganha, e separar deixa claro de quem é cada tabela sem precisar combinar nada.
+///
+/// A divisão por assunto é pelo mesmo motivo: o cache de anime e mangá não tem nada a ver
+/// com a configuração do servidor, e misturar os dois só dificulta olhar o banco, dar
+/// permissão a um pedaço ou levar um deles embora um dia.
 /// </summary>
 public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(options)
 {
+    /// <summary>O bot em si: o que cada servidor escolheu.</summary>
     public const string Schema = "aleph";
+
+    /// <summary>A telemetria que o painel lê — cresce sozinha e não se mistura ao resto.</summary>
+    public const string SchemaDeStats = "stats";
+
+    /// <summary>As playlists guardadas.</summary>
+    public const string SchemaDeMusica = "musica";
+
+    /// <summary>O cache do /ma: fichas de anime e mangá, personagens e buscas.</summary>
+    public const string SchemaDeObras = "obras";
 
     /// <summary>Onde o n8n guarda o que é dele. O bot não cria nem mexe em nada aqui.</summary>
     public const string SchemaDoN8n = "n8n";
@@ -26,11 +40,12 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
     protected override void OnModelCreating(ModelBuilder modelo)
     {
+        // o padrão é o do bot; quem é de outro assunto diz o seu logo abaixo
         modelo.HasDefaultSchema(Schema);
 
         modelo.Entity<ObraGuardada>(obra =>
         {
-            obra.ToTable("obra");
+            obra.ToTable("obra", SchemaDeObras);
             obra.HasKey(o => o.Id);
 
             obra.Property(o => o.Id).HasColumnName("id");
@@ -78,7 +93,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
         modelo.Entity<PersonagemGuardado>(personagem =>
         {
-            personagem.ToTable("obra_personagem");
+            personagem.ToTable("obra_personagem", SchemaDeObras);
             personagem.HasKey(p => p.Id);
 
             personagem.Property(p => p.Id).HasColumnName("id");
@@ -93,7 +108,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
         modelo.Entity<BuscaGuardada>(busca =>
         {
-            busca.ToTable("obra_busca");
+            busca.ToTable("obra_busca", SchemaDeObras);
             busca.HasKey(b => b.Id);
 
             busca.Property(b => b.Id).HasColumnName("id");
@@ -115,7 +130,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
         modelo.Entity<PlaylistSalva>(playlist =>
         {
-            playlist.ToTable("playlist");
+            playlist.ToTable("playlist", SchemaDeMusica);
             playlist.HasKey(p => p.Id);
 
             playlist.Property(p => p.Id).HasColumnName("id");
@@ -139,7 +154,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
         modelo.Entity<FaixaDaPlaylist>(faixa =>
         {
-            faixa.ToTable("playlist_faixa");
+            faixa.ToTable("playlist_faixa", SchemaDeMusica);
             faixa.HasKey(f => f.Id);
 
             faixa.Property(f => f.Id).HasColumnName("id");
@@ -155,7 +170,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
         modelo.Entity<ColetaDeStats>(coleta =>
         {
-            coleta.ToTable("stats_historico");
+            coleta.ToTable("stats_historico", SchemaDeStats);
             coleta.HasKey(c => c.Id);
 
             coleta.Property(c => c.Id).HasColumnName("id");
