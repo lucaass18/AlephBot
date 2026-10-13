@@ -44,11 +44,12 @@ public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCom
     /// A resposta no formato novo de mensagem (o container com a capa grande). Ele e embed
     /// não convivem na mesma mensagem: a flag troca o conteúdo por componentes.
     /// </summary>
-    protected Task RespondAsync(ComponentContainerProperties cartão) =>
+    protected Task RespondAsync(ComponentContainerProperties cartão, AttachmentProperties? anexo = null) =>
         Context.Interaction.SendResponseAsync(
             InteractionCallback.Message(new InteractionMessageProperties
             {
                 Components = [cartão],
+                Attachments = anexo is null ? null : [anexo],
                 Flags = MessageFlags.IsComponentsV2,
             }));
 

@@ -17,6 +17,7 @@ using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Rest.Entities.Tracks;
 using Lavalink4NET.Tracks;
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using NetCord;
@@ -206,12 +207,12 @@ internal static class Music
         EmbedProperties? Embed,
         string? Erro,
         Func<Task>? Depois = null,
-        ComponentContainerProperties? Cartão = null)
+        Cartão? Cartão = null)
     {
         internal static Resposta Ok(EmbedProperties embed, Func<Task>? depois = null) => new(embed, null, depois);
 
         /// <summary>A resposta que vai no formato novo, com a capa grande dentro do card.</summary>
-        internal static Resposta Ok(ComponentContainerProperties cartão) => new(null, null, null, cartão);
+        internal static Resposta Ok(Cartão cartão) => new(null, null, null, cartão);
 
         internal static Resposta Falha(string erro) => new(null, erro);
     }
@@ -316,9 +317,13 @@ internal static class Music
     /// O anúncio da faixa que começou. Com fila atrás dela, a próxima entra numa linha
     /// embaixo — quem está ouvindo quer saber o que vem, e o espaço já estava lá.
     /// </summary>
-    internal static ComponentContainerProperties CartãoTocando(
-        LavalinkTrack faixa, string? quemPediu, LavalinkTrack? próxima = null) =>
-        CartãoDaFaixa.Tocando(faixa, quemPediu, próxima);
+    internal static Task<Cartão> CartãoTocandoAsync(
+        LavalinkTrack faixa,
+        string? quemPediu,
+        LavalinkTrack? próxima = null,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default) =>
+        CartãoDaFaixa.TocandoAsync(faixa, quemPediu, próxima, logger, cancellationToken);
 
     /// <summary>A primeira da fila, ou null quando a faixa de agora é a última.</summary>
     internal static LavalinkTrack? Próxima(AlephPlayer player) =>
@@ -387,7 +392,7 @@ internal static class Music
     }
 
     /// <summary>O /nowplaying: a mesma faixa do anúncio, com a barra de progresso viva.</summary>
-    internal static ComponentContainerProperties CartãoProgresso(AlephPlayer player, LavalinkTrack faixa)
+    internal static Task<Cartão> CartãoProgressoAsync(AlephPlayer player, LavalinkTrack faixa)
     {
         var posição = player.Position?.Position ?? TimeSpan.Zero;
 
@@ -395,7 +400,7 @@ internal static class Music
             ? Denia.MúsicaAoVivo
             : $"{Barra(posição, faixa.Duration)}\n`{Duração(posição)} / {Duração(faixa.Duration)}`";
 
-        return CartãoDaFaixa.Progresso(player, faixa, progresso);
+        return CartãoDaFaixa.ProgressoAsync(player, faixa, progresso);
     }
 
     internal static EmbedProperties EmbedFila(AlephPlayer player)

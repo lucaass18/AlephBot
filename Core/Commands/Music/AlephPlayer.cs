@@ -95,7 +95,17 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     /// Pede pro yt-audio já preparar a próxima da fila, pra ela começar sem esperar o yt-dlp.
     /// Eu chamo quando uma faixa começa; os comandos, depois de pôr faixa na fila.
     /// </summary>
-    internal void PrepararPróxima() => _youtube?.Preparar(Queue.Peek()?.Track);
+    /// <summary>
+    /// Adianta o que a próxima faixa precisa pra entrar sem buraco: o link do áudio, pelo
+    /// yt-audio, e a capa, que sobe junto do anúncio dela.
+    /// </summary>
+    internal void PrepararPróxima()
+    {
+        var próxima = Queue.Peek()?.Track;
+
+        _youtube?.Preparar(próxima);
+        CapaDaFaixa.Adiantar(próxima, _logger);
+    }
 
     protected override async ValueTask NotifyTrackStartedAsync(
         ITrackQueueItem track, CancellationToken cancellationToken = default)
@@ -114,8 +124,10 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         if (track.Track is not { } faixa)
             return;
 
-        await FalarAsync(
-            Music.CartãoTocando(faixa, Music.QuemPediu(track), Music.Próxima(this)), cancellationToken);
+        var cartão = await Music.CartãoTocandoAsync(
+            faixa, Music.QuemPediu(track), Music.Próxima(this), _logger, cancellationToken);
+
+        await FalarAsync(cartão, cancellationToken);
     }
 
     /// <summary>
@@ -258,9 +270,14 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         FalarAsync(new MessageProperties { Embeds = [embed] }, cancellationToken);
 
     /// <summary>O anúncio no formato novo, com a capa grande dentro do card.</summary>
-    internal ValueTask FalarAsync(ComponentContainerProperties cartão, CancellationToken cancellationToken) =>
+    internal ValueTask FalarAsync(Cartão cartão, CancellationToken cancellationToken) =>
         FalarAsync(
-            new MessageProperties { Components = [cartão], Flags = MessageFlags.IsComponentsV2 },
+            new MessageProperties
+            {
+                Components = [cartão.Container],
+                Attachments = cartão.Anexo is null ? null : [cartão.Anexo],
+                Flags = MessageFlags.IsComponentsV2,
+            },
             cancellationToken);
 
     private async ValueTask FalarAsync(MessageProperties mensagem, CancellationToken cancellationToken)
