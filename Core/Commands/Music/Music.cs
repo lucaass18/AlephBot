@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 
 using AlephBot.Core.Personality;
+using AlephBot.Threnodian.Youtube;
 
 using Lavalink4NET;
 using Lavalink4NET.Clients;
@@ -542,22 +543,24 @@ internal static class Music
             : $"**{Escapa(faixa.Title)}**";
 
     /// <summary>
-    /// O artista, clicável quando dá pra chegar nele. O plugin do YouTube manda só o nome,
-    /// então o link vai pra busca — o canal é quase sempre o primeiro resultado. Fontes que
-    /// mandam o endereço do artista (o LavaSrc faz isso) ganham o link de verdade.
+    /// O artista, clicável quando eu sei o endereço do canal dele. Pro YouTube quem conta é
+    /// o yt-audio, que já tinha perguntado ao yt-dlp na hora de achar o áudio; outras fontes
+    /// mandam isso na própria faixa. Sem endereço, fica o nome puro — link pra busca seria
+    /// prometer o canal e entregar outra coisa.
     /// </summary>
     internal static string Artista(LavalinkTrack faixa)
     {
         var nome = Escapa(faixa.Author);
 
-        if (string.IsNullOrWhiteSpace(faixa.Author))
-            return nome;
-
-        return $"[{nome}]({CanalDoArtista(faixa)})";
+        return CanalDoArtista(faixa) is { } canal ? $"[{nome}]({canal})" : nome;
     }
 
-    private static string CanalDoArtista(LavalinkTrack faixa)
+    private static string? CanalDoArtista(LavalinkTrack faixa)
     {
+        if (faixa is FaixaDoYoutube { Canal: { Length: > 0 } doYoutube })
+            return doYoutube;
+
+        // o LavaSrc (Spotify, Deezer, Apple) manda o artista no pluginInfo da faixa
         if (faixa.AdditionalInformation.TryGetValue("artistUrl", out var valor)
             && valor.ValueKind is JsonValueKind.String
             && valor.GetString() is { Length: > 0 } endereço)
@@ -565,7 +568,7 @@ internal static class Music
             return endereço;
         }
 
-        return $"https://www.youtube.com/results?search_query={Uri.EscapeDataString(faixa.Author!)}";
+        return null;
     }
 
     /// <summary>O <see cref="Markdown.Escapa"/> de quem não tem título: faixa sem nome vira "?".</summary>

@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using AlephBot.Config;
@@ -22,11 +24,21 @@ namespace AlephBot.Threnodian.Youtube;
 /// </summary>
 public sealed partial class YoutubeAudio : IDisposable
 {
+    /// <summary>Quantos canais eu guardo antes de recomeçar a lista.</summary>
+    private const int CanaisGuardados = 500;
+
     /// <summary>
     /// O primeiro pedido de uma música faz o yt-audio rodar o yt-dlp inteiro — o player do
     /// YouTube, o desafio dele no deno, o token. Leva segundos; no boot do contêiner, mais.
     /// </summary>
     private static readonly TimeSpan Espera = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// O canal de quem publicou cada vídeo, pelo id. Quem descobre é o yt-dlp, lá no
+    /// yt-audio, enquanto acha o áudio — então vem de graça junto do /preparar, e fica aqui
+    /// pro embed não ter que perguntar nada ao YouTube na hora de montar a ficha.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, string> _canais = new();
 
     private readonly Uri? _base;
     private readonly Func<string, CancellationToken, ValueTask<LavalinkTrack?>> _carregar;
@@ -114,6 +126,10 @@ public sealed partial class YoutubeAudio : IDisposable
         return faixa.Original;
     }
 
+    /// <summary>O canal de quem publicou, quando o yt-audio já contou qual é.</summary>
+    internal string? CanalDe(string id) =>
+        _canais.TryGetValue(id, out var canal) ? canal : null;
+
     /// <summary>O yt-audio descobre e guarda o link. True quando ele conseguiu.</summary>
     private async Task<bool> PrepararAsync(FaixaDoYoutube faixa, CancellationToken cancellationToken)
     {
@@ -122,7 +138,10 @@ public sealed partial class YoutubeAudio : IDisposable
             using var resposta = await _http.GetAsync(Endereço("preparar", faixa.Identifier), cancellationToken);
 
             if (resposta.IsSuccessStatusCode)
+            {
+                await AnotarCanalAsync(faixa.Identifier, resposta, cancellationToken);
                 return true;
+            }
 
             // o yt-audio responde com o motivo do yt-dlp — "Sign in to confirm you're not a bot"
             var motivo = (await resposta.Content.ReadAsStringAsync(cancellationToken)).Trim();
@@ -137,6 +156,36 @@ public sealed partial class YoutubeAudio : IDisposable
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Guarda o canal que veio na resposta do /preparar. Falha nenhuma daqui atrapalha a
+    /// música: sem o canal, o embed só deixa de pôr o link no nome do artista.
+    /// </summary>
+    private async Task AnotarCanalAsync(string id, HttpResponseMessage resposta, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var corpo = await resposta.Content.ReadAsStringAsync(cancellationToken);
+
+            using var documento = JsonDocument.Parse(corpo);
+
+            if (documento.RootElement.TryGetProperty("canal", out var canal)
+                && canal.ValueKind is JsonValueKind.String
+                && canal.GetString() is { Length: > 0 } endereço)
+            {
+                // o teto evita a memória crescer sozinha num servidor que toca o dia inteiro;
+                // o que cair fora volta no próximo /preparar da mesma faixa
+                if (_canais.Count >= CanaisGuardados)
+                    _canais.Clear();
+
+                _canais[id] = endereço;
+            }
+        }
+        catch (Exception erro) when (erro is JsonException or HttpRequestException)
+        {
+            _logger.LogDebug(erro, "O yt-audio respondeu o /preparar de {Id} sem o canal", id);
+        }
     }
 
     internal Uri Endereço(string rota, string id) => new(_base!, $"{rota}/{id}");
@@ -169,6 +218,12 @@ public sealed record FaixaDoYoutube : LavalinkTrack
 
     /// <summary>A faixa como o plugin entregou: é ela que toca quando o yt-audio falha.</summary>
     public LavalinkTrack Original { get; }
+
+    /// <summary>
+    /// O canal de quem publicou, ou null enquanto o yt-audio ainda não falou dela — é o que
+    /// acontece com uma faixa que entrou na fila e nem foi preparada ainda.
+    /// </summary>
+    public string? Canal => _áudio.CanalDe(Identifier);
 
     public override ValueTask<LavalinkTrack> GetPlayableTrackAsync(CancellationToken cancellationToken = default) =>
         _áudio.TocávelAsync(this, cancellationToken);

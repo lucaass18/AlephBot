@@ -3,6 +3,7 @@ As rotas do yt-audio com o yt-dlp e o YouTube de mentira: confere o HTTP que o L
 recebe — o arquivo inteiro, o pedaço do /seek, o link renovado e as recusas.
 """
 
+import json
 import threading
 import time
 import unittest
@@ -43,7 +44,8 @@ def _resolvido(vid):
         formato='251',
         tamanho=len(DADOS),
         tipo='audio/webm',
-        validade=time.time() + 3600)
+        validade=time.time() + 3600,
+        canal='https://www.youtube.com/@canal')
 
 
 class RotasTest(unittest.TestCase):
@@ -102,7 +104,10 @@ class RotasTest(unittest.TestCase):
         self.assertEqual(cabeçalhos['Content-Range'], f'bytes */{len(DADOS)}')
 
     def test_preparar_guarda_o_link(self):
-        self.assertEqual(self.pedir(f'/preparar/{ID}')[0], 204)
+        status, _, corpo = self.pedir(f'/preparar/{ID}')
+
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(corpo), {'canal': 'https://www.youtube.com/@canal'})
         self.assertEqual(self.pedir(f'/v/{ID}')[0], 200)
         self.assertEqual(self.resolver.call_count, 1)
 
