@@ -116,7 +116,10 @@ services:
       # trocar a senha é mexer num lugar só (o .env da raiz)
       LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-youshallnotpass}
       TZ: America/Sao_Paulo
-      # decodificar áudio é o trabalho dele; o resto do limite fica pro heap nativo.
+      # decodificar áudio é o trabalho dele; o resto do limite fica pro heap nativo. O heap
+      # subiu de 700m depois de engasgadas: com buffer maior tem mais áudio decodificado na
+      # memória, e heap apertado faz o coletor rodar no meio da música. O limite do contêiner
+      # tem que ficar acima do heap — o JDA-NAS usa memória fora dele pra montar os pacotes.
       #
       # As -Dsocks* mandam as conexões dele pra internet pelo WARP (o serviço warp, abaixo):
       # é por onde o plugin do YouTube busca as músicas e lê os dados delas, e por onde ele
@@ -124,7 +127,7 @@ services:
       # httpConfig do Lavalink só vale pra links HTTP diretos, então quem desvia é o próprio
       # Java. Os vizinhos de rede ficam de fora: o yt-cipher e o yt-audio, que é de onde vem
       # o áudio do YouTube. A voz do Discord nem passa por aqui (é UDP)
-      _JAVA_OPTIONS: "-Xmx700m -DsocksProxyHost=warp -DsocksProxyPort=9091 -DsocksNonProxyHosts=yt-cipher|yt-audio|localhost|127.*"
+      _JAVA_OPTIONS: "-Xmx1g -DsocksProxyHost=warp -DsocksProxyPort=9091 -DsocksNonProxyHosts=yt-cipher|yt-audio|localhost|127.*"
 
       # o token do YouTube não entra aqui: quem entrega é o bot, a cada conexão, pela
       # REST do plugin — assim um token invalidado não derruba o Lavalink no boot. Com o
@@ -161,10 +164,14 @@ services:
         max-size: "10m"
         max-file: "3"
 
+    # 1,5 G pro heap de 1 G caber com a memória de fora dele. Limite não é reserva: isto
+    # só é ocupado se ele precisar. Mas a soma dos limites já passa dos 3,8 G da VPS, e
+    # sem swap quem estoura é morto pelo cgroup — vale olhar o `docker stats` de vez em
+    # quando, e ligar um swapfile se algum serviço começar a morrer
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 1536M
 
   # Decifra as assinaturas do player do YouTube pro plugin do Lavalink.
   #

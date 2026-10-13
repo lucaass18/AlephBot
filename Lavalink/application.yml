@@ -45,8 +45,15 @@ lavalink:
       channelMix: false
       lowPass: false
 
-    bufferDurationMs: 400
-    frameBufferDurationMs: 5000
+    # O áudio não vem do disco: vem do googlevideo, pelo WARP, pelo yt-audio. Qualquer
+    # soluço nesse caminho — e tem três saltos nele — esvazia o buffer, e buffer vazio é a
+    # engasgada que se ouve. Os 400 ms de fábrica supõem uma fonte perto e estável.
+    #
+    # 1000 ms é a folga de leitura; 12 s é quanto de áudio já decodificado fica esperando a
+    # vez de ser enviado. O preço dos dois é alguns MB por player e um atraso de cerca de um
+    # segundo pra um /seek ou /skip esvaziar o que já estava pronto.
+    bufferDurationMs: 1000
+    frameBufferDurationMs: 12000
     opusEncodingQuality: 10
     resamplingQuality: LOW
     trackStuckThresholdMs: 10000
