@@ -41,13 +41,22 @@ public abstract class MusicSlashModule : AlephSlashModule
 
         var resposta = await ação(player!);
 
+        if (resposta.Erro is { } falha)
+        {
+            await ErrorAsync(falha);
+        }
+        else
+        {
+            await RespondAsync(resposta.Embed!);
+
+            // o que ficou pro depois roda com a resposta já publicada: é assim que o "Pulei"
+            // chega antes do "tocando agora" da faixa que o próprio pulo começou
+            if (resposta.Depois is { } depois)
+                await depois();
+        }
+
         // a ação pode ter mexido em fila, pausa, volume ou loop: a foto é o que sobrevive a restart
         player!.Fotografar();
-
-        if (resposta.Erro is { } falha)
-            await ErrorAsync(falha);
-        else
-            await RespondAsync(resposta.Embed!);
     }
 }
 
@@ -82,11 +91,18 @@ public abstract class MusicTextModule : AlephTextModule
 
         var resposta = await ação(player!);
 
-        player!.Fotografar();
-
         if (resposta.Erro is { } falha)
+        {
             await ErrorAsync(falha);
+        }
         else
+        {
             await ReplyAsync(resposta.Embed!);
+
+            if (resposta.Depois is { } depois)
+                await depois();
+        }
+
+        player!.Fotografar();
     }
 }

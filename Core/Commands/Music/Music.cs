@@ -196,9 +196,15 @@ internal static class Music
         || (ex.InnerException is { } dentro && ÉServidorFora(dentro));
 
     /// <summary>O que um comando de música devolve: o embed pronto, ou a recusa em texto.</summary>
-    internal readonly record struct Resposta(EmbedProperties? Embed, string? Erro)
+    /// <summary>
+    /// O que o comando respondeu e, quando tem, o que ainda falta fazer. O <c>Depois</c>
+    /// existe pra uma coisa só: ação que faz o player anunciar sozinho — pular é o caso —
+    /// precisa rodar com a resposta já no canal, senão o anúncio da faixa seguinte sai
+    /// primeiro e o "Pulei" aparece embaixo dele.
+    /// </summary>
+    internal readonly record struct Resposta(EmbedProperties? Embed, string? Erro, Func<Task>? Depois = null)
     {
-        internal static Resposta Ok(EmbedProperties embed) => new(embed, null);
+        internal static Resposta Ok(EmbedProperties embed, Func<Task>? depois = null) => new(embed, null, depois);
 
         internal static Resposta Falha(string erro) => new(null, erro);
     }

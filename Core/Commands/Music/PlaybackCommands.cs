@@ -14,16 +14,21 @@ namespace AlephBot.Core.Commands.Music;
 /// </summary>
 internal static class Playback
 {
-    internal static async Task<Music.Resposta> PularAsync(AlephPlayer player)
+    /// <summary>
+    /// Pular é a única ação que faz o player falar por conta própria: a faixa seguinte
+    /// começa e ele anuncia. Por isso o pulo em si fica pro <c>Depois</c> — sem isso ele
+    /// ganhava a corrida e o "Pulei" aparecia embaixo do "tocando agora".
+    /// </summary>
+    internal static Task<Music.Resposta> PularAsync(AlephPlayer player)
     {
         if (player.CurrentTrack is not { } atual)
-            return Music.Resposta.Falha(Denia.MúsicaNãoEstouTocando());
+            return Task.FromResult(Music.Resposta.Falha(Denia.MúsicaNãoEstouTocando()));
 
         var temPróxima = player.Queue.Count > 0;
 
-        await player.SkipAsync();
+        var aviso = Music.Aviso($"⏭️ {Denia.MúsicaPulou(Music.Escapa(atual.Title), temPróxima)}");
 
-        return Music.Resposta.Ok(Music.Aviso($"⏭️ {Denia.MúsicaPulou(Music.Escapa(atual.Title), temPróxima)}"));
+        return Task.FromResult(Music.Resposta.Ok(aviso, depois: () => player.SkipAsync().AsTask()));
     }
 
     /// <summary>Para e esvazia a fila, mas continua no canal — quem me tira é o /disconnect.</summary>

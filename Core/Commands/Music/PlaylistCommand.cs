@@ -150,6 +150,11 @@ public sealed class PlaylistCommand : MusicSlashModule
         }
 
         await EditarRespostaAsync(PlaylistGuardada.Enfileirou(playlist, quantas));
+
+        // só agora: o anúncio da primeira faixa vem do player, e com ele antes da resposta
+        // o canal mostrava o "tocando agora" em cima do aviso da playlist
+        await PlaylistGuardada.ComeçarAsync(player!);
+        player.Fotografar();
     }
 
     [RequireContext<ApplicationCommandContext>(RequiredContext.Guild)]

@@ -85,12 +85,16 @@ internal static class PlaylistGuardada
 
         await player.Queue.AddRangeAsync(itens);
 
-        // com o player parado, a primeira só começa se alguém mandar
-        if (player.CurrentTrack is null)
-            await player.SkipAsync();
-
         return itens.Count;
     }
+
+    /// <summary>
+    /// Com o player parado, a primeira faixa só começa se alguém mandar. Isto fica separado
+    /// do enfileirar de propósito: quem chama roda depois de responder, senão o "tocando
+    /// agora" da primeira sai antes do aviso da playlist e a ordem no canal fica ao contrário.
+    /// </summary>
+    internal static ValueTask ComeçarAsync(AlephPlayer player) =>
+        player.CurrentTrack is null ? player.SkipAsync() : ValueTask.CompletedTask;
 
     // ---- o que a pessoa vê ----------------------------------------------------
 
