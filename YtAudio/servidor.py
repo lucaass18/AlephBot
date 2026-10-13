@@ -13,6 +13,7 @@ Rotas:
 """
 
 import copy
+import json
 import logging
 import os
 import threading
@@ -62,6 +63,7 @@ class Áudio:
     tamanho: int
     tipo: str
     validade: float
+    canal: str | None = None
 
 
 class Recusa(Exception):
@@ -171,6 +173,7 @@ def _resolver(vid: str) -> Áudio:
         tamanho=tamanho,
         tipo=regras.tipo(info),
         validade=regras.validade(info['url'], time.time()),
+        canal=regras.canal(info),
     )
 
     log.info('%s: formato %s (%s, %.1f MB) em %.1f s',
@@ -247,9 +250,9 @@ class Rotas(BaseHTTPRequestHandler):
             return self._texto(502, str(erro), corpo)
 
         if rota == 'preparar':
-            self.send_response(204)
-            self.end_headers()
-            return
+            # o bot aproveita a resposta pra saber o canal de quem publicou: o yt-dlp já
+            # trouxe isso aqui, e pedir de novo lá seria outra ida ao YouTube
+            return self._json(200, {'canal': atual.canal}, corpo)
 
         self._entregar(vid, atual, corpo)
 
@@ -318,10 +321,15 @@ class Rotas(BaseHTTPRequestHandler):
         if recebido != esperado:
             raise IOError(f'o YouTube mandou {recebido} de {esperado} bytes')
 
+    def _json(self, status: int, dados: dict, corpo: bool):
+        self._corpo(status, json.dumps(dados).encode(), 'application/json', corpo)
+
     def _texto(self, status: int, texto: str, corpo: bool):
-        dados = (texto + '\n').encode()
+        self._corpo(status, (texto + '\n').encode(), 'text/plain; charset=utf-8', corpo)
+
+    def _corpo(self, status: int, dados: bytes, tipo: str, corpo: bool):
         self.send_response(status)
-        self.send_header('Content-Type', 'text/plain; charset=utf-8')
+        self.send_header('Content-Type', tipo)
         self.send_header('Content-Length', str(len(dados)))
         self.end_headers()
 

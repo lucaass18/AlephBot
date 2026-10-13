@@ -126,3 +126,17 @@ def tipo(formato: dict) -> str:
     """O Content-Type do áudio. O Lavalink descobre o formato lendo o começo do arquivo;
     isto é só a dica certa pra ele."""
     return TIPOS.get(formato.get('ext') or '', 'application/octet-stream')
+
+
+def canal(info: dict) -> str | None:
+    """
+    O endereço do canal de quem publicou. O uploader_url é o do @handle, mais apresentável
+    que o /channel/UC...; nem todo vídeo traz os dois, e alguns não trazem nenhum.
+    """
+    for chave in ('uploader_url', 'channel_url'):
+        valor = info.get(chave)
+
+        if isinstance(valor, str) and valor.startswith('https://'):
+            return valor
+
+    return None

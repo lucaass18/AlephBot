@@ -100,3 +100,21 @@ class TipoTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class CanalTest(unittest.TestCase):
+    def test_prefere_o_handle(self):
+        info = {'uploader_url': 'https://www.youtube.com/@canal',
+                'channel_url': 'https://www.youtube.com/channel/UC123'}
+
+        self.assertEqual(regras.canal(info), 'https://www.youtube.com/@canal')
+
+    def test_cai_no_channel_url(self):
+        info = {'channel_url': 'https://www.youtube.com/channel/UC123'}
+
+        self.assertEqual(regras.canal(info), 'https://www.youtube.com/channel/UC123')
+
+    def test_sem_canal(self):
+        self.assertIsNone(regras.canal({}))
+        self.assertIsNone(regras.canal({'uploader_url': None}))
+        self.assertIsNone(regras.canal({'uploader_url': 'javascript:alert(1)'}))
