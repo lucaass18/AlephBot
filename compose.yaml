@@ -165,9 +165,9 @@ services:
         max-file: "3"
 
     # 1,5 G pro heap de 1 G caber com a memória de fora dele. Limite não é reserva: isto
-    # só é ocupado se ele precisar. Mas a soma dos limites já passa dos 3,8 G da VPS, e
-    # sem swap quem estoura é morto pelo cgroup — vale olhar o `docker stats` de vez em
-    # quando, e ligar um swapfile se algum serviço começar a morrer
+    # só é ocupado se ele precisar. A soma dos limites passa dos 3,8 G da VPS, e o que
+    # segura um pico simultâneo é o swapfile de 2 G (13/10/2026, com vm.swappiness=10 pra
+    # ele só entrar quando apertar: página de heap no disco vira engasgada na música)
     deploy:
       resources:
         limits:
@@ -410,8 +410,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env da raiz}
       TZ: America/Sao_Paulo
 
-    # a VPS tem 3,8 GB e sete contêineres, sem swap, e o n8n já foi morto pelo cgroup uma
-    # vez. O padrão do Postgres é generoso demais pra cá: o bot faz poucas consultas, e
+    # a VPS tem 3,8 GB e sete contêineres, e o n8n já foi morto pelo cgroup uma vez — hoje
+    # tem swapfile de 2 G, que amortece o pico mas não cria memória. O padrão do Postgres
+    # é generoso demais pra cá: o bot faz poucas consultas, e
     # uma por vez. shared_buffers em 64 MB cabe no limite de 384 e sobra pro resto
     command: >
       postgres
