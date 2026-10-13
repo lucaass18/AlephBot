@@ -335,27 +335,15 @@ internal static class Music
             descrição.Append('\n').Append(rótulo).Append(": ").Append(Link(faixas[0]));
         }
 
+        // sem capa e sem campo de duração: este embed só apresenta a playlist, e logo
+        // abaixo vem o "tocando agora", que já traz arte, artista e duração da faixa
         var embed = new EmbedProperties
         {
             Author = new EmbedAuthorProperties { Name = Denia.MúsicaTítuloPlaylist },
             Title = Título(nome),
             Description = descrição.ToString(),
             Color = new Color(Roxo),
-            Fields =
-            [
-                new EmbedFieldProperties
-                {
-                    Name = Denia.MúsicaCampoDuração,
-                    Value = $"`{Duração(Soma(faixas))}`",
-                    Inline = true,
-                },
-            ],
         };
-
-        // miniatura, não capa grande: logo abaixo vem o "tocando agora" com a mesma arte,
-        // e dois blocos iguais seguidos empurram o resto do canal pra fora da tela
-        if (faixas.Count > 0 && faixas[0].ArtworkUri is { } capa)
-            embed.Thumbnail = new EmbedThumbnailProperties(capa.ToString());
 
         return embed.ComRodapé(quemPediu, faixas.Count > 0 ? faixas[0].SourceName : null);
     }
