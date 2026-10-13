@@ -32,7 +32,7 @@ internal static class Fila
 
     internal static Task<Music.Resposta> AgoraAsync(AlephPlayer player) =>
         Task.FromResult(player.CurrentTrack is { } faixa
-            ? Music.Resposta.Ok(Music.EmbedProgresso(player, faixa), capaDe: faixa)
+            ? Music.Resposta.Ok(Music.CartãoProgresso(player, faixa))
             : Music.Resposta.Falha(Denia.MúsicaNãoEstouTocando()));
 
     internal static async Task<Music.Resposta> EmbaralharAsync(AlephPlayer player)
