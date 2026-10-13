@@ -30,10 +30,10 @@ internal static class Fila
             ? Music.Resposta.Falha(Denia.MúsicaFilaVazia())
             : Music.Resposta.Ok(Music.EmbedFila(player)));
 
-    internal static Task<Music.Resposta> AgoraAsync(AlephPlayer player) =>
-        Task.FromResult(player.CurrentTrack is { } faixa
-            ? Music.Resposta.Ok(Music.CartãoProgresso(player, faixa))
-            : Music.Resposta.Falha(Denia.MúsicaNãoEstouTocando()));
+    internal static async Task<Music.Resposta> AgoraAsync(AlephPlayer player) =>
+        player.CurrentTrack is { } faixa
+            ? Music.Resposta.Ok(await Music.CartãoProgressoAsync(player, faixa))
+            : Music.Resposta.Falha(Denia.MúsicaNãoEstouTocando());
 
     internal static async Task<Music.Resposta> EmbaralharAsync(AlephPlayer player)
     {

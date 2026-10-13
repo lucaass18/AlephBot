@@ -47,7 +47,7 @@ public abstract class MusicSlashModule : AlephSlashModule
         }
         else if (resposta.Cartão is { } cartão)
         {
-            await RespondAsync(cartão);
+            await RespondAsync(cartão.Container, cartão.Anexo);
         }
         else
         {
@@ -101,7 +101,7 @@ public abstract class MusicTextModule : AlephTextModule
         }
         else if (resposta.Cartão is { } cartão)
         {
-            await ReplyAsync(cartão);
+            await ReplyAsync(cartão.Container, cartão.Anexo);
         }
         else
         {

@@ -23,10 +23,11 @@ public abstract class AlephTextModule : CommandModule<CommandContext>, ICommand
         Context.Message.ReplyAsync(new ReplyMessageProperties { Embeds = [embed] });
 
     /// <summary>A resposta no formato novo. Ver o módulo de barra.</summary>
-    protected Task<RestMessage> ReplyAsync(ComponentContainerProperties cartão) =>
+    protected Task<RestMessage> ReplyAsync(ComponentContainerProperties cartão, AttachmentProperties? anexo = null) =>
         Context.Message.ReplyAsync(new ReplyMessageProperties
         {
             Components = [cartão],
+            Attachments = anexo is null ? null : [anexo],
             Flags = MessageFlags.IsComponentsV2,
         });
 
