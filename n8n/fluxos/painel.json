@@ -78,7 +78,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- as colunas têm os mesmos nomes da tabela antiga do n8n, então a página não muda\nSELECT coletado_em, servidores, membros, online, comandos,\n       players, tocando, pausados, na_fila, memoria_mb, heap_mb\nFROM aleph.stats_historico\nORDER BY coletado_em DESC\nLIMIT 672;  -- 7 dias a cada 15 min",
+        "query": "-- as colunas têm os mesmos nomes da tabela antiga do n8n, então a página não muda\nSELECT coletado_em, servidores, membros, online, comandos,\n       players, tocando, pausados, na_fila, memoria_mb, heap_mb\nFROM stats.stats_historico\nORDER BY coletado_em DESC\nLIMIT 672;  -- 7 dias a cada 15 min",
         "options": {}
       },
       "id": "2dbb2bad-2020-4e5d-8308-fd0ad1190929",

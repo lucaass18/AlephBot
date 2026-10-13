@@ -59,7 +59,7 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                         .IsUnique()
                         .HasDatabaseName("ix_obra_busca_termo_tipo");
 
-                    b.ToTable("obra_busca", "aleph");
+                    b.ToTable("obra_busca", "obras");
                 });
 
             modelBuilder.Entity("AlephBot.Threnodian.Dados.ColetaDeStats", b =>
@@ -120,7 +120,7 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                     b.HasIndex("ColetadoEm")
                         .HasDatabaseName("ix_stats_historico_coletado_em");
 
-                    b.ToTable("stats_historico", "aleph");
+                    b.ToTable("stats_historico", "stats");
                 });
 
             modelBuilder.Entity("AlephBot.Threnodian.Dados.ConfigDoServidor", b =>
@@ -191,7 +191,7 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                     b.HasIndex("PlaylistId", "Ordem")
                         .HasDatabaseName("ix_playlist_faixa_ordem");
 
-                    b.ToTable("playlist_faixa", "aleph");
+                    b.ToTable("playlist_faixa", "musica");
                 });
 
             modelBuilder.Entity("AlephBot.Threnodian.Dados.ObraGuardada", b =>
@@ -329,7 +329,7 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                         .IsUnique()
                         .HasDatabaseName("ix_obra_fonte_tipo_id");
 
-                    b.ToTable("obra", "aleph");
+                    b.ToTable("obra", "obras");
                 });
 
             modelBuilder.Entity("AlephBot.Threnodian.Dados.PersonagemGuardado", b =>
@@ -375,7 +375,7 @@ namespace AlephBot.Threnodian.Dados.Migracoes
 
                     b.HasIndex("ObraId");
 
-                    b.ToTable("obra_personagem", "aleph");
+                    b.ToTable("obra_personagem", "obras");
                 });
 
             modelBuilder.Entity("AlephBot.Threnodian.Dados.PlaylistSalva", b =>
@@ -411,7 +411,7 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                         .IsUnique()
                         .HasDatabaseName("ix_playlist_guild_nome");
 
-                    b.ToTable("playlist", "aleph");
+                    b.ToTable("playlist", "musica");
                 });
 
             modelBuilder.Entity("AlephBot.Threnodian.Dados.BuscaGuardada", b =>
