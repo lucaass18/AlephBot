@@ -9,7 +9,8 @@ namespace AlephBot.Threnodian.Dados;
 ///
 /// A divisão por assunto é pelo mesmo motivo: o cache de anime e mangá não tem nada a ver
 /// com a configuração do servidor, e misturar os dois só dificulta olhar o banco, dar
-/// permissão a um pedaço ou levar um deles embora um dia.
+/// permissão a um pedaço ou levar um deles embora um dia. Música fica no <c>aleph</c>: ela
+/// é do bot como a configuração é, e não um acervo à parte como as obras.
 /// </summary>
 public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(options)
 {
@@ -18,9 +19,6 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
     /// <summary>A telemetria que o painel lê — cresce sozinha e não se mistura ao resto.</summary>
     public const string SchemaDeStats = "stats";
-
-    /// <summary>As playlists guardadas.</summary>
-    public const string SchemaDeMusica = "musica";
 
     /// <summary>O cache do /ma: fichas de anime e mangá, personagens e buscas.</summary>
     public const string SchemaDeObras = "obras";
@@ -130,7 +128,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
         modelo.Entity<PlaylistSalva>(playlist =>
         {
-            playlist.ToTable("playlist", SchemaDeMusica);
+            playlist.ToTable("playlist");
             playlist.HasKey(p => p.Id);
 
             playlist.Property(p => p.Id).HasColumnName("id");
@@ -154,7 +152,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
 
         modelo.Entity<FaixaDaPlaylist>(faixa =>
         {
-            faixa.ToTable("playlist_faixa", SchemaDeMusica);
+            faixa.ToTable("playlist_faixa");
             faixa.HasKey(f => f.Id);
 
             faixa.Property(f => f.Id).HasColumnName("id");
