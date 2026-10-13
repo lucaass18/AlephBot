@@ -47,7 +47,7 @@ public abstract class MusicSlashModule : AlephSlashModule
         }
         else
         {
-            await RespondAsync(resposta.Embed!);
+            await RespondAsync(resposta.Embed!, await Music.CapaAsync(resposta));
 
             // o que ficou pro depois roda com a resposta já publicada: é assim que o "Pulei"
             // chega antes do "tocando agora" da faixa que o próprio pulo começou
@@ -97,7 +97,7 @@ public abstract class MusicTextModule : AlephTextModule
         }
         else
         {
-            await ReplyAsync(resposta.Embed!);
+            await ReplyAsync(resposta.Embed!, await Music.CapaAsync(resposta));
 
             if (resposta.Depois is { } depois)
                 await depois();

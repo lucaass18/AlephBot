@@ -202,9 +202,12 @@ internal static class Music
     /// precisa rodar com a resposta já no canal, senão o anúncio da faixa seguinte sai
     /// primeiro e o "Pulei" aparece embaixo dele.
     /// </summary>
-    internal readonly record struct Resposta(EmbedProperties? Embed, string? Erro, Func<Task>? Depois = null)
+    internal readonly record struct Resposta(
+        EmbedProperties? Embed, string? Erro, Func<Task>? Depois = null, LavalinkTrack? CapaDe = null)
     {
-        internal static Resposta Ok(EmbedProperties embed, Func<Task>? depois = null) => new(embed, null, depois);
+        internal static Resposta Ok(
+            EmbedProperties embed, Func<Task>? depois = null, LavalinkTrack? capaDe = null) =>
+            new(embed, null, depois, capaDe);
 
         internal static Resposta Falha(string erro) => new(null, erro);
     }
@@ -316,7 +319,8 @@ internal static class Music
             ? Denia.MúsicaComeçou()
             : $"{Denia.MúsicaComeçou()}\n{Denia.MúsicaCampoASeguir}: {Link(próxima)}";
 
-        return Base(Denia.MúsicaTítuloTocando, faixa, quemPediu, descrição);
+        // sem capa no embed: ela vai como anexo da mensagem, que não cabe na largura dele
+        return Base(Denia.MúsicaTítuloTocando, faixa, quemPediu, descrição, comCapa: false);
     }
 
     /// <summary>A primeira da fila, ou null quando a faixa de agora é a última.</summary>
@@ -415,9 +419,7 @@ internal static class Music
         if (player.RepeatMode is not TrackRepeatMode.None)
             embed.ComCampo(Denia.MúsicaCampoRepetição, Repetição(player.RepeatMode), inline: true);
 
-        if (faixa.ArtworkUri is { } capa)
-            embed.Image = new EmbedImageProperties(capa.ToString());
-
+        // a capa vem anexada à mensagem, como no anúncio da faixa
         return embed.ComRodapé(QuemPediu(player.CurrentItem), faixa.SourceName);
     }
 
@@ -476,6 +478,15 @@ internal static class Music
         };
     }
 
+    /// <summary>
+    /// A capa que a resposta pediu, pronta pra ir anexada. Sem pedido, sem anexo — e a
+    /// falha de uma capa nunca segura a resposta, que é o que a pessoa foi buscar.
+    /// </summary>
+    internal static Task<AttachmentProperties?> CapaAsync(Resposta resposta) =>
+        resposta.CapaDe is { } faixa
+            ? CapaDaFaixa.BaixarAsync(faixa, null, CancellationToken.None)
+            : Task.FromResult<AttachmentProperties?>(null);
+
     /// <summary>Aviso simples de uma linha — o que quase todo comando devolve.</summary>
     internal static EmbedProperties Aviso(string texto) =>
         new()
@@ -490,7 +501,7 @@ internal static class Music
     /// uma vez só — antes ele vinha no título, na frase e no link logo abaixo, tudo junto.
     /// </summary>
     private static EmbedProperties Base(
-        string rótulo, LavalinkTrack faixa, string? quemPediu, string descrição)
+        string rótulo, LavalinkTrack faixa, string? quemPediu, string descrição, bool comCapa = true)
     {
         var embed = new EmbedProperties
         {
@@ -506,7 +517,7 @@ internal static class Music
             ],
         };
 
-        if (faixa.ArtworkUri is { } capa)
+        if (comCapa && faixa.ArtworkUri is { } capa)
             embed.Image = new EmbedImageProperties(capa.ToString());
 
         return embed.ComRodapé(quemPediu, faixa.SourceName);
