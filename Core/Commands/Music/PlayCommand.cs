@@ -126,7 +126,9 @@ internal static class Play
             .ToArray();
 
         // não marco nenhuma: aqui eu falo da playlist, e quem apresenta a primeira é o player
-        if (player.CurrentTrack is null)
+        var começouAgora = player.CurrentTrack is null;
+
+        if (começouAgora)
         {
             await player.PlayAsync(itens[0], enqueue: true, cancellationToken: cancellationToken);
 
@@ -143,6 +145,6 @@ internal static class Play
         // playlist às vezes vem sem nome; aí o que a pessoa digitou diz mais que um rótulo vazio
         var nome = resultado.Playlist?.Name is { Length: > 0 } título ? título : busca;
 
-        return Music.Resposta.Ok(Music.EmbedPlaylist(nome, faixas, quemPediu));
+        return Music.Resposta.Ok(Music.EmbedPlaylist(nome, faixas, quemPediu, começouAgora));
     }
 }
