@@ -45,6 +45,9 @@ internal static class Music
     /// <summary>O teto do Discord é 4096; a folga é pra linha de resumo do fim.</summary>
     private const int MaxDescrição = 3800;
 
+    /// <summary>O teto do Discord pro título do embed, onde agora vai o nome da faixa.</summary>
+    private const int MaxTítulo = 256;
+
     /// <summary>
     /// Quanto eu espero o servidor de áudio ficar pronto antes de desistir. Ele sobe mais
     /// devagar que eu, e comando dado nos primeiros segundos pegava o nó no meio da conexão.
@@ -294,16 +297,11 @@ internal static class Music
 
     // ---- embeds --------------------------------------------------------------
 
-    internal static EmbedProperties EmbedTocando(LavalinkTrack faixa, string? quemPediu, float volume) =>
-        Base(Denia.MúsicaTítuloTocando, faixa, quemPediu, Denia.MúsicaComeçou(Escapa(faixa.Title)))
-            .ComCampo(Denia.MúsicaCampoVolume, $"{Porcento(volume)}%", inline: true);
+    internal static EmbedProperties EmbedTocando(LavalinkTrack faixa, string? quemPediu) =>
+        Base(Denia.MúsicaTítuloTocando, faixa, quemPediu, Denia.MúsicaComeçou());
 
     internal static EmbedProperties EmbedNaFila(LavalinkTrack faixa, int posição, string? quemPediu) =>
-        Base(
-            Denia.MúsicaTítuloNaFila,
-            faixa,
-            quemPediu,
-            Denia.MúsicaEntrouNaFila(Escapa(faixa.Title), posição))
+        Base(Denia.MúsicaTítuloNaFila, faixa, quemPediu, Denia.MúsicaEntrouNaFila())
             .ComCampo(Denia.MúsicaCampoPosição, $"#{posição}", inline: true);
 
     internal static EmbedProperties EmbedPlaylist(
@@ -311,8 +309,9 @@ internal static class Music
     {
         var embed = new EmbedProperties
         {
-            Title = Denia.MúsicaTítuloPlaylist,
-            Description = Denia.MúsicaPlaylistEntrou(Escapa(nome), faixas.Count),
+            Author = new EmbedAuthorProperties { Name = Denia.MúsicaTítuloPlaylist },
+            Title = Título(nome),
+            Description = Denia.MúsicaPlaylistEntrou(faixas.Count),
             Color = new Color(Roxo),
             Fields =
             [
@@ -329,7 +328,7 @@ internal static class Music
         if (faixas.Count > 0 && faixas[0].ArtworkUri is { } capa)
             embed.Image = new EmbedImageProperties(capa.ToString());
 
-        return quemPediu is null ? embed : embed.ComRodapé(quemPediu);
+        return embed.ComRodapé(quemPediu, faixas.Count > 0 ? faixas[0].SourceName : null);
     }
 
     /// <summary>O aviso de que voltei depois de um restart, no lugar do "tocando agora".</summary>
@@ -337,8 +336,8 @@ internal static class Music
     {
         var texto = new StringBuilder(
             posição is { } de
-                ? Denia.MúsicaVoltei(Escapa(faixa.Title), Duração(de))
-                : Denia.MúsicaVolteiDoComeço(Escapa(faixa.Title)));
+                ? Denia.MúsicaVoltei(Duração(de))
+                : Denia.MúsicaVolteiDoComeço());
 
         if (pausada)
             texto.Append(' ').Append(Denia.MúsicaVolteiPausada());
@@ -348,8 +347,10 @@ internal static class Music
 
         var embed = new EmbedProperties
         {
-            Title = Denia.MúsicaTítuloVoltei,
-            Description = $"{texto}\n{Link(faixa)}",
+            Author = new EmbedAuthorProperties { Name = Denia.MúsicaTítuloVoltei },
+            Title = Título(faixa.Title),
+            Url = faixa.Uri?.ToString(),
+            Description = texto.ToString(),
             Color = new Color(Roxo),
             Timestamp = DateTimeOffset.UtcNow,
         };
@@ -357,7 +358,7 @@ internal static class Music
         if (faixa.ArtworkUri is { } capa)
             embed.Image = new EmbedImageProperties(capa.ToString());
 
-        return embed;
+        return embed.ComRodapé(null, faixa.SourceName);
     }
 
     /// <summary>O /nowplaying: a mesma faixa do anúncio, com a barra de progresso viva.</summary>
@@ -371,22 +372,30 @@ internal static class Music
 
         var embed = new EmbedProperties
         {
-            Title = player.IsPaused ? $"⏸️ {Denia.MúsicaTítuloTocando}" : Denia.MúsicaTítuloTocando,
-            Description = $"{Link(faixa)}\n{progresso}",
+            Author = new EmbedAuthorProperties
+            {
+                Name = player.IsPaused ? Denia.MúsicaTítuloPausada : Denia.MúsicaTítuloTocando,
+            },
+            Title = Título(faixa.Title),
+            Url = faixa.Uri?.ToString(),
+            Description = progresso,
             Color = new Color(Roxo),
             Fields =
             [
                 new EmbedFieldProperties { Name = Denia.MúsicaCampoArtista, Value = Escapa(faixa.Author), Inline = true },
-                new EmbedFieldProperties { Name = Denia.MúsicaCampoVolume, Value = $"{Porcento(player.Volume)}%", Inline = true },
-                new EmbedFieldProperties { Name = Denia.MúsicaCampoRepetição, Value = Repetição(player.RepeatMode), Inline = true },
+                new EmbedFieldProperties { Name = Denia.MúsicaCampoDuração, Value = $"`{DuraçãoDe(faixa)}`", Inline = true },
             ],
             Timestamp = DateTimeOffset.UtcNow,
         };
 
+        // a repetição só ocupa um campo quando está ligada; desligada ela não diz nada
+        if (player.RepeatMode is not TrackRepeatMode.None)
+            embed.ComCampo(Denia.MúsicaCampoRepetição, Repetição(player.RepeatMode), inline: true);
+
         if (faixa.ArtworkUri is { } capa)
             embed.Image = new EmbedImageProperties(capa.ToString());
 
-        return QuemPediu(player.CurrentItem) is { } quem ? embed.ComRodapé(quem) : embed;
+        return embed.ComRodapé(QuemPediu(player.CurrentItem), faixa.SourceName);
     }
 
     internal static EmbedProperties EmbedFila(AlephPlayer player)
@@ -453,13 +462,20 @@ internal static class Music
             Color = new Color(Roxo),
         };
 
+    /// <summary>
+    /// O esqueleto dos embeds de faixa: o rótulo ("Tocando agora") vai na linha de cima,
+    /// pequena, e o título grande fica com o nome da música, clicável. Assim o nome aparece
+    /// uma vez só — antes ele vinha no título, na frase e no link logo abaixo, tudo junto.
+    /// </summary>
     private static EmbedProperties Base(
-        string título, LavalinkTrack faixa, string? quemPediu, string descrição)
+        string rótulo, LavalinkTrack faixa, string? quemPediu, string descrição)
     {
         var embed = new EmbedProperties
         {
-            Title = título,
-            Description = $"{descrição}\n{Link(faixa)}",
+            Author = new EmbedAuthorProperties { Name = rótulo },
+            Title = Título(faixa.Title),
+            Url = faixa.Uri?.ToString(),
+            Description = descrição,
             Color = new Color(Roxo),
             Fields =
             [
@@ -472,10 +488,7 @@ internal static class Music
         if (faixa.ArtworkUri is { } capa)
             embed.Image = new EmbedImageProperties(capa.ToString());
 
-        if (!string.IsNullOrWhiteSpace(faixa.SourceName))
-            embed.Fields = [.. embed.Fields!, new EmbedFieldProperties { Name = Denia.MúsicaCampoFonte, Value = faixa.SourceName, Inline = true }];
-
-        return quemPediu is null ? embed : embed.ComRodapé(quemPediu);
+        return embed.ComRodapé(quemPediu, faixa.SourceName);
     }
 
     private static EmbedProperties ComCampo(this EmbedProperties embed, string nome, string valor, bool inline)
@@ -484,11 +497,20 @@ internal static class Music
         return embed;
     }
 
-    private static EmbedProperties ComRodapé(this EmbedProperties embed, string quemPediu)
+    private static EmbedProperties ComRodapé(this EmbedProperties embed, string? quemPediu, string? fonte)
     {
-        embed.Footer = new EmbedFooterProperties { Text = Denia.MúsicaRodapé(quemPediu) };
+        embed.Footer = new EmbedFooterProperties { Text = Denia.MúsicaRodapé(quemPediu, fonte) };
         return embed;
     }
+
+    /// <summary>
+    /// O título do embed não lê markdown — vai cru, sem escapar, só cortado no teto do
+    /// Discord. Nome de faixa com a discografia inteira no meio passa de 256 com folga.
+    /// </summary>
+    private static string Título(string? texto) =>
+        string.IsNullOrWhiteSpace(texto) ? "?"
+            : texto.Length <= MaxTítulo ? texto
+            : $"{texto[..(MaxTítulo - 1)]}…";
 
     // ---- formatação ----------------------------------------------------------
 

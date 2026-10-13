@@ -114,7 +114,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         if (track.Track is not { } faixa)
             return;
 
-        await FalarAsync(Music.EmbedTocando(faixa, Music.QuemPediu(track), Volume), cancellationToken);
+        await FalarAsync(Music.EmbedTocando(faixa, Music.QuemPediu(track)), cancellationToken);
     }
 
     /// <summary>
