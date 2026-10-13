@@ -4,6 +4,9 @@ using System.Runtime.InteropServices;
 using AlephBot.Config;
 using AlephBot.Core.Commands;
 using AlephBot.Threnodian.Activity;
+// apelido de propósito: dentro de AlephBot.Threnodian.Api, escrever "AlephBot" acha o
+// namespace raiz antes da classe, e o compilador reclama de um "Version" que não existe ali
+using Bot = AlephBot.Threnodian.Inicialização.AlephBot;
 
 using Lavalink4NET;
 using Lavalink4NET.Players;
@@ -71,7 +74,7 @@ public sealed class BotStatus
 
         return new StatusResponse(
             Bot: Identidade(),
-            Version: AlephBot.Version,
+            Version: Bot.Version,
             Runtime: RuntimeInformation.FrameworkDescription,
             Mode: _config.IsDevelopment ? RunMode.Development : RunMode.Production,
             Prefix: _config.Prefix,

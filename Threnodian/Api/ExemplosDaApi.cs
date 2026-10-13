@@ -1,4 +1,7 @@
 using AlephBot.Core.Commands.Interface;
+// apelido de propósito: dentro de AlephBot.Threnodian.Api, escrever "AlephBot" acha o
+// namespace raiz antes da classe, e o compilador reclama de um "Version" que não existe ali
+using Bot = AlephBot.Threnodian.Inicialização.AlephBot;
 
 namespace AlephBot.Threnodian.Api;
 
@@ -16,7 +19,7 @@ internal static class ExemplosDaApi
 
     public static readonly StatusResponse Status = new(
         Bot: new BotIdentity("AlephBot"),
-        Version: AlephBot.Version,
+        Version: Bot.Version,
         Runtime: ".NET 10.0.12",
         Mode: RunMode.Production,
         Prefix: "!",

@@ -584,6 +584,7 @@ Core/
   Commands/       Um arquivo por comando, agrupados por categoria
   Personality/    Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
 Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
+  Inicialização/  O Main e a montagem do host: quem acende tudo
   Api/            A API HTTP: rotas, a chave, os docs e o que ela lê do bot
   Youtube/        Login (o token guardado e entregue ao Lavalink), a busca de playlist e o
                   áudio pelo yt-audio
