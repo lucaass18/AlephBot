@@ -196,6 +196,37 @@ public static class Denia
     public static string NãoEstáSilenciado(string alvo) =>
         $"{alvo} não está calado. Não dá pra devolver o que eu não tirei.";
 
+    // ---- limpeza do canal ----------------------------------------------------
+
+    public const string ClearTítulo = "🧹 Faxina";
+
+    public const string ClearCampoFixadas = "📌 Fixadas";
+
+    public const string ClearCampoVelhas = "🕰️ Velhas demais";
+
+    public static string ClearQuantidadeInválida(int mínimo, int máximo) =>
+        $"Escolhe de {mínimo} a {máximo} mensagens. Fora disso o Discord não apaga em lote.";
+
+    public static string ClearApagadas(int quantas) => quantas switch
+    {
+        0 => "Não apaguei nada — não havia o que tirar daqui.",
+        1 => "Apaguei 1 mensagem. Como se nunca tivesse existido.",
+        _ => $"Apaguei {quantas} mensagens. Como se nunca tivessem existido.",
+    };
+
+    public static string ClearFixadas(int quantas) =>
+        quantas == 1
+            ? "Uma estava fixada e continua onde estava."
+            : $"{quantas} estavam fixadas e continuam onde estavam.";
+
+    public static string ClearVelhas(int quantas) =>
+        quantas == 1
+            ? "Uma passou de 14 dias, e essas o Discord não me deixa apagar em lote."
+            : $"{quantas} passaram de 14 dias, e essas o Discord não me deixa apagar em lote.";
+
+    public static string ClearFalhou(string status) =>
+        $"O Discord recusou a faxina ({status}). Tenta de novo daqui a pouco.";
+
     // ---- help ----------------------------------------------------------------
 
     public const string HelpTítulo = "📖 O que eu sei fazer";
