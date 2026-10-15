@@ -67,6 +67,17 @@ public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCom
     protected Task<RestMessage> EditarRespostaAsync(EmbedProperties embed) =>
         Context.Interaction.ModifyResponseAsync(mensagem => mensagem.Embeds = [embed]);
 
+    // O mesmo fecho, no formato novo. A flag vai aqui porque o "pensando..." nasceu sem ela,
+    // e sem ela o Discord recusa o container.
+    protected Task<RestMessage> EditarRespostaAsync(
+        ComponentContainerProperties cartão, AttachmentProperties? anexo = null) =>
+        Context.Interaction.ModifyResponseAsync(mensagem =>
+        {
+            mensagem.Components = [cartão];
+            mensagem.Attachments = anexo is null ? null : [anexo];
+            mensagem.Flags = MessageFlags.IsComponentsV2;
+        });
+
     // O ErrorAsync de quem já adiou: sai visível, porque isso foi decidido no DeferAsync.
     protected Task<RestMessage> EditarComErroAsync(string message) =>
         EditarRespostaAsync(new EmbedProperties
