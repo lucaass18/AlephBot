@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -16,14 +17,18 @@ namespace AlephBot.Threnodian.Youtube;
 // O áudio do YouTube pelo yt-audio do compose: de servidor o plugin do Lavalink não consegue.
 public sealed partial class YoutubeAudio : IDisposable
 {
-    // Quantos canais eu guardo antes de recomeçar a lista.
-    private const int CanaisGuardados = 500;
+    // Quantos vídeos eu guardo antes de recomeçar as listas.
+    private const int Guardados = 500;
 
     // O primeiro pedido roda o yt-dlp inteiro — player, desafio no deno, token. Leva segundos.
     private static readonly TimeSpan Espera = TimeSpan.FromSeconds(60);
 
     // O canal de cada vídeo, que o yt-dlp já acha no /preparar; assim o embed não pergunta nada.
     private readonly ConcurrentDictionary<string, string> _canais = new();
+
+    // A faixa que o Lavalink já carregou de cada vídeo. O /v/<id> não muda, e carregar de novo
+    // é outra ida ao YouTube — a cada troca de faixa — só pra redescobrir o mesmo formato.
+    private readonly ConcurrentDictionary<string, Task<LavalinkTrack?>> _prontas = new();
 
     private readonly Uri? _base;
     private readonly Func<string, CancellationToken, ValueTask<LavalinkTrack?>> _carregar;
@@ -69,32 +74,77 @@ public sealed partial class YoutubeAudio : IDisposable
     public void Preparar(LavalinkTrack? faixa)
     {
         if (faixa is FaixaDoYoutube doYoutube)
-            _ = PrepararAsync(doYoutube, CancellationToken.None);
+            _ = AdiantarAsync(doYoutube);
+    }
+
+    // As duas esperas da próxima faixa, fora da hora dela: o yt-dlp resolve o link e o Lavalink
+    // já carrega ele. Na vez dela não sobra nenhuma das duas.
+    private async Task AdiantarAsync(FaixaDoYoutube faixa)
+    {
+        if (await PrepararAsync(faixa, CancellationToken.None))
+            await ProntaAsync(faixa);
     }
 
     // O yt-audio prepara o link e o Lavalink carrega ele pronto; falha devolve a faixa original.
     internal async ValueTask<LavalinkTrack> TocávelAsync(FaixaDoYoutube faixa, CancellationToken cancellationToken)
     {
+        var relógio = Stopwatch.StartNew();
+
+        // o /preparar é sempre de agora: o link que o yt-audio guarda vence, e quem abre o áudio
+        // depois é o Lavalink, que não sabe esperar o yt-dlp
+        if (!await PrepararAsync(faixa, cancellationToken))
+            return faixa.Original;
+
+        if (await ProntaAsync(faixa).WaitAsync(cancellationToken) is not { } http)
+            return faixa.Original;
+
+        _logger.LogDebug(
+            "O áudio de {Faixa} ({Id}) ficou pronto em {Tempo} ms",
+            faixa.Title, faixa.Identifier, relógio.ElapsedMilliseconds);
+
+        return http;
+    }
+
+    // A faixa do /v/<id>, carregada uma vez só — quem chega depois espera a mesma resposta.
+    private async Task<LavalinkTrack?> ProntaAsync(FaixaDoYoutube faixa)
+    {
+        // o teto evita a memória crescer sozinha; o que sair volta no próximo /play
+        if (_prontas.Count >= Guardados)
+            _prontas.Clear();
+
+        var tentativa = _prontas.GetOrAdd(faixa.Identifier, _ => DoLavalinkAsync(faixa));
+
+        var pronta = await tentativa;
+
+        // recusa não fica guardada, que o yt-audio pode estar só de pé num minuto ruim; tiro
+        // esta tentativa, e não a chave, pra não levar junto uma que já começou de novo
+        if (pronta is null)
+            _prontas.TryRemove(KeyValuePair.Create(faixa.Identifier, tentativa));
+
+        return pronta;
+    }
+
+    // O que o Lavalink respondeu, ou null quando ele não deu conta.
+    private async Task<LavalinkTrack?> DoLavalinkAsync(FaixaDoYoutube faixa)
+    {
         try
         {
-            if (!await PrepararAsync(faixa, cancellationToken))
-                return faixa.Original;
-
-            if (await _carregar(Endereço("v", faixa.Identifier).AbsoluteUri, cancellationToken) is { } http)
+            // sem cancelamento: a resposta é de todo mundo, e quem desistiu só não espera por ela
+            if (await _carregar(Endereço("v", faixa.Identifier).AbsoluteUri, CancellationToken.None) is { } http)
                 return http;
 
             _logger.LogWarning(
                 "O Lavalink não carregou o áudio de {Faixa} ({Id}) pelo yt-audio; vai pelo plugin",
                 faixa.Title, faixa.Identifier);
         }
-        catch (Exception erro) when (!cancellationToken.IsCancellationRequested)
+        catch (Exception erro)
         {
             _logger.LogWarning(
                 erro, "O Lavalink não carregou o áudio de {Faixa} ({Id}) pelo yt-audio; vai pelo plugin",
                 faixa.Title, faixa.Identifier);
         }
 
-        return faixa.Original;
+        return null;
     }
 
     // O canal de quem publicou, quando o yt-audio já contou qual é.
@@ -143,7 +193,7 @@ public sealed partial class YoutubeAudio : IDisposable
                 && canal.GetString() is { Length: > 0 } endereço)
             {
                 // o teto evita a memória crescer sozinha; o que sair volta no próximo /preparar
-                if (_canais.Count >= CanaisGuardados)
+                if (_canais.Count >= Guardados)
                     _canais.Clear();
 
                 _canais[id] = endereço;

@@ -124,19 +124,8 @@ internal static class Music
     {
         try
         {
-            // sem esperar, comando dado após o boot morria com um erro de sessão interno
-            using var espera = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            espera.CancelAfter(EsperaPeloServidor);
-
-            try
-            {
-                await áudio.WaitForReadyAsync(espera.Token);
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                // esperei o que dava; a essa altura é o servidor que não está lá
-                return (null, Denia.MúsicaServidorFora());
-            }
+            if (await EsperarServidorAsync(áudio, cancellationToken) is { } fora)
+                return (null, fora);
 
             var resultado = await ObterAsync(
                 áudio, contexto, canal, conectar, exigirMesmoCanal, cancellationToken);
@@ -151,6 +140,27 @@ internal static class Music
         catch (Exception ex) when (ÉServidorFora(ex))
         {
             return (null, Denia.MúsicaServidorFora());
+        }
+    }
+
+    // Null quando o servidor de áudio está de pé, senão a frase de que ele não está. Sem esperar,
+    // comando dado após o boot morria com um erro de sessão interno; de pé, isto volta na hora.
+    private static async Task<string?> EsperarServidorAsync(
+        IAudioService áudio, CancellationToken cancellationToken)
+    {
+        using var espera = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        espera.CancelAfter(EsperaPeloServidor);
+
+        try
+        {
+            await áudio.WaitForReadyAsync(espera.Token);
+
+            return null;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // esperei o que dava; a essa altura é o servidor que não está lá
+            return Denia.MúsicaServidorFora();
         }
     }
 
@@ -242,6 +252,10 @@ internal static class Music
     internal static async Task<(TrackLoadResult Resultado, string? Erro)> CarregarAsync(
         IAudioService áudio, string busca, CancellationToken cancellationToken = default)
     {
+        // a busca anda junto com a entrada no canal, então ela espera o servidor por conta própria
+        if (await EsperarServidorAsync(áudio, cancellationToken) is { } fora)
+            return (default, fora);
+
         TrackLoadResult resultado;
 
         try
@@ -261,6 +275,15 @@ internal static class Music
         }
 
         return (resultado, null);
+    }
+
+    // A espera que começou antes de alguém precisar dela. Se o comando desistir no caminho — o
+    // canal de voz recusou, por exemplo —, a falha dela morre aqui, e não como tarefa solta.
+    internal static Task<T> Adiantada<T>(Task<T> tarefa)
+    {
+        _ = tarefa.ContinueWith(static feita => _ = feita.Exception, TaskContinuationOptions.OnlyOnFaulted);
+
+        return tarefa;
     }
 
     // ---- embeds --------------------------------------------------------------

@@ -5,6 +5,7 @@ using AlephBot.Threnodian.Dados;
 using AlephBot.Threnodian.Youtube;
 
 using Lavalink4NET;
+using Lavalink4NET.Rest.Entities.Tracks;
 
 using NetCord;
 
@@ -36,6 +37,9 @@ public sealed class PlaylistCommand : MusicSlashModule
     public async Task AddAsync(
         [SlashCommandParameter(Name = "busca", Description = "Nome da playlist ou o link dela.")] string busca)
     {
+        // achar a lista não depende do Discord nem do canal de voz: começa antes do defer
+        var procura = Playlist.Procurar(Áudio, _youtube, busca);
+
         // entrar no canal e carregar a playlist passa dos 3 segundos do Discord; peço tempo
         await DeferAsync();
 
@@ -47,7 +51,7 @@ public sealed class PlaylistCommand : MusicSlashModule
             return;
         }
 
-        var resposta = await Playlist.AdicionarAsync(Áudio, _youtube, player!, busca, Context.User.Username);
+        var resposta = await Playlist.AdicionarAsync(procura, player!, busca, Context.User.Username);
 
         // fora do ExecutarAsync por causa do defer; a foto continua sendo minha
         player!.Fotografar();
@@ -220,8 +224,10 @@ public sealed class PlaylistTextCommand : MusicTextModule
         if (!Playlist.ÉAdd(ação))
             return ErrorAsync(Denia.MúsicaPlaylistAçãoDesconhecida(ação, Playlist.Uso));
 
+        var procura = Playlist.Procurar(Áudio, _youtube, busca);
+
         return ExecutarAsync(
-            player => Playlist.AdicionarAsync(Áudio, _youtube, player, busca, Context.User.Username),
+            player => Playlist.AdicionarAsync(procura, player, busca, Context.User.Username),
             conectar: true);
     }
 }
@@ -234,14 +240,14 @@ internal static class Playlist
         ação.Equals("add", StringComparison.OrdinalIgnoreCase)
         || ação.Equals("adicionar", StringComparison.OrdinalIgnoreCase);
 
-    // Link vai direto, nome vira busca; vídeo solto é recusado, porque aqui se pediu uma lista.
-    internal static async Task<Music.Resposta> AdicionarAsync(
-        IAudioService áudio,
-        YoutubeSearch youtube,
-        AlephPlayer player,
-        string busca,
-        string quemPediu,
-        CancellationToken cancellationToken = default)
+    // Manda procurar já, sem esperar player nenhum: quem vai esperar é o AdicionarAsync.
+    internal static Task<(TrackLoadResult Resultado, string? Erro)> Procurar(
+        IAudioService áudio, YoutubeSearch youtube, string busca, CancellationToken cancellationToken = default) =>
+        Music.Adiantada(ProcurarAsync(áudio, youtube, busca, cancellationToken));
+
+    // Link vai direto; nome passa pelo YouTube primeiro, que é quem sabe achar lista por nome.
+    private static async Task<(TrackLoadResult Resultado, string? Erro)> ProcurarAsync(
+        IAudioService áudio, YoutubeSearch youtube, string busca, CancellationToken cancellationToken)
     {
         busca = busca.Trim();
 
@@ -258,16 +264,29 @@ internal static class Playlist
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
             {
-                return Music.Resposta.Falha(Denia.MúsicaPlaylistBuscaFalhou());
+                return (default, Denia.MúsicaPlaylistBuscaFalhou());
             }
 
             if (id is null)
-                return Music.Resposta.Falha(Denia.MúsicaPlaylistNãoAchei(busca));
+                return (default, Denia.MúsicaPlaylistNãoAchei(busca));
 
             alvo = YoutubeSearch.LinkDaPlaylist(id);
         }
 
-        var (resultado, erro) = await Music.CarregarAsync(áudio, alvo, cancellationToken);
+        return await Music.CarregarAsync(áudio, alvo, cancellationToken);
+    }
+
+    // Espera a busca e põe a lista na fila; vídeo solto é recusado, porque aqui se pediu uma lista.
+    internal static async Task<Music.Resposta> AdicionarAsync(
+        Task<(TrackLoadResult Resultado, string? Erro)> procura,
+        AlephPlayer player,
+        string busca,
+        string quemPediu,
+        CancellationToken cancellationToken = default)
+    {
+        busca = busca.Trim();
+
+        var (resultado, erro) = await procura;
 
         if (erro is not null)
             return Music.Resposta.Falha(erro);

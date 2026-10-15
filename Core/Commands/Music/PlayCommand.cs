@@ -25,6 +25,10 @@ public sealed class PlayCommand : MusicSlashModule
     public async Task PlayAsync(
         [SlashCommandParameter(Name = "busca", Description = "Nome da música, link do YouTube/SoundCloud, ou uma playlist.")] string busca)
     {
+        // a busca não espera nem o defer: ela não depende do Discord nem do canal de voz, e em
+        // série essas esperas eram todas somadas antes de a primeira nota sair
+        var procura = Play.Procurar(Áudio, busca);
+
         // entrar no canal e buscar passa fácil dos 3 segundos que o Discord dá; peço tempo
         await DeferAsync();
 
@@ -36,7 +40,7 @@ public sealed class PlayCommand : MusicSlashModule
             return;
         }
 
-        var resposta = await Play.ExecutarAsync(Áudio, player!, busca, Context.User.Username);
+        var resposta = await Play.ExecutarAsync(procura, player!, busca, Context.User.Username);
 
         // fora do ExecutarAsync por causa do defer; a foto continua sendo minha
         player!.Fotografar();
@@ -59,25 +63,36 @@ public sealed class PlayTextCommand : MusicTextModule
 
     [RequireContext<CommandContext>(RequiredContext.Guild)]
     [Command("play", "p", "tocar")]
-    public Task PlayAsync([CommandParameter(Remainder = true)] string busca) =>
-        ExecutarAsync(
-            player => Play.ExecutarAsync(Áudio, player, busca, Context.User.Username),
+    public Task PlayAsync([CommandParameter(Remainder = true)] string busca)
+    {
+        // igual ao /play: a busca sai agora, e a entrada no canal corre ao lado dela
+        var procura = Play.Procurar(Áudio, busca);
+
+        return ExecutarAsync(
+            player => Play.ExecutarAsync(procura, player, busca, Context.User.Username),
             conectar: true);
+    }
 }
 
 internal static class Play
 {
-    // Procura, enfileira e diz o que aconteceu. O /play e o !play caem os dois aqui.
+    // Manda procurar já, sem esperar player nenhum: quem vai esperar é o ExecutarAsync.
+    internal static Task<(TrackLoadResult Resultado, string? Erro)> Procurar(
+        IAudioService áudio, string busca, CancellationToken cancellationToken = default) =>
+        Music.Adiantada(Music.CarregarAsync(áudio, Music.SemRádio(busca.Trim()), cancellationToken));
+
+    // Espera a busca, enfileira e diz o que aconteceu. O /play e o !play caem os dois aqui.
     internal static async Task<Music.Resposta> ExecutarAsync(
-        IAudioService áudio,
+        Task<(TrackLoadResult Resultado, string? Erro)> procura,
         AlephPlayer player,
         string busca,
         string quemPediu,
         CancellationToken cancellationToken = default)
     {
+        // o mesmo texto que foi procurado: é ele que aparece no "não achei" e na playlist sem nome
         busca = Music.SemRádio(busca.Trim());
 
-        var (resultado, erro) = await Music.CarregarAsync(áudio, busca, cancellationToken);
+        var (resultado, erro) = await procura;
 
         if (erro is not null)
             return Music.Resposta.Falha(erro);
@@ -95,6 +110,9 @@ internal static class Play
     {
         // marco antes do PlayAsync: o evento de início pode ganhar a corrida e dobrar o embed
         var item = player.Pedido(faixa, quemPediu, jáAnunciada: true);
+
+        // a capa baixa enquanto o link fica pronto: o card sai junto com o som, e não depois dele
+        CapaDaFaixa.Adiantar(faixa, logger: null);
 
         var posição = await player.PlayAsync(item, enqueue: true, cancellationToken: cancellationToken);
 
@@ -125,6 +143,9 @@ internal static class Play
 
         if (começouAgora)
         {
+            // quem apresenta a primeira é o player, mas a capa dela já pode ir baixando
+            CapaDaFaixa.Adiantar(faixas[0], logger: null);
+
             await player.PlayAsync(itens[0], enqueue: true, cancellationToken: cancellationToken);
 
             if (itens.Length > 1)

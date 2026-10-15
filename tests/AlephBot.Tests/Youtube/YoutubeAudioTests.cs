@@ -43,9 +43,15 @@ public class YoutubeAudioTests
     {
         public List<string> Carregados { get; } = [];
 
+        public TaskCompletionSource<string> Primeiro { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public ValueTask<LavalinkTrack?> CarregarAsync(string endereço, CancellationToken cancellationToken)
         {
-            Carregados.Add(endereço);
+            lock (Carregados)
+                Carregados.Add(endereço);
+
+            Primeiro.TrySetResult(endereço);
+
             return ValueTask.FromResult(responder(endereço));
         }
     }
@@ -156,6 +162,52 @@ public class YoutubeAudioTests
         // primeiro o yt-audio prepara (a parte demorada), depois o Lavalink carrega o link pronto
         Assert.Equal([new Uri($"http://yt-audio:8080/preparar/{Id}")], ytAudio.Pedidos);
         Assert.Equal([$"http://yt-audio:8080/v/{Id}"], lavalink.Carregados);
+    }
+
+    [Fact]
+    public async Task O_link_do_yt_audio_é_carregado_uma_vez_por_vídeo()
+    {
+        var lavalink = new Lavalink(_ => DoLink);
+        var ytAudio = new YtAudioDeMentira();
+        var faixa = Montar(YtAudio, lavalink, ytAudio).Envolver(DoYoutube());
+
+        Assert.Same(DoLink, await faixa.GetPlayableTrackAsync(TestContext.Current.CancellationToken));
+        Assert.Same(DoLink, await faixa.GetPlayableTrackAsync(TestContext.Current.CancellationToken));
+
+        // o /v/<id> não muda, então carregar ele de novo seria outra ida ao YouTube por nada
+        Assert.Single(lavalink.Carregados);
+
+        // o /preparar, ao contrário, vai nas duas: o link que o yt-audio guarda vence
+        Assert.Equal(2, ytAudio.Pedidos.Count);
+    }
+
+    [Fact]
+    public async Task Falha_do_Lavalink_não_fica_guardada()
+    {
+        var tentativas = 0;
+        var original = DoYoutube();
+        var lavalink = new Lavalink(_ => tentativas++ == 0 ? null : DoLink);
+        var faixa = Montar(YtAudio, lavalink, new YtAudioDeMentira()).Envolver(original);
+
+        // a primeira vai pelo plugin; a segunda tenta de novo, em vez de repetir a recusa pra sempre
+        Assert.Same(original, await faixa.GetPlayableTrackAsync(TestContext.Current.CancellationToken));
+        Assert.Same(DoLink, await faixa.GetPlayableTrackAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(2, lavalink.Carregados.Count);
+    }
+
+    [Fact]
+    public async Task Preparar_adianta_também_o_carregamento_no_Lavalink()
+    {
+        var lavalink = new Lavalink(_ => DoLink);
+        var áudio = Montar(YtAudio, lavalink, new YtAudioDeMentira());
+
+        áudio.Preparar(áudio.Envolver(DoYoutube()));
+
+        // sem isto o carregamento só começaria na troca de faixa, e é ele que atrasa o começo dela
+        var adiantado = await lavalink.Primeiro.Task.WaitAsync(
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        Assert.Equal($"http://yt-audio:8080/v/{Id}", adiantado);
     }
 
     [Fact]
