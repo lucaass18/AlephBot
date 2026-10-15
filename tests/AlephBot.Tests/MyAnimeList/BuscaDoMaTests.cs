@@ -97,6 +97,118 @@ public class BuscaDoMaTests
         Assert.Equal(esperado, MyAnimelist.SemSubtítulo(busca));
     }
 
+    // O especial do Hawk traz "Nanatsu no Taizai" nos sinônimos e vem antes na busca do AniList;
+    // quem se chama assim é o anime, e é ele que a pessoa pediu.
+    [Fact]
+    public async Task Título_igual_ganha_de_sinônimo_igual()
+    {
+        var fonte = new FonteEmOrdem(
+            new Obra
+            {
+                Tipo = TipoDeObra.Anime,
+                Id = 9574,
+                Título = "Hawk no Onayami Soudanshitsu Special",
+                Sinônimos = ["Nanatsu no Taizai"],
+            },
+            new Obra
+            {
+                Tipo = TipoDeObra.Anime,
+                Id = 23755,
+                Título = "Nanatsu no Taizai",
+                TítuloEmInglês = "The Seven Deadly Sins",
+            });
+
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+            fonte, Tradutor, SemBanco, mangadex: null, TipoDeObra.Anime, "Nanatsu no taizai", "alguém",
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(erro);
+        Assert.Contains("Nanatsu no Taizai", embed!.Title!);
+        Assert.DoesNotContain("Hawk", embed.Title!);
+    }
+
+    // Sinônimo igual continua valendo quando título nenhum bate: "7DS" é a obra, não um apelido solto.
+    [Fact]
+    public async Task Sinônimo_igual_ganha_de_quem_não_bate_em_nada()
+    {
+        var fonte = new FonteEmOrdem(
+            new Obra { Tipo = TipoDeObra.Anime, Id = 1, Título = "Outra coisa qualquer" },
+            new Obra { Tipo = TipoDeObra.Anime, Id = 23755, Título = "Nanatsu no Taizai", Sinônimos = ["7DS"] });
+
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+            fonte, Tradutor, SemBanco, mangadex: null, TipoDeObra.Anime, "7ds", "alguém",
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(erro);
+        Assert.Contains("Nanatsu no Taizai", embed!.Title!);
+    }
+
+    // "nanatsu" não é o nome de ninguém: o especial do Hawk ganha da série na ordem do AniList,
+    // e entre quem se chama assim de verdade vale a que mais gente acompanha.
+    [Fact]
+    public async Task Busca_pela_metade_fica_com_a_mais_conhecida()
+    {
+        var fonte = new FonteEmOrdem(
+            new Obra
+            {
+                Tipo = TipoDeObra.Anime,
+                Id = 9574,
+                Título = "Hawk no Onayami Soudanshitsu Special",
+                Sinônimos = ["Nanatsu no Taizai"],
+            },
+            new Obra { Tipo = TipoDeObra.Anime, Id = 34618, Título = "Nanatsu no Bitoku" },
+            new Obra { Tipo = TipoDeObra.Anime, Id = 23755, Título = "Nanatsu no Taizai", Popularidade = 42 });
+
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+            fonte, Tradutor, SemBanco, mangadex: null, TipoDeObra.Anime, "nanatsu", "alguém",
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(erro);
+        Assert.Contains("Nanatsu no Taizai", embed!.Title!);
+    }
+
+    // Pedir o filme não pode virar a série inteira só porque ela tem mais gente na lista.
+    [Fact]
+    public async Task Filme_pedido_pelo_nome_não_vira_a_série()
+    {
+        var fonte = new FonteEmOrdem(
+            new Obra { Tipo = TipoDeObra.Anime, Id = 1, Título = "ONE PIECE FILM: RED", Popularidade = 98 },
+            new Obra { Tipo = TipoDeObra.Anime, Id = 2, Título = "ONE PIECE", Popularidade = 7 });
+
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+            fonte, Tradutor, SemBanco, mangadex: null, TipoDeObra.Anime, "one piece film red", "alguém",
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(erro);
+        Assert.Contains("FILM: RED", embed!.Title!);
+    }
+
+    // Ninguém com o nome na cara: fica o primeiro, que é a ordem de relevância da fonte.
+    [Fact]
+    public async Task Sem_título_parecido_fica_o_primeiro_da_fonte()
+    {
+        var fonte = new FonteEmOrdem(
+            new Obra { Tipo = TipoDeObra.Anime, Id = 1, Título = "NARUTO: Shippuuden", Popularidade = 24 },
+            new Obra { Tipo = TipoDeObra.Anime, Id = 2, Título = "NARUTO: Shippuuden Movie", Popularidade = 131 });
+
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+            fonte, Tradutor, SemBanco, mangadex: null, TipoDeObra.Anime, "shippuden", "alguém",
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(erro);
+        Assert.DoesNotContain("Movie", embed!.Title!);
+    }
+
+    // As obras na ordem em que a fonte devolveu, que é a ordem em que o AniList ranqueia.
+    private sealed class FonteEmOrdem(params Obra[] obras) : IMyAnimeList
+    {
+        public string Nome => "Falsa";
+
+        public Task<IReadOnlyList<Obra>> ProcurarAsync(
+            TipoDeObra tipo, string busca, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Obra>>(obras);
+    }
+
     private sealed class FonteQueSóSabeOComeço : IMyAnimeList
     {
         public List<string> Buscas { get; } = [];
