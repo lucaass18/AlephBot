@@ -10,6 +10,7 @@ using AlephBot.Threnodian.Api;
 using AlephBot.Threnodian.Dados;
 using AlephBot.Threnodian.Diagnostics;
 using AlephBot.Threnodian.Handlers;
+using AlephBot.Threnodian.MangáDex;
 using AlephBot.Threnodian.MyAnimeList;
 using AlephBot.Threnodian.Players;
 using AlephBot.Threnodian.Translation;
