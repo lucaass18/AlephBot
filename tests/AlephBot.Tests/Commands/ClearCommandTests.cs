@@ -83,6 +83,25 @@ public class ClearCommandTests
         Assert.Empty(embed.Fields!);
     }
 
+    // Sem espera de verdade: a prova é que o aviso é apagado, não quanto tempo ele dura.
+    [Fact]
+    public async Task O_aviso_da_faxina_some_sozinho()
+    {
+        var sumiu = new TaskCompletionSource();
+
+        Limpeza.SomeDepois(
+            () =>
+            {
+                sumiu.SetResult();
+                return Task.CompletedTask;
+            },
+            TimeSpan.Zero);
+
+        await sumiu.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        Assert.True(sumiu.Task.IsCompletedSuccessfully);
+    }
+
     [Fact]
     public void O_que_ficou_pra_trás_vira_campo()
     {
