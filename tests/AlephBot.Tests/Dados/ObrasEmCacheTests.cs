@@ -5,10 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.Dados;
 
-/// <summary>
-/// A guarda das fichas do /ma. O que importa aqui é que ela seja conveniência e não
-/// dependência: sem Postgres o comando tem que funcionar como funcionava antes dela existir.
-/// </summary>
+// A guarda das fichas do /ma: conveniência, não dependência — sem Postgres o /ma funciona.
 public class ObrasEmCacheTests
 {
     // fábrica e migração nulas: é o bot subindo sem DATABASE_URL
@@ -29,7 +26,7 @@ public class ObrasEmCacheTests
         Assert.Null(achada);
     }
 
-    /// <summary>Guardar sem banco não pode explodir: quem chamou está no meio de responder alguém.</summary>
+    // Guardar sem banco não pode explodir: quem chamou está no meio de responder alguém.
     [Fact]
     public async Task Sem_banco_guardar_não_levanta_erro()
     {
@@ -38,10 +35,7 @@ public class ObrasEmCacheTests
         await SemBanco().GuardarAsync("naruto", obra, TestContext.Current.CancellationToken);
     }
 
-    /// <summary>
-    /// O termo é a chave da busca guardada: "NARUTO ", "naruto" e "Naruto" são a mesma
-    /// pergunta, e acento não pode separar o que é igual.
-    /// </summary>
+    // O termo é a chave: "NARUTO ", "naruto" e "Naruto" são a mesma pergunta.
     [Theory]
     [InlineData("NARUTO", "naruto")]
     [InlineData("  Naruto  ", "naruto")]
@@ -53,10 +47,7 @@ public class ObrasEmCacheTests
         Assert.Equal(esperado, ObrasEmCache.Normaliza(digitado));
     }
 
-    /// <summary>
-    /// A linha de procura junta todos os nomes da obra, pra ficha ser achada pelo título em
-    /// inglês, pelo japonês ou por um sinônimo quando a fonte estiver fora.
-    /// </summary>
+    // A linha de procura junta todos os nomes, pra achar pelo inglês, pelo japonês ou sinônimo.
     [Fact]
     public void A_linha_de_procura_junta_todos_os_nomes()
     {
@@ -78,11 +69,7 @@ public class ObrasEmCacheTests
         Assert.Contains("進撃の巨人", procura);
     }
 
-    /// <summary>
-    /// A ficha tem que voltar do banco igualzinha. O que mais dói aqui é a marca de sinopse
-    /// em português: perdida, o bot manda pro tradutor de máquina um texto que já está em
-    /// português, e o resultado é lixo.
-    /// </summary>
+    // A ficha volta igualzinha; perder a marca de português manda texto bom pro tradutor.
     [Fact]
     public void Ida_e_volta_preserva_a_ficha()
     {

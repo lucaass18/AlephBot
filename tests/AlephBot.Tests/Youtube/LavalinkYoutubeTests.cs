@@ -2,10 +2,7 @@ using AlephBot.Threnodian.Youtube;
 
 namespace AlephBot.Tests.Youtube;
 
-/// <summary>
-/// Só a recusa que vem do Google pede login novo; tropeço de rede entre o Lavalink e ele não
-/// pode virar um pedido de código no meio da madrugada.
-/// </summary>
+// Só a recusa do Google pede login novo; tropeço de rede não acorda ninguém de madrugada.
 public class LavalinkYoutubeTests
 {
     [Theory]

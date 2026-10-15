@@ -16,7 +16,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
     [Migration("20261012193354_CacheDeObras")]
     partial class CacheDeObras
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

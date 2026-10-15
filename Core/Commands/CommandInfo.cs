@@ -11,19 +11,13 @@ public sealed record CommandInfo(
     bool IsHidden,
     Type Type)
 {
-    /// <summary>Pasta onde a classe mora — último trecho do namespace, ex.: "Admin".</summary>
+    // Pasta onde a classe mora — último trecho do namespace, ex.: "Admin".
     public string Pasta => Type.Namespace?.Split('.')[^1] ?? "?";
 
-    /// <summary>
-    /// Se este é o gêmeo de prefixo (!comando) e não o de barra (/comando).
-    /// Quem responde é a classe base, não o texto do Usage — o prefixo pode ser qualquer um.
-    /// </summary>
+    // Se este é o gêmeo de prefixo e não o de barra. Quem responde é a classe base, não o Usage.
     public bool IsTexto => typeof(AlephTextModule).IsAssignableFrom(Type);
 
-    /// <summary>
-    /// O Usage pronto, com o sinal na frente: "/mute ..." ou "!mute ...". O prefixo vem da
-    /// config, então mexer no PREFIX muda a ajuda, os erros e o log de uma vez.
-    /// </summary>
+    // O Usage com o sinal na frente. O prefixo vem da config, então mexer no PREFIX muda tudo.
     public string Uso(string prefixo) =>
         $"{(IsTexto ? prefixo : "/")}{Usage ?? Name}";
 }

@@ -14,27 +14,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// A API HTTP: um Kestrel dentro do mesmo processo do bot, lendo direto do gateway, dos
-/// players e do registry — nada de segundo serviço nem de canal entre processos.
-///
-/// Só leitura, de propósito: status e estatísticas. Mandar no bot pela API (tocar, banir)
-/// seria dar a qualquer um com a chave o poder de um admin, e isso pede outra conversa.
-/// </summary>
+// A API HTTP: um Kestrel dentro do processo do bot. Só leitura, de propósito.
 public static class AlephApi
 {
-    /// <summary>A versão que está no ar. Mudança que quebra quem já usa vira v2 ao lado dela.</summary>
+    // A versão que está no ar. Mudança que quebra quem já usa vira v2 ao lado dela.
     public const int VersãoAtual = 1;
 
-    /// <summary>
-    /// A imagem oficial do .NET se anuncia com esta variável. Dentro do contêiner eu escuto em
-    /// todas as interfaces, senão a porta publicada pelo compose não chega em mim; fora dele,
-    /// só em localhost — API de bot não tem o que fazer na rede de casa.
-    /// </summary>
+    // No contêiner escuto em tudo, senão a porta do compose não chega; fora dele, só localhost.
     private static readonly bool NoContêiner =
         string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Onde a API atende, do jeito que sai no log do boot.</summary>
+    // Onde a API atende, do jeito que sai no log do boot.
     public static string Endereço(ApiConfig api) =>
         NoContêiner
             ? $"porta {api.Port} do contêiner"
@@ -53,23 +43,18 @@ public static class AlephApi
                 kestrel.ListenLocalhost(api.Port);
         });
 
-        // a imagem aspnet já vem com ASPNETCORE_HTTP_PORTS=8080. Sem apagar, o Kestrel avisa a
-        // cada boot que vai ignorar essa porta em favor da de cima — aviso sobre nada
+        // sem apagar o ASPNETCORE_HTTP_PORTS da imagem, o Kestrel avisa a cada boot que a ignora
         builder.WebHost.UseSetting(WebHostDefaults.HttpPortsKey, string.Empty);
 
         builder.Services.ConfigureHttpJsonOptions(json =>
         {
             json.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 
-            // o padrão web aceita número vindo como texto, e a página dos docs anunciava "integer ou
-            // string" em todo campo. Aqui só se escreve — e número sai sempre como número
+            // aqui só se escreve: número sai como número, e os docs não dizem "integer ou string"
             json.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
         });
 
-        // na frente de mim fica o Tailscale (serve e Funnel), que conta em X-Forwarded-Proto se o
-        // pedido chegou por HTTPS e em X-Forwarded-For quem pediu. Sem ler isso a página pública
-        // anunciava "http://" — e o navegador barrava o botão de testar — e o log de chave errada
-        // mostrava o IP do Docker. Só vale vindo da rede de dentro: de fora, qualquer um forjaria
+        // o Tailscale na frente conta HTTPS e IP real nos X-Forwarded-*; só vale vindo de dentro
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
         {
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -85,8 +70,7 @@ public static class AlephApi
 
         ConfiguraOCors(builder.Services, api);
 
-        // assina o biscoito da tela de entrada dos docs. As chaves ficam no processo: contêiner
-        // novo, biscoito velho não vale mais, e quem estava lendo a documentação entra de novo
+        // assina o biscoito dos docs; a chave fica no processo, e contêiner novo pede entrada
         builder.Services.AddDataProtection();
 
         builder.Services.AddSingleton(api);
@@ -97,8 +81,7 @@ public static class AlephApi
         builder.Services.AddSingleton<LavalinkMonitor>();
         builder.Services.AddHostedService(provider => provider.GetRequiredService<LavalinkMonitor>());
 
-        // a versão vai no caminho (/api/v1/...), e toda resposta versionada conta no header
-        // api-supported-versions quais versões existem: o v2 nasce do lado do v1, sem quebrar ninguém
+        // a versão vai no caminho (/api/v1/...) e o header api-supported-versions diz quais existem
         var versões = builder.Services
             .AddApiVersioning(opções =>
             {
@@ -116,18 +99,10 @@ public static class AlephApi
         LimiteDePedidos.Configure(builder.Services);
     }
 
-    /// <summary>O nome da política de CORS; o navegador é o único que se importa com ela.</summary>
+    // O nome da política de CORS; o navegador é o único que se importa com ela.
     public const string Cors = "api";
 
-    /// <summary>
-    /// Sem isto, chamar a API de dentro de uma página que não seja a dos docs não funciona: a
-    /// chave vai num header próprio (<c>X-Api-Key</c>), e header próprio obriga o navegador a
-    /// pedir permissão antes, num OPTIONS. Sem resposta a esse OPTIONS ele desiste e o pedido
-    /// de verdade nem sai — era o que derrubava /stats e /commands na IA dos docs, com a chave
-    /// certa na mão. O health e o status escapavam por não precisarem de header nenhum.
-    ///
-    /// De onde a página pode chamar quem decide é o <see cref="OrigensDeConfiança"/>.
-    /// </summary>
+    // Sem isto, a chave em header próprio obriga um OPTIONS antes, e sem resposta ele nem tenta.
     private static void ConfiguraOCors(IServiceCollection services, ApiConfig api) =>
         services.AddCors(cors => cors.AddPolicy(Cors, política =>
         {
@@ -135,15 +110,13 @@ public static class AlephApi
                 .WithMethods(HttpMethods.Get, HttpMethods.Head)
                 .WithHeaders(ApiKeyFilter.Header)
 
-                // sem dizer quais pode ler, o navegador entrega a resposta com os headers
-                // escondidos, e o documento promete estes três a quem usa a API
+                // sem dizer quais pode ler, o navegador esconde os headers que o documento promete
                 .WithExposedHeaders(
                     LimiteDePedidos.CabeçalhoDaCota,
                     LimiteDePedidos.CabeçalhoDaSobra,
                     HeaderDeEspera)
 
-                // a permissão vale um tempo no navegador: sem isso, cada chamada vira duas (o
-                // OPTIONS e ela), e a cota do minuto acabaria na metade do caminho
+                // a permissão vale um tempo no navegador: sem isso cada chamada vira duas
                 .SetPreflightMaxAge(TimeSpan.FromHours(2));
 
             if (api.CorsOrigins.Contains(OrigensDeConfiança.Qualquer))
@@ -152,7 +125,7 @@ public static class AlephApi
                 política.SetIsOriginAllowed(origem => OrigensDeConfiança.Confia(origem, api.CorsOrigins));
         }));
 
-    /// <summary>Quantos segundos esperar depois de um 429.</summary>
+    // Quantos segundos esperar depois de um 429.
     internal const string HeaderDeEspera = "Retry-After";
 
     public static void Map(WebApplication app)
@@ -161,12 +134,10 @@ public static class AlephApi
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
-        // a ordem conta: os headers de proteção valem até pro 429, e o limite vem antes da
-        // senha dos docs, pra que chutar senha também gaste a cota
+        // a ordem conta: o limite vem antes da senha dos docs, pra chutar senha também gastar cota
         ProteçãoDeFora.UseCabeçalhos(app);
 
-        // antes do limite de propósito: o OPTIONS de permissão não traz chave nem leva dado, e
-        // fazer ele gastar cota é cobrar do navegador duas vezes pela mesma chamada
+        // antes do limite: o OPTIONS não leva dado, e cobrar por ele é cobrar duas vezes
         app.UseCors(Cors);
 
         LimiteDePedidos.Use(app);
@@ -178,8 +149,7 @@ public static class AlephApi
             .HasApiVersion(VersãoAtual)
             .ProducesProblem(StatusCodes.Status429TooManyRequests);
 
-        // abertas de propósito: se o bot está de pé e quem ele é, é o que monitor de uptime e
-        // página de status mostrariam pra qualquer um. Os números e os comandos seguem com chave
+        // abertas de propósito: estar de pé e quem eu sou é o que um monitor já mostraria
         var abertas = v1.MapGroup("")
             .WithTags(ApiDocs.GrupoStatus)
             .SemChave();
@@ -193,9 +163,7 @@ public static class AlephApi
             .Produces<HealthResponse>(StatusCodes.Status503ServiceUnavailable)
             .ComExemplo(ExemplosDaApi.Saúde);
 
-        // HEAD é o padrão de monitor como o UptimeRobot; sem ele, 405 e alarme falso. Fica numa
-        // rota à parte do GET só pra ter nome próprio nos docs — e no documento sai sem corpo,
-        // que HEAD não tem
+        // HEAD é o padrão de monitor tipo UptimeRobot; sem ele, 405 e alarme falso
         abertas.MapMethods("/health", [HttpMethods.Head], Saúde)
             .WithSummary("Se o bot está de pé, sem corpo")
             .WithDescription(
@@ -228,7 +196,7 @@ public static class AlephApi
         ApiDocs.Map(app);
     }
 
-    /// <summary>503 quando o Discord caiu: aí eu não respondo comando nenhum.</summary>
+    // 503 quando o Discord caiu: aí eu não respondo comando nenhum.
     private static JsonHttpResult<HealthResponse> Saúde(BotStatus bot)
     {
         var saúde = bot.Saúde();
@@ -240,11 +208,7 @@ public static class AlephApi
                 : StatusCodes.Status200OK);
     }
 
-    /// <summary>
-    /// Os endereços de antes da versão. O /api/health fica de pé como está, porque é ele que
-    /// monitor de uptime chama, e monitor não lê changelog. Os outros mandam pra versão atual
-    /// com 308, que preserva o método. Nenhum deles aparece nos docs.
-    /// </summary>
+    // Os endereços de antes da versão: /api/health fica, o resto vai pra atual com 308.
     private static void MapEndereçosDeAntes(WebApplication app)
     {
         app.MapMethods("/api/health", [HttpMethods.Get, HttpMethods.Head], Saúde)

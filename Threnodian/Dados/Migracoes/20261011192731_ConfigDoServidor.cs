@@ -6,10 +6,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace AlephBot.Threnodian.Dados.Migracoes
 {
-    /// <inheritdoc />
     public partial class ConfigDoServidor : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
@@ -34,7 +32,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                 });
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

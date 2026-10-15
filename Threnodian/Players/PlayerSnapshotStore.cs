@@ -7,13 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Players;
 
-/// <summary>Uma faixa como ela é guardada: os dados codificados do Lavalink e quem pediu.</summary>
+// Uma faixa como ela é guardada: os dados codificados do Lavalink e quem pediu.
 public sealed record FaixaGuardada(string Dados, string? QuemPediu);
 
-/// <summary>
-/// Tudo que um player precisa pra voltar a ser o que era depois de um restart: onde
-/// estava, o que tocava, até onde foi, e o que vinha depois.
-/// </summary>
+// Tudo que um player precisa pra voltar depois de um restart: onde, o quê, até onde e o resto.
 public sealed record PlayerSnapshot(
     ulong GuildId,
     ulong CanalDeVoz,
@@ -26,13 +23,7 @@ public sealed record PlayerSnapshot(
     TrackRepeatMode Repetição,
     DateTimeOffset SalvoEm);
 
-/// <summary>
-/// Onde os players moram enquanto eu não existo.
-///
-/// A fila vive na minha memória, não no Lavalink: quando eu reinicio, ela some junto. Aqui
-/// eu guardo o suficiente pra refazer cada player na volta — e quem escreve é o próprio
-/// player, a cada mudança, então o arquivo acompanha o que está tocando sem ninguém pedir.
-/// </summary>
+// Onde os players moram enquanto eu não existo; quem escreve é o próprio player, a cada mudança.
 public sealed class PlayerSnapshotStore
 {
     private static readonly JsonSerializerOptions Formato = new()
@@ -47,8 +38,7 @@ public sealed class PlayerSnapshotStore
 
     private readonly Dictionary<ulong, PlayerSnapshot> _fotos = [];
 
-    // no desligamento os players são destruídos, e cada um tentaria apagar a própria foto —
-    // justamente a que eu acabei de tirar pra retomar depois. congelado, o arquivo não mexe
+    // no desligamento cada player tentaria apagar a foto que eu acabei de tirar pra retomar
     private bool _congelado;
 
     public PlayerSnapshotStore(ILogger<PlayerSnapshotStore> logger)
@@ -58,7 +48,7 @@ public sealed class PlayerSnapshotStore
         _logger = logger;
     }
 
-    /// <summary>Lê o que ficou do boot anterior. Chamado uma vez, na volta.</summary>
+    // Lê o que ficou do boot anterior. Chamado uma vez, na volta.
     public IReadOnlyList<PlayerSnapshot> Carregar()
     {
         lock (_trava)
@@ -96,7 +86,7 @@ public sealed class PlayerSnapshotStore
         }
     }
 
-    /// <summary>O player saiu do canal por vontade própria: não tem o que retomar.</summary>
+    // O player saiu do canal por vontade própria: não tem o que retomar.
     public void Esquecer(ulong guildId)
     {
         lock (_trava)
@@ -108,7 +98,7 @@ public sealed class PlayerSnapshotStore
         }
     }
 
-    /// <summary>Depois daqui nada mais muda o arquivo: é o que o próximo boot vai ler.</summary>
+    // Depois daqui nada mais muda o arquivo: é o que o próximo boot vai ler.
     public void Congelar()
     {
         lock (_trava)

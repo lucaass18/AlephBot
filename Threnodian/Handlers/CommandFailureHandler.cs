@@ -13,10 +13,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Threnodian.Handlers;
 
-/// <summary>
-/// A NetCord responde as falhas dos comandos com prefixo em inglês ("Too few parameters
-/// provided."). Aqui elas viram mensagens em português, com o Usage do comando junto.
-/// </summary>
+// A NetCord recusa em inglês; aqui isso vira português, com o Usage do comando junto.
 public sealed class CommandFailureHandler : ICommandResultHandler<CommandContext>
 {
     private readonly CommandRegistry _registry;
@@ -84,7 +81,7 @@ public sealed class CommandFailureHandler : ICommandResultHandler<CommandContext
         _ => fail.Message,
     };
 
-    /// <summary>Usage do comando digitado, caindo pro nome cru quando não acho no registry.</summary>
+    // Usage do comando digitado, caindo pro nome cru quando não acho no registry.
     private string Usage(CommandContext context)
     {
         var conteúdo = context.Message.Content.AsSpan();
@@ -97,8 +94,7 @@ public sealed class CommandFailureHandler : ICommandResultHandler<CommandContext
         var fim = conteúdo.IndexOf(' ');
         var nome = (fim < 0 ? conteúdo : conteúdo[..fim]).ToString();
 
-        // o nome existe nas duas formas, mas quem falhou foi a de prefixo — é o uso dela
-        // que ajuda quem digitou errado
+        // o nome existe nas duas formas, mas quem falhou foi a de prefixo
         var info = _registry.All.FirstOrDefault(c =>
             c.IsTexto && string.Equals(c.Name, nome, StringComparison.OrdinalIgnoreCase));
 

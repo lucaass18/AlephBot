@@ -2,24 +2,20 @@ using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// Uma ficha do /ma que já foi mostrada uma vez. Fica guardada por dois motivos: não
-/// perguntar de novo à fonte o que já se sabe, e continuar respondendo quando ela cair —
-/// que foi o que aconteceu quando o Jikan morreu e levou o comando junto.
-/// </summary>
+// Uma ficha do /ma já mostrada: não perguntar duas vezes, e seguir respondendo se a fonte cair.
 public sealed class ObraGuardada
 {
-    /// <summary>Quantos personagens cada ficha guarda. O embed mostra uma linha, não um elenco inteiro.</summary>
+    // Quantos personagens cada ficha guarda. O embed mostra uma linha, não um elenco inteiro.
     public const int PersonagensNoMaximo = 10;
 
     public long Id { get; set; }
 
-    /// <summary>Quem respondeu: "MyAnimeList" ou "AniList". Faz parte da identidade da ficha.</summary>
+    // Quem respondeu: "MyAnimeList" ou "AniList". Faz parte da identidade da ficha.
     public string Fonte { get; set; } = "";
 
     public TipoDeObra Tipo { get; set; }
 
-    /// <summary>O id na fonte que respondeu; com a fonte, é o que identifica a obra.</summary>
+    // O id na fonte que respondeu; com a fonte, é o que identifica a obra.
     public int IdNaFonte { get; set; }
 
     public string? Endereco { get; set; }
@@ -44,7 +40,7 @@ public sealed class ObraGuardada
 
     public int? Volumes { get; set; }
 
-    /// <summary>A data como o MAL guarda ("2002", "2002-10", "2002-10-03"); parcial é parcial.</summary>
+    // A data como o MAL guarda ("2002", "2002-10", "2002-10-03"); parcial é parcial.
     public string? Inicio { get; set; }
 
     public string? Fim { get; set; }
@@ -59,10 +55,7 @@ public sealed class ObraGuardada
 
     public string? Sinopse { get; set; }
 
-    /// <summary>
-    /// A sinopse já está em português e não pode ser mandada pro tradutor de novo quando a
-    /// ficha voltar do banco — texto bom passado por tradutor de máquina vira lixo.
-    /// </summary>
+    // A sinopse já está em português: tradutor de máquina em texto bom vira lixo.
     public bool SinopseEmPortugues { get; set; }
 
     public List<string> Generos { get; set; } = [];
@@ -71,37 +64,31 @@ public sealed class ObraGuardada
 
     public string? Classificacao { get; set; }
 
-    /// <summary>
-    /// Todos os nomes da obra numa linha só, sem acento e em minúscula. É por aqui que a
-    /// ficha é achada quando a fonte está fora e ninguém buscou exatamente aquele termo.
-    /// </summary>
+    // Todos os nomes numa linha, sem acento e minúsculos: é por aqui que a ficha é achada.
     public string Procura { get; set; } = "";
 
-    /// <summary>Quando esta ficha veio da fonte. É a idade que o rodapé do embed mostra.</summary>
+    // Quando esta ficha veio da fonte. É a idade que o rodapé do embed mostra.
     public DateTimeOffset VistoEm { get; set; }
 
     public List<PersonagemGuardado> Personagens { get; set; } = [];
 }
 
-/// <summary>
-/// Alguém do elenco. Vem no mesmo pedido da ficha, então não custa requisição nenhuma — e
-/// fica guardado inteiro, com os outros nomes, pro dia que existir um /personagem.
-/// </summary>
+// Alguém do elenco. Vem no mesmo pedido da ficha, então não custa requisição nenhuma.
 public sealed class PersonagemGuardado
 {
     public long Id { get; set; }
 
     public long ObraId { get; set; }
 
-    /// <summary>A ordem em que a fonte devolveu: protagonista primeiro.</summary>
+    // A ordem em que a fonte devolveu: protagonista primeiro.
     public int Ordem { get; set; }
 
-    /// <summary>O nome romanizado, que é como o personagem se escreve em inglês.</summary>
+    // O nome romanizado, que é como o personagem se escreve em inglês.
     public string Nome { get; set; } = "";
 
     public string? NomeNativo { get; set; }
 
-    /// <summary>Localização oficial e apelido. O que a fonte marca como spoiler nunca chega aqui.</summary>
+    // Localização oficial e apelido. O que a fonte marca como spoiler nunca chega aqui.
     public List<string> OutrosNomes { get; set; } = [];
 
     public bool Principal { get; set; }
@@ -109,17 +96,14 @@ public sealed class PersonagemGuardado
     public string? Imagem { get; set; }
 }
 
-/// <summary>
-/// O que alguém digitou, ligado à ficha que viu. É isto que faz a mesma busca não sair pra
-/// internet duas vezes — e o que garante que amanhã ela devolve a mesma obra de hoje.
-/// </summary>
+// O que alguém digitou, ligado à ficha que viu: a mesma busca não sai duas vezes.
 public sealed class BuscaGuardada
 {
     public const int TermoNoMaximo = 200;
 
     public long Id { get; set; }
 
-    /// <summary>O termo normalizado: sem acento, em minúscula, sem espaço sobrando.</summary>
+    // O termo normalizado: sem acento, em minúscula, sem espaço sobrando.
     public string Termo { get; set; } = "";
 
     public TipoDeObra Tipo { get; set; }

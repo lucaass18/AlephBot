@@ -6,11 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>
-/// O /ma guarda no banco a ficha que mostrou. Serve pra duas coisas: não perguntar de novo
-/// o que já se sabe, e continuar respondendo quando a fonte cair — que foi exatamente o que
-/// aconteceu quando o Jikan morreu.
-/// </summary>
+// O /ma guarda a ficha que mostrou: não perguntar duas vezes, e responder se a fonte cair.
 public class CacheDoMaTests
 {
     private static readonly GoogleTranslator Tradutor = new(NullLogger<GoogleTranslator>.Instance);
@@ -53,10 +49,7 @@ public class CacheDoMaTests
         Assert.Equal("NARUTO", guarda.Guardada?.Título);
     }
 
-    /// <summary>
-    /// "naruto" devolve "Boruto" na frente, e o comando escolhe o título exato. Guardar o
-    /// primeiro da lista faria o banco responder, amanhã, uma ficha que ninguém viu hoje.
-    /// </summary>
+    // "naruto" devolve "Boruto" na frente; guardar o primeiro daria amanhã uma ficha errada.
     [Fact]
     public async Task Guarda_a_ficha_que_foi_mostrada_e_não_a_primeira_da_lista()
     {
@@ -68,7 +61,7 @@ public class CacheDoMaTests
         Assert.Equal(20, guarda.Guardada?.Id);
     }
 
-    /// <summary>Fonte fora do ar com ficha velha no banco: melhor dado de ontem que embed vermelho.</summary>
+    // Fonte fora do ar com ficha velha no banco: melhor dado de ontem que embed vermelho.
     [Fact]
     public async Task Fonte_caída_responde_do_banco()
     {
@@ -93,7 +86,7 @@ public class CacheDoMaTests
         Assert.NotNull(erro);
     }
 
-    /// <summary>Sem Postgres o /ma tem que funcionar igualzinho ao de antes do cache existir.</summary>
+    // Sem Postgres o /ma tem que funcionar igualzinho ao de antes do cache existir.
     [Fact]
     public async Task Sem_banco_a_busca_segue_normal()
     {

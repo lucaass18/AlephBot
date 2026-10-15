@@ -8,11 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.Youtube;
 
-/// <summary>
-/// A faixa do YouTube tocando pelo yt-audio: pro bot ela é a faixa de sempre (o que aparece
-/// no Discord e o que vai pra foto do restart), e qualquer falha do yt-audio devolve a faixa
-/// do plugin em vez de deixar a música muda.
-/// </summary>
+// Pro bot ela é a faixa de sempre, e falha do yt-audio devolve a do plugin.
 public class YoutubeAudioTests
 {
     private const string Id = "dQw4w9WgXcQ";
@@ -42,7 +38,7 @@ public class YoutubeAudioTests
         IsSeekable = true,
     };
 
-    /// <summary>O Lavalink de mentira: guarda o que pediram pra ele carregar.</summary>
+    // O Lavalink de mentira: guarda o que pediram pra ele carregar.
     private sealed class Lavalink(Func<string, LavalinkTrack?> responder)
     {
         public List<string> Carregados { get; } = [];
@@ -54,7 +50,7 @@ public class YoutubeAudioTests
         }
     }
 
-    /// <summary>O yt-audio de mentira: responde ao /preparar com o status que o teste quiser.</summary>
+    // O yt-audio de mentira: responde ao /preparar com o status que o teste quiser.
     private sealed class YtAudioDeMentira(HttpStatusCode status = HttpStatusCode.NoContent, Exception? falha = null)
         : HttpMessageHandler
     {

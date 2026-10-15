@@ -9,11 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>
-/// Ninguém copia o título de um light novel isekai inteiro e acerta: o nome vem com o
-/// subtítulo colado, com "~" onde a fonte usa ":", e a busca devolve zero. Quando não acha
-/// nada, o /ma tenta de novo sem o subtítulo antes de dizer que não achou.
-/// </summary>
+// Título de isekai vem com subtítulo colado e "~" no lugar do ":"; o /ma tenta sem ele.
 public class BuscaDoMaTests
 {
     private const string Inteiro =
@@ -23,7 +19,7 @@ public class BuscaDoMaTests
 
     private static readonly GoogleTranslator Tradutor = new(NullLogger<GoogleTranslator>.Instance);
 
-    /// <summary>Estes testes são sobre a busca, não sobre o cache: aqui o bot roda sem banco.</summary>
+    // Estes testes são sobre a busca, não sobre o cache: aqui o bot roda sem banco.
     private static readonly GuardaFalsa SemBanco = new() { Disponível = false };
 
     [Fact]
@@ -50,7 +46,7 @@ public class BuscaDoMaTests
         Assert.Equal([Inteiro], fonte.Buscas);
     }
 
-    /// <summary>Sem subtítulo não há segunda busca: seria a mesma pergunta duas vezes.</summary>
+    // Sem subtítulo não há segunda busca: seria a mesma pergunta duas vezes.
     [Fact]
     public async Task Título_sem_subtítulo_não_vira_duas_buscas()
     {
@@ -63,10 +59,7 @@ public class BuscaDoMaTests
         Assert.Equal(["coisa nenhuma"], fonte.Buscas);
     }
 
-    /// <summary>
-    /// 403 do AniList é "desliguei a API por instabilidade", não "sua chave está errada".
-    /// Mandar o dono conferir um Client ID que ele nem configurou é mandar pro lugar errado.
-    /// </summary>
+    // 403 do AniList é "desliguei a API", não "chave errada": não manda o dono conferir nada.
     [Fact]
     public async Task Fonte_fora_do_ar_com_403_não_fala_em_Client_ID()
     {

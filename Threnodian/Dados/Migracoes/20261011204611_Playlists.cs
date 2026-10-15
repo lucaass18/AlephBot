@@ -6,10 +6,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace AlephBot.Threnodian.Dados.Migracoes
 {
-    /// <inheritdoc />
     public partial class Playlists : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -67,7 +65,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                 columns: new[] { "playlist_id", "ordem" });
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

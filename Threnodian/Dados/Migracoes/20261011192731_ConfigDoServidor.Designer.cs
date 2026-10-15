@@ -15,7 +15,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
     [Migration("20261011192731_ConfigDoServidor")]
     partial class ConfigDoServidor
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

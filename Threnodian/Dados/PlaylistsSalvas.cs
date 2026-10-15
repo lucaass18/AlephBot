@@ -3,11 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// As playlists que os servidores guardaram. Sem banco não há playlist salva — e isso não
-/// cala o bot: tocar, pular e a fila do momento nunca passaram por aqui, então o que falta
-/// é só a parte de lembrar.
-/// </summary>
+// As playlists guardadas. Sem banco falta só lembrar: tocar e pular não passam por aqui.
 public sealed class PlaylistsSalvas(
     IDbContextFactory<AlephDb>? fábrica,
     MigracaoDoBanco? banco,
@@ -15,7 +11,7 @@ public sealed class PlaylistsSalvas(
 {
     public bool Disponível => fábrica is not null && banco?.Pronto == true;
 
-    /// <summary>O que pode dar errado ao guardar, pra quem chamou saber o que dizer.</summary>
+    // O que pode dar errado ao guardar, pra quem chamou saber o que dizer.
     public enum Resultado
     {
         Guardou,
@@ -33,8 +29,7 @@ public sealed class PlaylistsSalvas(
         {
             await using var db = await fábrica!.CreateDbContextAsync();
 
-            // sem as faixas: a lista mostra nome, tamanho e quem salvou, e carregar faixa
-            // de todas seria trazer o servidor inteiro pra mostrar meia dúzia de linhas
+            // sem as faixas: a lista só mostra nome, tamanho e quem salvou
             return await db.Playlists
                 .AsNoTracking()
                 .Where(p => p.GuildId == guildId)
@@ -57,7 +52,7 @@ public sealed class PlaylistsSalvas(
         }
     }
 
-    /// <summary>A playlist com as faixas na ordem em que foram salvas, ou null se não existe.</summary>
+    // A playlist com as faixas na ordem em que foram salvas, ou null se não existe.
     public async Task<PlaylistSalva?> AcharAsync(ulong guildId, string nome)
     {
         if (!Disponível)
@@ -117,8 +112,7 @@ public sealed class PlaylistsSalvas(
         }
         catch (DbUpdateException erro)
         {
-            // o índice único pegou uma corrida: dois /playlist salvar com o mesmo nome ao
-            // mesmo tempo passam os dois pela conferência e só um chega no banco
+            // o índice único pegou uma corrida: dois /playlist salvar com o mesmo nome
             logger.LogWarning(erro, "A playlist {Nome} já existia quando fui gravar", nome);
             return Resultado.NomeRepetido;
         }
@@ -129,7 +123,7 @@ public sealed class PlaylistsSalvas(
         }
     }
 
-    /// <summary>Apaga pelo nome. Devolve false quando não havia nada com esse nome.</summary>
+    // Apaga pelo nome. Devolve false quando não havia nada com esse nome.
     public async Task<bool> ApagaAsync(ulong guildId, string nome)
     {
         if (!Disponível)

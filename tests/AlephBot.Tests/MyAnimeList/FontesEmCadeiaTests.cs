@@ -6,10 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>
-/// O /ma tinha uma fonte só, e quando ela morreu o comando morreu junto. A cadeia existe
-/// pra isso não se repetir: a reserva responde quando a primeira não responde.
-/// </summary>
+// O /ma tinha uma fonte só e morreu com ela; a cadeia existe pra isso não se repetir.
 public class FontesEmCadeiaTests
 {
     private static readonly Obra Achado = new()
@@ -47,7 +44,7 @@ public class FontesEmCadeiaTests
         Assert.Equal(1, reserva.Chamadas);
     }
 
-    /// <summary>Fonte viva que não conhece a obra é tão inútil quanto fonte morta.</summary>
+    // Fonte viva que não conhece a obra é tão inútil quanto fonte morta.
     [Fact]
     public async Task Cai_pra_reserva_quando_a_primeira_não_acha_nada()
     {
@@ -61,10 +58,7 @@ public class FontesEmCadeiaTests
         Assert.Equal(1, reserva.Chamadas);
     }
 
-    /// <summary>
-    /// Client ID errado é erro meu, não queda do MAL: tem que chegar na cara de quem
-    /// configurou, e não ser escondido por uma reserva que responde.
-    /// </summary>
+    // Client ID errado é erro meu: tem que chegar em quem configurou, não virar reserva.
     [Fact]
     public async Task Credencial_recusada_não_cai_pra_reserva()
     {
@@ -78,10 +72,7 @@ public class FontesEmCadeiaTests
         Assert.Equal(0, reserva.Chamadas);
     }
 
-    /// <summary>
-    /// 403 nem sempre é credencial: é assim que o AniList avisa que desligou a API por
-    /// instabilidade. Isso é queda, e queda é exatamente o que a reserva existe pra cobrir.
-    /// </summary>
+    // 403 nem sempre é credencial: é como o AniList avisa que desligou a API — isso é queda.
     [Theory]
     [InlineData(HttpStatusCode.Forbidden)]
     [InlineData(HttpStatusCode.Unauthorized)]
@@ -97,7 +88,7 @@ public class FontesEmCadeiaTests
         Assert.Equal(1, reserva.Chamadas);
     }
 
-    /// <summary>Todas caíram: quem chamou precisa saber que foi queda, e não "não achei".</summary>
+    // Todas caíram: quem chamou precisa saber que foi queda, e não "não achei".
     [Fact]
     public async Task Sobe_a_falha_quando_todas_as_fontes_falham()
     {

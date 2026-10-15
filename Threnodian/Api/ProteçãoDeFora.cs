@@ -8,17 +8,10 @@ using Microsoft.AspNetCore.Http;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// As camadas pra quem vem de fora (Funnel ou IP público), por cima da chave da API: ninguém
-/// embute a página em outro site, e os docs podem pedir senha — que de dentro nunca é pedida.
-/// O limite de pedidos vale pra todo mundo e mora no <see cref="LimiteDePedidos"/>.
-/// </summary>
+// As camadas pra quem vem de fora, por cima da chave: sem embutir a página, e docs com senha.
 public static class ProteçãoDeFora
 {
-    /// <summary>
-    /// Ninguém põe a página (e a IA) dentro de outro site, e o navegador não adivinha tipo.
-    /// Entra antes do limite, pra valer até no 429.
-    /// </summary>
+    // Ninguém põe a página dentro de outro site. Entra antes do limite, pra valer até no 429.
     public static void UseCabeçalhos(WebApplication app) =>
         app.Use((http, next) =>
         {
@@ -27,39 +20,29 @@ public static class ProteçãoDeFora
             headers.XFrameOptions = "DENY";
             headers.ContentSecurityPolicy = "frame-ancestors 'none'";
 
-            // o endereço daqui não viaja junto quando a página dos docs leva pra fora: o caminho
-            // conta qual versão e qual rota alguém estava olhando, e isso não é da conta do site
-            // de destino
+            // o caminho conta qual rota alguém olhava, e isso não é da conta do site de destino
             headers["Referrer-Policy"] = "no-referrer";
 
             return next(http);
         });
 
-    /// <summary>Quanto a página entrega a quem abriu ela.</summary>
+    // Quanto a página entrega a quem abriu ela.
     public enum Acesso
     {
-        /// <summary>A documentação inteira, sem a IA — que é paga e tem dono.</summary>
+        // A documentação inteira, sem a IA — que é paga e tem dono.
         Visitante,
 
-        /// <summary>A página como em casa, IA inclusa.</summary>
+        // A página como em casa, IA inclusa.
         Dono,
     }
 
     private const string Crachá = "aleph.acesso";
 
-    /// <summary>
-    /// Quem está em casa, ou quem entrou de fora com a senha de dono. É por isto que a página
-    /// decide se mostra a IA.
-    /// </summary>
+    // Quem está em casa, ou quem entrou de fora com a senha de dono — é quem vê a IA.
     public static bool ÉDono(HttpContext http) =>
         RedeDeDentro.ÉDeDentro(http) || (http.Items[Crachá] as Acesso?) == Acesso.Dono;
 
-    /// <summary>
-    /// A senha guarda a página (/api/v1/docs e o que ela carrega). São duas: a de dono abre
-    /// tudo, a de visitante abre a documentação sem a IA. O /api/docs de antes só redireciona
-    /// pra cá, e o documento é público como o do Registry. Entra depois do limite de pedidos de
-    /// propósito: chutar senha também gasta a cota.
-    /// </summary>
+    // A senha guarda a página: a de dono abre tudo, a de visitante abre sem a IA.
     public static void UseSenhaDosDocs(WebApplication app, ApiConfig api)
     {
         if (api.DocsPassword is null && api.DocsAdminPassword is null)
@@ -81,8 +64,7 @@ public static class ProteçãoDeFora
                 return next(http);
             }
 
-            // quem manda a senha no header entra na hora (curl, script), e errar ali conta
-            // igual: o castigo é do chute, não do formulário
+            // quem manda a senha no header entra na hora, e errar ali conta igual
             if (SenhaDoBasic(http) is { } senha)
             {
                 var castigo = LoginDosDocs.Castigo(http);
@@ -103,10 +85,7 @@ public static class ProteçãoDeFora
         });
     }
 
-    /// <summary>
-    /// Que porta esta senha abre — nenhuma, se não for uma das duas. A de dono é conferida
-    /// primeiro: se as duas forem iguais por descuido, quem configurou leva o acesso maior.
-    /// </summary>
+    // Que porta esta senha abre. A de dono é conferida primeiro, se as duas forem iguais.
     public static Acesso? AcessoDaSenha(string senha, ApiConfig api)
     {
         var tentada = Hash(senha);
@@ -120,10 +99,7 @@ public static class ProteçãoDeFora
         return null;
     }
 
-    /// <summary>
-    /// A senha que veio no header, pra quem não é navegador. O usuário tanto faz: quem diz quem
-    /// é a pessoa é a senha.
-    /// </summary>
+    // A senha do header, pra quem não é navegador; o usuário tanto faz.
     private static string? SenhaDoBasic(HttpContext http)
     {
         var cabeçalho = http.Request.Headers.Authorization.ToString();

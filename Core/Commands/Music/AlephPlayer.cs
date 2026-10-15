@@ -18,10 +18,7 @@ using NetCord.Rest;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// Uma faixa na fila com o nome de quem pediu. O <see cref="TrackQueueItem"/> da biblioteca
-/// só carrega a faixa, e aí o "pedido por" some quando a mensagem do /play rola pra cima.
-/// </summary>
+// Uma faixa na fila com o nome de quem pediu, que o item da biblioteca não carrega.
 public sealed class FaixaPedida : ITrackQueueItem
 {
     public FaixaPedida(TrackReference reference, string? quemPediu)
@@ -34,37 +31,20 @@ public sealed class FaixaPedida : ITrackQueueItem
 
     public string? QuemPediu { get; }
 
-    /// <summary>
-    /// Quem enfileirou já mostrou a faixa na resposta, então eu fico quieta quando ela
-    /// começar. Vale uma vez só — se ela voltar no loop, eu anuncio de novo.
-    /// </summary>
+    // Quem enfileirou já viu a faixa, então eu fico quieta; vale uma vez, o loop anuncia de novo.
     public bool JáAnunciada { get; set; }
 }
 
-/// <summary>
-/// O <see cref="AlephPlayer"/> precisa saber em que canal de texto ele fala.
-/// Record porque a classe base é record — o C# não deixa misturar os dois.
-/// </summary>
+// O canal de texto onde o player fala. Record porque a classe base é record.
 public sealed record AlephPlayerOptions : QueuedLavalinkPlayerOptions
 {
     public TextChannel? Canal { get; set; }
 }
 
-/// <summary>
-/// O player da fila com três manias minhas: anuncio sozinha a faixa que começou — é o que
-/// faz a fila andar sem ninguém digitar nada —, me despeço antes de sair do canal, e deixo
-/// uma foto de mim guardada pra voltar ao mesmo ponto se eu reiniciar.
-/// </summary>
+// O player da fila com três manias: anuncio a faixa, me despeço antes de sair e me fotografo.
 public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListener
 {
-    /// <summary>
-    /// Quantas faixas seguidas podem falhar antes de eu desistir da fila inteira.
-    ///
-    /// Faixa que falha não interrompe nada: a fila anda, a próxima começa, e o anúncio de
-    /// início sai. Com uma playlist onde a fonte está barrada, isso vira uma mensagem por
-    /// faixa em rajada — o Discord começa a limitar e o canal fica ilegível. Três seguidas
-    /// já são prova suficiente de que o problema é a fonte, não a faixa.
-    /// </summary>
+    // Quantas falham seguidas antes de eu desistir: três já provam que o problema é a fonte.
     private const int FalhasSeguidasAtéDesistir = 3;
 
     private readonly TextChannel? _canal;
@@ -83,22 +63,11 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         _logger = properties.Logger;
     }
 
-    /// <summary>
-    /// A faixa como item da minha fila. A do YouTube sai envolvida pro yt-audio: é aqui, e
-    /// não em cada comando, porque toda faixa que entra na fila — do /play, da playlist, da
-    /// volta depois de um restart — passa por um player.
-    /// </summary>
+    // A faixa como item da fila. A do YouTube sai envolvida pro yt-audio — toda faixa passa aqui.
     internal FaixaPedida Pedido(LavalinkTrack faixa, string? quemPediu, bool jáAnunciada = false) =>
         new(new TrackReference(_youtube?.Envolver(faixa) ?? faixa), quemPediu) { JáAnunciada = jáAnunciada };
 
-    /// <summary>
-    /// Pede pro yt-audio já preparar a próxima da fila, pra ela começar sem esperar o yt-dlp.
-    /// Eu chamo quando uma faixa começa; os comandos, depois de pôr faixa na fila.
-    /// </summary>
-    /// <summary>
-    /// Adianta o que a próxima faixa precisa pra entrar sem buraco: o link do áudio, pelo
-    /// yt-audio, e a capa, que sobe junto do anúncio dela.
-    /// </summary>
+    // Pede pro yt-audio preparar a próxima — o link e a capa — pra ela começar sem buraco.
     internal void PrepararPróxima()
     {
         var próxima = Queue.Peek()?.Track;
@@ -130,12 +99,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         await FalarAsync(cartão, cancellationToken);
     }
 
-    /// <summary>
-    /// Guarda a foto de agora. Eu mesma chamo quando a faixa muda; os comandos chamam
-    /// depois de mexer em fila, pausa, volume ou loop — é a única forma de eu saber, porque
-    /// a biblioteca não me avisa do que fazem com a fila. E o desligamento chama por último,
-    /// pela posição exata: fora dele, um crash volta a faixa pro ponto da última foto.
-    /// </summary>
+    // Guarda a foto de agora: a biblioteca não me avisa do que fazem com a fila.
     internal void Fotografar()
     {
         try
@@ -175,10 +139,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     private static FaixaGuardada Guardada(LavalinkTrack faixa, string? quemPediu) =>
         new(faixa.ToString(), quemPediu);
 
-    /// <summary>
-    /// A faixa começou e morreu no meio do caminho — fonte bloqueada, vídeo restrito, região.
-    /// Uma eu pulo calada, que é o comportamento de sempre; a sequência delas eu corto.
-    /// </summary>
+    // A faixa morreu no meio — fonte bloqueada, região. Uma eu pulo calada; a sequência eu corto.
     protected override async ValueTask NotifyTrackExceptionAsync(
         ITrackQueueItem track, TrackException exception, CancellationToken cancellationToken = default)
     {
@@ -210,13 +171,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         _falhasSeguidas = 0;
     }
 
-    /// <summary>
-    /// Qualquer fim que não seja falha zera a contagem: o que me interessa é sequência de
-    /// falhas, não o total desde que o player nasceu.
-    ///
-    /// Zerar no início da faixa não serviria — o início da faixa que falha vem antes da
-    /// falha dela, e a contagem nunca sairia de um.
-    /// </summary>
+    // Fim que não é falha zera a contagem: o que me interessa é sequência, não total.
     protected override async ValueTask NotifyTrackEndedAsync(
         ITrackQueueItem track, TrackEndReason endReason, CancellationToken cancellationToken = default)
     {
@@ -229,10 +184,7 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
         Fotografar();
     }
 
-    /// <summary>
-    /// Saí do canal — por comando, por inatividade ou porque me tiraram. Não tem o que
-    /// retomar depois disso; a foto só serve pra restart no meio da música.
-    /// </summary>
+    // Saí do canal: não tem o que retomar, e a foto só serve pra restart no meio da música.
     protected override ValueTask DisposeAsyncCore()
     {
         _fotos.Esquecer(GuildId);
@@ -258,18 +210,15 @@ public sealed class AlephPlayer : QueuedLavalinkPlayer, IInactivityPlayerListene
     ValueTask IInactivityPlayerListener.NotifyPlayerTrackedAsync(
         PlayerTrackingState trackingState, CancellationToken cancellationToken) => default;
 
-    /// <summary>O Lavalink pode mandar a falha sem texto nenhum; aí eu digo isso mesmo.</summary>
+    // O Lavalink pode mandar a falha sem texto nenhum; aí eu digo isso mesmo.
     private static string Motivo(TrackException exception) =>
         exception.Message is { Length: > 0 } texto ? texto : "sem motivo";
 
-    /// <summary>
-    /// Fala no canal onde o player nasceu. Canal apagado ou permissão retirada não pode
-    /// derrubar a música: o erro vira log e a faixa segue tocando.
-    /// </summary>
+    // Fala no canal onde o player nasceu. Canal apagado não derruba a música: vira log.
     internal ValueTask FalarAsync(EmbedProperties embed, CancellationToken cancellationToken) =>
         FalarAsync(new MessageProperties { Embeds = [embed] }, cancellationToken);
 
-    /// <summary>O anúncio no formato novo, com a capa grande dentro do card.</summary>
+    // O anúncio no formato novo, com a capa grande dentro do card.
     internal ValueTask FalarAsync(Cartão cartão, CancellationToken cancellationToken) =>
         FalarAsync(
             new MessageProperties

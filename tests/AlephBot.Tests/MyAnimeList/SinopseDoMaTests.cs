@@ -8,11 +8,7 @@ using NetCord.Rest;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>
-/// A sinopse do /ma era sempre inglês passado por tradutor de máquina. O MangaDex tem
-/// descrição em português escrita por gente — quando ele confirma que é a mesma obra, é
-/// essa que vale, e o rodapé passa a dizer de onde ela veio.
-/// </summary>
+// A sinopse era sempre tradução de máquina; com o MangaDex confirmando, vale a dele.
 public class SinopseDoMaTests
 {
     private const string EmPortuguês = "Gol D. Roger escondeu seu tesouro em algum lugar da Grand Line.";
@@ -45,7 +41,7 @@ public class SinopseDoMaTests
         Assert.DoesNotContain("Pirate King", embed.Description);
     }
 
-    /// <summary>Dizer "traduzida por máquina" numa sinopse escrita por gente seria mentira.</summary>
+    // Dizer "traduzida por máquina" numa sinopse escrita por gente seria mentira.
     [Fact]
     public async Task O_rodapé_diz_que_a_sinopse_é_do_MangaDex()
     {
@@ -55,7 +51,7 @@ public class SinopseDoMaTests
         Assert.DoesNotContain("traduzida por máquina", embed.Footer.Text);
     }
 
-    /// <summary>Não casou a obra, nada muda: continua o caminho de antes.</summary>
+    // Não casou a obra, nada muda: continua o caminho de antes.
     [Fact]
     public async Task Sem_casamento_a_ficha_fica_como_estava()
     {
@@ -66,7 +62,7 @@ public class SinopseDoMaTests
         Assert.DoesNotContain("MangaDex", embed.Footer!.Text);
     }
 
-    /// <summary>O MangaDex não tem anime; perguntar seria gastar requisição à toa.</summary>
+    // O MangaDex não tem anime; perguntar seria gastar requisição à toa.
     [Fact]
     public async Task Anime_não_pergunta_ao_MangaDex()
     {
@@ -78,10 +74,7 @@ public class SinopseDoMaTests
         Assert.Equal(0, mangadex.Chamadas);
     }
 
-    /// <summary>
-    /// A sinopse que vai pro banco é a que foi mostrada: ficha guardada não pode fazer o
-    /// bot perguntar ao MangaDex de novo, nem traduzir por máquina o que já está em português.
-    /// </summary>
+    // A sinopse que vai pro banco é a que foi mostrada: nada de perguntar nem traduzir de novo.
     [Fact]
     public async Task A_sinopse_em_português_é_a_que_fica_guardada()
     {

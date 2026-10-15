@@ -10,29 +10,19 @@ using NetCord.Rest;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// A ponte entre a fila que está tocando e a playlist que fica guardada. As faixas vão e
-/// voltam pelos dados codificados do Lavalink — os mesmos que a foto do player usa pra
-/// retomar tudo depois de um restart, então quem já voltava de um reboot volta daqui.
-/// </summary>
+// A ponte entre a fila e a playlist guardada, pelos dados codificados que a foto do player usa.
 internal static class PlaylistGuardada
 {
-    /// <summary>Quantas faixas a lista mostra antes de dizer "e mais tantas".</summary>
+    // Quantas faixas a lista mostra antes de dizer "e mais tantas".
     private const int NaListaNoMáximo = 10;
 
     private const int TítuloNoMáximo = 200;
 
-    /// <summary>
-    /// Nome sem espaço nas pontas, do tamanho que o banco aceita. Vazio não serve: a pessoa
-    /// não teria como pedir ela de volta depois.
-    /// </summary>
+    // Nome sem espaço nas pontas e do tamanho do banco; vazio ninguém pediria de volta.
     internal static bool NomeAceitável(string? nome) =>
         nome?.Trim() is { Length: > 0 } limpo && limpo.Length <= PlaylistSalva.NomeNoMáximo;
 
-    /// <summary>
-    /// A fila de agora virada faixa guardada: a que toca entra primeiro, e as da fila
-    /// seguem na ordem. É assim que a playlist toca igualzinho quando voltar.
-    /// </summary>
+    // A fila de agora virada faixa guardada: a que toca primeiro, e o resto na ordem.
     internal static IReadOnlyList<FaixaDaPlaylist> DaFila(QueuedLavalinkPlayer player)
     {
         var faixas = new List<FaixaDaPlaylist>();
@@ -62,11 +52,7 @@ internal static class PlaylistGuardada
     private static string Corta(string? texto) =>
         texto is null ? "" : texto.Length <= TítuloNoMáximo ? texto : texto[..TítuloNoMáximo];
 
-    /// <summary>
-    /// Põe a playlist na fila e devolve quantas entraram. Faixa que não decodifica é
-    /// pulada em silêncio: uma que o Lavalink não entende mais não pode levar junto as
-    /// outras quarenta que ainda tocam.
-    /// </summary>
+    // Põe a playlist na fila e diz quantas entraram; a que não decodifica é pulada calada.
     internal static async Task<int> ParaAFilaAsync(
         QueuedLavalinkPlayer player,
         PlaylistSalva playlist,
@@ -88,11 +74,7 @@ internal static class PlaylistGuardada
         return itens.Count;
     }
 
-    /// <summary>
-    /// Com o player parado, a primeira faixa só começa se alguém mandar. Isto fica separado
-    /// do enfileirar de propósito: quem chama roda depois de responder, senão o "tocando
-    /// agora" da primeira sai antes do aviso da playlist e a ordem no canal fica ao contrário.
-    /// </summary>
+    // Com o player parado, a primeira só começa se alguém mandar; quem chama roda após responder.
     internal static ValueTask ComeçarAsync(AlephPlayer player) =>
         player.CurrentTrack is null ? player.SkipAsync() : ValueTask.CompletedTask;
 

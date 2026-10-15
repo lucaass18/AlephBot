@@ -6,14 +6,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace AlephBot.Threnodian.Dados.Migracoes
 {
-    /// <inheritdoc />
     public partial class HistoricoDeStats : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // onde o n8n guarda o que é dele. Quem cria é o bot, porque é ele que tem as
-            // migrações; o que nascer aqui dentro é do n8n, e o bot não encosta
+            // onde o n8n guarda o que é dele; quem cria é o bot, que é quem tem as migrações
             migrationBuilder.EnsureSchema(name: "n8n");
 
             migrationBuilder.CreateTable(
@@ -47,11 +44,9 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                 column: "coletado_em");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // o schema do n8n fica: desfazer esta migração não é motivo pra apagar o que
-            // é de outro serviço
+            // o schema do n8n fica: desfazer isto não é motivo pra apagar o que é de outro serviço
             migrationBuilder.DropTable(
                 name: "stats_historico",
                 schema: "aleph");

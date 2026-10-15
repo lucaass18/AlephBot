@@ -4,10 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace AlephBot.Tests.Api;
 
-/// <summary>
-/// Os docs (/api/v1/docs) e o que eles carregam. A regra que importa: de fora (pelo Funnel ou
-/// com IP público) ninguém leva chave nenhuma — nem a da API, nem a da IA do Scalar.
-/// </summary>
+// Os docs e o que eles carregam. A regra: de fora ninguém leva chave, nem da API nem da IA.
 public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private readonly ApiDeTeste _api = fixture.Api;
@@ -166,8 +163,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
 
     // ---- página --------------------------------------------------------------
 
-    // a configuração do Scalar é o objeto JSON que ocupa uma linha inteira do initialize(...),
-    // seja qual for a primeira chave dele
+    // a configuração do Scalar é o objeto JSON que ocupa uma linha inteira do initialize(...)
     [GeneratedRegex("""(?<=^\s*)\{".*\}(?=,\s*$)""", RegexOptions.Multiline)]
     private static partial Regex ConfigDaPágina();
 
@@ -208,8 +204,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
         var html = await PáginaAsync(PeloFunnel);
         var config = ConfigDaPágina().Match(html).Value;
 
-        // a IA é paga e a chave dela viaja no HTML de quem abre a página: de fora ela fica de
-        // fora, senão qualquer um com o link gasta as mensagens da casa. A da API também não vai
+        // a IA é paga e a chave dela viaja no HTML: de fora ela fica de fora, e a da API também
         Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, html);
         Assert.DoesNotContain(ApiDeTeste.ChaveDaApi, html);
         Assert.DoesNotContain("aleph.js", html);
@@ -238,8 +233,7 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
 
     // ---- módulo que entrega a chave -------------------------------------------
 
-    // origem é só o rótulo que aparece no nome do caso; o que conta são o IP de quem conectou,
-    // o X-Forwarded-For (que só vale vindo de dentro) e a marca do Funnel
+    // origem é só rótulo; o que conta são o IP, o X-Forwarded-For e a marca do Funnel
     [Theory]
     [InlineData("loopback", "127.0.0.1", null, false, true)]
     [InlineData("rede do Docker", "172.18.0.1", null, false, true)]

@@ -9,7 +9,7 @@ using NetCord.Rest;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>O que o embed do /ma passa a mostrar: o elenco, e a idade do dado quando ele é velho.</summary>
+// O que o embed do /ma passa a mostrar: o elenco, e a idade do dado quando ele é velho.
 public class FichaDoMaTests
 {
     private static readonly GoogleTranslator Tradutor = new(NullLogger<GoogleTranslator>.Instance);
@@ -54,7 +54,7 @@ public class FichaDoMaTests
         Assert.Contains("Sasuke Uchiha", elenco);
     }
 
-    /// <summary>Mangá velho não tem elenco cadastrado; campo vazio é sujeira no embed.</summary>
+    // Mangá velho não tem elenco cadastrado; campo vazio é sujeira no embed.
     [Fact]
     public async Task Sem_elenco_o_campo_nem_aparece()
     {
@@ -63,10 +63,7 @@ public class FichaDoMaTests
         Assert.Null(Campo(embed, Denia.MalCampoElenco));
     }
 
-    /// <summary>
-    /// Ficha do banco com a fonte fora do ar: mostrar a nota de uma semana atrás como se
-    /// fosse de agora seria mentir com confiança.
-    /// </summary>
+    // Ficha do banco com a fonte fora: nota de uma semana atrás como de agora é mentira.
     [Fact]
     public async Task Ficha_guardada_avisa_de_quando_é()
     {

@@ -5,13 +5,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace AlephBot.Tests.Api;
 
-/// <summary>
-/// O que o navegador precisa pra chamar a API de uma página que não é a dos docs. A chave vai
-/// num header próprio, e header próprio faz o navegador pedir permissão antes, num OPTIONS:
-/// sem resposta a esse pedido ele desiste, e o GET de verdade nem chega a sair. Era o que
-/// deixava /stats e /commands fora do ar pra IA dos docs mesmo com a chave certa — o curl não
-/// via nada, porque curl não pede permissão a ninguém.
-/// </summary>
+// Sem CORS, a chave em header próprio faz o navegador pedir permissão antes, e o GET nem sai.
 public class CorsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private const string DeOutroSite = "https://scalar.com";
@@ -56,8 +50,7 @@ public class CorsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     [Fact]
     public async Task Pedir_licença_não_gasta_a_cota_do_minuto()
     {
-        // o OPTIONS não traz chave nem leva dado: cobrar por ele seria cobrar duas vezes pela
-        // mesma chamada, e a cota de fora acabaria na metade
+        // o OPTIONS não leva dado: cobrar por ele seria cobrar duas vezes pela mesma chamada
         var antes = await _api.FazAsync(HttpMethods.Get, "/api/v1/status");
         await PedeLicençaAsync("/api/v1/stats");
         var depois = await _api.FazAsync(HttpMethods.Get, "/api/v1/status");
@@ -74,8 +67,7 @@ public class CorsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     [InlineData("/api/v1/stats")]
     public async Task A_resposta_deixa_o_navegador_ler_os_headers_do_limite(string rota)
     {
-        // sem isto a resposta chega, mas com os headers escondidos — e o documento promete os
-        // três a quem usa a API
+        // sem isto a resposta chega com os headers escondidos, e o documento promete os três
         var resposta = await _api.FazAsync(
             HttpMethods.Get,
             rota,

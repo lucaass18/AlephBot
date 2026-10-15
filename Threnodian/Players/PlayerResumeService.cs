@@ -13,26 +13,16 @@ using NetCord.Rest;
 
 namespace AlephBot.Threnodian.Players;
 
-/// <summary>
-/// A volta depois de um restart: pra cada player que ficou na foto, entro de novo no canal,
-/// retomo a faixa de onde parou e refaço a fila. Ninguém precisa digitar /play de novo.
-///
-/// Só volto onde ainda tem gente: canal vazio é o rastreador de inatividade quem teria
-/// esvaziado, e foto velha demais é de uma sessão que já acabou por conta própria.
-///
-/// Registrado por último de propósito: no desligamento os serviços param na ordem inversa,
-/// e eu preciso tirar a última foto — com a posição exata — antes do gateway e dos players
-/// irem embora.
-/// </summary>
+// A volta depois de um restart: refaço cada player da foto, e só onde ainda tem gente.
 public sealed class PlayerResumeService : BackgroundService
 {
-    /// <summary>Foto mais velha que isso é de uma sessão que já acabou; não volto pra ela.</summary>
+    // Foto mais velha que isso é de uma sessão que já acabou; não volto pra ela.
     private static readonly TimeSpan Validade = TimeSpan.FromMinutes(30);
 
     // o cache de guilds enche depois do READY, um GUILD_CREATE de cada vez
     private static readonly TimeSpan EsperaPelaGuild = TimeSpan.FromSeconds(30);
 
-    /// <summary>Abaixo disso a faixa mal começou; voltar do começo é mais limpo que um seek.</summary>
+    // Abaixo disso a faixa mal começou; voltar do começo é mais limpo que um seek.
     private static readonly TimeSpan PosiçãoMínima = TimeSpan.FromSeconds(2);
 
     private readonly IAudioService _áudio;
@@ -84,8 +74,7 @@ public sealed class PlayerResumeService : BackgroundService
 
     public override Task StopAsync(CancellationToken cancellationToken)
     {
-        // a última foto de cada player, com a posição de agora; depois dela os players são
-        // destruídos e tentariam apagar a própria foto — congelado, o arquivo fica como está
+        // a última foto, com a posição de agora; depois os players tentariam apagar a própria
         try
         {
             foreach (var player in _áudio.Players.Players.OfType<AlephPlayer>())
@@ -118,7 +107,7 @@ public sealed class PlayerResumeService : BackgroundService
             return;
         }
 
-        // alguém já pediu música antes de eu chegar aqui: o player novo manda, e a foto dele já cobre a minha
+        // alguém pediu música antes de eu chegar: o player novo manda, e a foto dele cobre
         if (_áudio.Players.Players.Any(player => player.GuildId == foto.GuildId))
             return;
 
@@ -160,7 +149,7 @@ public sealed class PlayerResumeService : BackgroundService
         await player.SetVolumeAsync(foto.Volume, cancellationToken);
         player.RepeatMode = foto.Repetição;
 
-        // marcada como anunciada: quem apresenta a volta sou eu, com a posição, não o "tocando agora"
+        // marcada como anunciada: quem apresenta a volta sou eu, com a posição
         var item = player.Pedido(atual, foto.Atual.QuemPediu, jáAnunciada: true);
         var posição = Retomável(atual, foto.Posição) ? foto.Posição : (TimeSpan?)null;
 
@@ -193,14 +182,14 @@ public sealed class PlayerResumeService : BackgroundService
             cancellationToken);
     }
 
-    /// <summary>Seek só faz sentido em faixa que aceita e que não tinha acabado de começar.</summary>
+    // Seek só faz sentido em faixa que aceita e que não tinha acabado de começar.
     private static bool Retomável(LavalinkTrack faixa, TimeSpan posição) =>
         faixa.IsSeekable
         && !faixa.IsLiveStream
         && posição >= PosiçãoMínima
         && posição < faixa.Duration;
 
-    /// <summary>A fila como estava; faixa que não decodifica mais é pulada, não derruba o resto.</summary>
+    // A fila como estava; faixa que não decodifica mais é pulada, não derruba o resto.
     private List<ITrackQueueItem> Fila(PlayerSnapshot foto, AlephPlayer player)
     {
         var fila = new List<ITrackQueueItem>(foto.Fila.Count);
@@ -232,7 +221,7 @@ public sealed class PlayerResumeService : BackgroundService
         }
     }
 
-    /// <summary>Alguém que não seja eu nem outro bot. Bot não ouve música, e eu muito menos.</summary>
+    // Alguém que não seja eu nem outro bot. Bot não ouve música, e eu muito menos.
     private bool AlguémNoCanal(Guild guild, ulong canalDeVoz)
     {
         foreach (var (userId, estado) in guild.VoiceStates)
@@ -249,7 +238,7 @@ public sealed class PlayerResumeService : BackgroundService
         return false;
     }
 
-    /// <summary>O canal de texto onde o player falava. Apagado ou sem acesso: volto calada.</summary>
+    // O canal de texto onde o player falava. Apagado ou sem acesso: volto calada.
     private async Task<TextChannel?> CanalDeTextoAsync(ulong? id, CancellationToken cancellationToken)
     {
         if (id is null)

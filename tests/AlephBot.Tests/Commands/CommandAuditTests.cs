@@ -54,10 +54,7 @@ public class CommandAuditTests
 
     // ---- os comandos de verdade ----------------------------------------------
 
-    /// <summary>
-    /// Os comandos do bot, lidos sem DI: nome, descrição e categoria são constantes, então a
-    /// instância nem precisa do construtor (que pediria Lavalink, Discord e companhia).
-    /// </summary>
+    // Os comandos lidos sem DI: nome, descrição e categoria são constantes, sem construtor.
     private static List<CommandInfo> ComandosDoBot() =>
         typeof(CommandRegistry).Assembly.GetTypes()
             .Where(tipo => typeof(ICommand).IsAssignableFrom(tipo)
@@ -97,7 +94,7 @@ public class CommandAuditTests
 }
 
 // ---- comandos de mentira ------------------------------------------------------
-//
+
 // a auditoria só olha os atributos, então não precisam ser módulos de verdade
 
 public sealed class ComandoSemGatilho

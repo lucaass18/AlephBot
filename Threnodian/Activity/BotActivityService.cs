@@ -9,10 +9,7 @@ using NetCord.Gateway;
 
 namespace AlephBot.Threnodian.Activity;
 
-/// <summary>
-/// Mantém a atividade do bot atualizada com a contagem de usuários online.
-/// Ex.: "Playing 12 online | !help"
-/// </summary>
+// Mantém a atividade com a contagem de online. Ex.: "Playing 12 online | !help".
 public sealed class BotActivityService : BackgroundService
 {
     // o cache de guilds só enche depois dos GUILD_CREATE, que chegam após o READY

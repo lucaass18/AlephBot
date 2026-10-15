@@ -14,11 +14,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// /playlist add — acha uma playlist do YouTube pelo nome (ou pelo link) e põe ela inteira
-/// na fila. O /play já aceita link de playlist; a diferença está no nome: lá "nightcore
-/// rock" vira o primeiro vídeo, aqui vira a primeira playlist.
-/// </summary>
+// /playlist add — playlist pelo nome ou link. No /play o nome vira vídeo; aqui, playlist.
 [SlashCommand("playlist", "Playlists do YouTube.")]
 public sealed class PlaylistCommand : MusicSlashModule
 {
@@ -40,8 +36,7 @@ public sealed class PlaylistCommand : MusicSlashModule
     public async Task AddAsync(
         [SlashCommandParameter(Name = "busca", Description = "Nome da playlist ou o link dela.")] string busca)
     {
-        // entrar no canal, perguntar ao YouTube e carregar a playlist passa fácil dos
-        // 3 segundos que o Discord dá; peço tempo
+        // entrar no canal e carregar a playlist passa dos 3 segundos do Discord; peço tempo
         await DeferAsync();
 
         var (player, erro) = await Music.PlayerAsync(Áudio, Context, Context.Channel, conectar: true);
@@ -54,7 +49,7 @@ public sealed class PlaylistCommand : MusicSlashModule
 
         var resposta = await Playlist.AdicionarAsync(Áudio, _youtube, player!, busca, Context.User.Username);
 
-        // fora do ExecutarAsync da base por causa do defer; a foto continua sendo minha responsabilidade
+        // fora do ExecutarAsync por causa do defer; a foto continua sendo minha
         player!.Fotografar();
 
         if (resposta.Erro is { } falha)
@@ -151,8 +146,7 @@ public sealed class PlaylistCommand : MusicSlashModule
 
         await EditarRespostaAsync(PlaylistGuardada.Enfileirou(playlist, quantas));
 
-        // só agora: o anúncio da primeira faixa vem do player, e com ele antes da resposta
-        // o canal mostrava o "tocando agora" em cima do aviso da playlist
+        // só agora: antes da resposta, o "tocando agora" saía em cima do aviso da playlist
         await PlaylistGuardada.ComeçarAsync(player!);
         player.Fotografar();
     }
@@ -204,7 +198,7 @@ public sealed class PlaylistCommand : MusicSlashModule
     }
 }
 
-/// <summary>!playlist add — o mesmo do /playlist add, para quem prefere o prefixo.</summary>
+// !playlist add — o mesmo do /playlist add, para quem prefere o prefixo.
 public sealed class PlaylistTextCommand : MusicTextModule
 {
     private readonly YoutubeSearch _youtube;
@@ -240,11 +234,7 @@ internal static class Playlist
         ação.Equals("add", StringComparison.OrdinalIgnoreCase)
         || ação.Equals("adicionar", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Link vai direto pro Lavalink; nome vira busca de playlist no YouTube antes. Nos dois
-    /// casos o que chega tem que ser playlist — vídeo solto é recusado, e não tocado por
-    /// engano, porque quem chamou este comando pediu uma lista.
-    /// </summary>
+    // Link vai direto, nome vira busca; vídeo solto é recusado, porque aqui se pediu uma lista.
     internal static async Task<Music.Resposta> AdicionarAsync(
         IAudioService áudio,
         YoutubeSearch youtube,
@@ -255,8 +245,7 @@ internal static class Playlist
     {
         busca = busca.Trim();
 
-        // aqui a rádio automática (list=RD...) não é tirada de propósito: no /play ela é
-        // um efeito colateral do link copiado; no /playlist add ela é a lista pedida
+        // a rádio (RD...) não é tirada aqui de propósito: no /playlist add ela é a lista pedida
         var alvo = busca;
 
         if (!Music.ÉLink(busca))

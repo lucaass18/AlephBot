@@ -2,24 +2,17 @@ using System.Text.Json;
 
 namespace AlephBot.Threnodian.MyAnimeList;
 
-/// <summary>
-/// O MangaDex (api.mangadex.org): catálogo aberto de mangá, sem chave. Entra na fila do /ma
-/// por dois motivos — é reserva quando o AniList não responde, e tem sinopse em português
-/// escrita por gente, que é melhor do que qualquer tradução de máquina minha.
-/// </summary>
+// O MangaDex: catálogo aberto de mangá, sem chave. Reserva do /ma, e com sinopse em português.
 public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
 {
     private const string Endereço = "https://api.mangadex.org/";
 
     private const int Limite = 5;
 
-    /// <summary>De onde as capas são servidas; o arquivo vem no relacionamento da obra.</summary>
+    // De onde as capas são servidas; o arquivo vem no relacionamento da obra.
     private const string Capas = "https://uploads.mangadex.org/covers";
 
-    /// <summary>
-    /// As classificações que entram. Vão explícitas, e não omitidas, pra busca não mudar
-    /// de comportamento no dia em que eles mexerem no padrão da API.
-    /// </summary>
+    // As classificações vão explícitas, pra busca não mudar quando eles mexerem no padrão.
     private const string Classificações =
         "contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica";
 
@@ -55,8 +48,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
             .Where(achado => achado is { Id: not null, Obra: not null })
             .ToList();
 
-        // a nota não vem na busca, e sem ela o embed diria "ninguém se animou a votar"
-        // sobre obra com milhares de votos. Uma requisição resolve a página inteira
+        // a nota não vem na busca, e sem ela o embed diria que ninguém votou
         var notas = await NotasAsync(achados.Select(achado => achado.Id!), cancellationToken);
 
         return achados
@@ -66,10 +58,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
             .ToList();
     }
 
-    /// <summary>
-    /// As notas de várias obras numa requisição só. Falhar aqui não derruba a busca: ficha
-    /// sem nota ainda serve, ficha nenhuma não serve pra nada.
-    /// </summary>
+    // As notas de várias obras num pedido só. Falhar aqui não derruba a busca.
     private async Task<Dictionary<string, double>> NotasAsync(
         IEnumerable<string> ids, CancellationToken cancellationToken)
     {
@@ -92,11 +81,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         }
     }
 
-    /// <summary>
-    /// A nota de cada obra do "statistics". A bayesiana é a que o site deles mostra e a que
-    /// compara com a do MAL; sem ela vale a média simples. Sem nenhuma, a obra fica de fora
-    /// — zero seria uma nota péssima, e o que se quer dizer é "não sei".
-    /// </summary>
+    // A nota do "statistics"; a bayesiana é a que o site mostra. Sem nenhuma, a obra sai.
     internal static Dictionary<string, double> LerNotas(JsonElement raiz)
     {
         var notas = new Dictionary<string, double>();
@@ -118,11 +103,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         return notas;
     }
 
-    /// <summary>
-    /// A sinopse em português da obra, quando o MangaDex tem a mesma obra e ela tem
-    /// descrição em pt-br. Null quando não dá pra ter certeza de que é a mesma: a busca
-    /// deles ordena mal, e mostrar a sinopse da obra errada é pior que traduzir por máquina.
-    /// </summary>
+    // A sinopse em português, quando é a mesma obra. Null na dúvida: a busca deles ordena mal.
     public async Task<string?> ParaAsync(Obra obra, CancellationToken cancellationToken = default)
     {
         if (obra.Tipo != TipoDeObra.Manga)
@@ -139,8 +120,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
                 if (!ÉAMesmaObra(item, obra))
                     continue;
 
-                // só vale o que está mesmo em português: o inglês dele não é melhor que o
-                // da fonte que já achou a obra
+                // só vale o que está mesmo em português: o inglês dele não é melhor que o da fonte
                 var (texto, éPortuguês) = Descrição(item.Campo("attributes")?.Campo("description"));
 
                 return éPortuguês ? texto : null;
@@ -154,10 +134,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         return null;
     }
 
-    /// <summary>
-    /// Mesma obra só quando um id cruzado confirma. Comparar título seria confiar na ordem
-    /// deles, que devolve a versão colorida e a sequência na frente do original.
-    /// </summary>
+    // Mesma obra só quando um id cruzado confirma; título cairia na ordem ruim deles.
     private static bool ÉAMesmaObra(JsonElement item, Obra obra)
     {
         var links = item.Campo("attributes")?.Campo("links");
@@ -187,7 +164,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         return await JsonDocument.ParseAsync(conteúdo, cancellationToken: cancellationToken);
     }
 
-    /// <summary>Um item do "data" virando a mesma Obra das outras fontes; null se não der pra mostrar.</summary>
+    // Um item do "data" virando a mesma Obra das outras fontes; null se não der pra mostrar.
     internal static Obra? Ler(JsonElement item)
     {
         var atributos = item.Campo("attributes");
@@ -225,7 +202,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         };
     }
 
-    /// <summary>O título é um dicionário por idioma: inglês se houver, senão o romaji, senão o que vier.</summary>
+    // O título é um dicionário por idioma: inglês se houver, senão o romaji, senão o que vier.
     private static string? Título(JsonElement? títulos)
     {
         if (títulos is not { ValueKind: JsonValueKind.Object } dicionário)
@@ -238,7 +215,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
                 .FirstOrDefault(nome => !string.IsNullOrWhiteSpace(nome));
     }
 
-    /// <summary>Os "altTitles" são uma lista de dicionários de um item só: {"ja": "ワンピース"}.</summary>
+    // Os "altTitles" são uma lista de dicionários de um item só: {"ja": "ワンピース"}.
     private static string? Alternativo(JsonElement dados, string idioma) =>
         dados.Lista("altTitles").Select(alt => alt.Texto(idioma)).FirstOrDefault(nome => nome is not null);
 
@@ -288,7 +265,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         return null;
     }
 
-    /// <summary>Autor e desenhista, sem repetir quem faz as duas coisas — que é o normal em mangá.</summary>
+    // Autor e desenhista, sem repetir quem faz as duas coisas — que é o normal em mangá.
     private static List<string> Autoria(JsonElement item)
     {
         var nomes = new List<string>();
@@ -305,10 +282,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         return nomes;
     }
 
-    /// <summary>
-    /// Gênero e tema viram etiqueta no embed, como nas outras fontes; "format" fica de fora
-    /// porque "Award Winning" não é gênero. A demografia entra junto, que é como o MAL mostra.
-    /// </summary>
+    // Gênero e tema viram etiqueta; "format" fica de fora porque "Award Winning" não é gênero.
     private static List<string> Gêneros(JsonElement dados)
     {
         var etiquetas = new List<string>();
@@ -330,10 +304,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         return etiquetas;
     }
 
-    /// <summary>
-    /// A descrição em português quando existe; senão a em inglês, que todo mundo tem. Quem
-    /// chama precisa saber a diferença: português não passa pelo tradutor, inglês passa.
-    /// </summary>
+    // Português quando existe, senão inglês — e só o inglês passa pelo tradutor.
     private static (string? Texto, bool ÉPortuguês) Descrição(JsonElement? descrição)
     {
         if (descrição is not { ValueKind: JsonValueKind.Object } textos)
@@ -349,7 +320,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         return string.IsNullOrWhiteSpace(inglês) ? (null, false) : (inglês.Trim(), false);
     }
 
-    /// <summary>Mangá é japonês; coreano é manhwa e chinês é manhua, e quem lê sabe a diferença.</summary>
+    // Mangá é japonês; coreano é manhwa e chinês é manhua, e quem lê sabe a diferença.
     private static string Formato(string? idioma) => (idioma ?? string.Empty).Split('-')[0] switch
     {
         "ko" => "manhwa",
@@ -366,10 +337,7 @@ public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
         _ => Situação.Desconhecida,
     };
 
-    /// <summary>
-    /// Eles mandam número como texto, e vazio quando não sabem: "364" vira 364, "" vira
-    /// null. Capítulo pode ter decimal ("364.5"); o que interessa é a parte inteira.
-    /// </summary>
+    // Número vem como texto, e vazio quando não sabem: "364" vira 364, "" vira null.
     private static int? Número(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto))

@@ -4,16 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// Põe o schema em dia quando o bot sobe. Tenta algumas vezes antes de desistir: o compose
-/// já espera o <c>pg_isready</c>, mas depois de reboot da VPS quem sobe os contêineres é a
-/// política de restart, sem ordem nenhuma entre eles.
-///
-/// Desistir aqui não derruba o bot. O banco guarda o que o servidor escolheu; tocar música
-/// e responder comando não passa por ele, e um Postgres fora do ar não pode calar o bot
-/// inteiro — vira só o padrão do .env valendo pra todo mundo, como era antes de existir
-/// banco nenhum.
-/// </summary>
+// Põe o schema em dia no boot, tentando algumas vezes. Desistir aqui não derruba o bot.
 public sealed class MigracaoDoBanco(
     IDbContextFactory<AlephDb> fábrica,
     ILogger<MigracaoDoBanco> logger) : IHostedService
@@ -22,7 +13,7 @@ public sealed class MigracaoDoBanco(
 
     private static readonly TimeSpan Espera = TimeSpan.FromSeconds(3);
 
-    /// <summary>Se o schema está de pé. O que depende de banco pergunta aqui antes de tentar.</summary>
+    // Se o schema está de pé. O que depende de banco pergunta aqui antes de tentar.
     public bool Pronto { get; private set; }
 
     public async Task StartAsync(CancellationToken cancellationToken)

@@ -58,10 +58,7 @@ public static class EnvLoader
         }
     }
 
-    /// <summary>
-    /// Cria o arquivo com o template, se faltar. Devolve o caminho, ou null quando já
-    /// existia ou não é um checkout do projeto (container publicado, por exemplo).
-    /// </summary>
+    // Cria o arquivo com o template, se faltar. Null quando já existia ou não é um checkout.
     public static string? CreateIfMissing(string fileName = ".env")
     {
         if (Resolve(fileName) is not null)
@@ -96,7 +93,7 @@ public static class EnvLoader
         return File.Exists(fileName) ? Path.GetFullPath(fileName) : null;
     }
 
-    /// <summary>Sobe a árvore procurando a pasta que contém o .csproj.</summary>
+    // Sobe a árvore procurando a pasta que contém o .csproj.
     private static string? FindProjectRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

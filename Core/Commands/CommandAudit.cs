@@ -5,14 +5,10 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands;
 
-/// <summary>Um problema encontrado num comando — some sozinho quando a classe é corrigida.</summary>
+// Um problema encontrado num comando — some sozinho quando a classe é corrigida.
 public sealed record CommandProblem(string Command, string Message);
 
-/// <summary>
-/// O <see cref="CommandRegistry"/> acha qualquer ICommand, mas achar não é funcionar: sem
-/// [SlashCommand]/[Command] a classe entra no /help e nunca é chamada, e dois comandos podem
-/// brigar pelo mesmo nome sem ninguém notar. Isto roda no boot e vira aviso no log.
-/// </summary>
+// Achar não é funcionar: sem [SlashCommand] a classe entra no /help e nunca é chamada.
 public static class CommandAudit
 {
     public static IReadOnlyList<CommandProblem> Run(IReadOnlyList<CommandInfo> comandos)
@@ -48,7 +44,7 @@ public static class CommandAudit
         return problemas;
     }
 
-    /// <summary>Dois gatilhos iguais em classes diferentes: um deles nunca roda.</summary>
+    // Dois gatilhos iguais em classes diferentes: um deles nunca roda.
     private static IEnumerable<CommandProblem> Duplicados(
         IReadOnlyList<CommandInfo> comandos, Func<Type, IEnumerable<string>> gatilhos, string tipo)
     {
@@ -83,7 +79,7 @@ public static class CommandAudit
         tipo.GetCustomAttribute<TAttribute>() is not null
         || Metodos(tipo).Any(m => m.GetCustomAttribute<TAttribute>() is not null);
 
-    /// <summary>Todos os nomes que chamam a versão com prefixo, o oficial junto. O /help também usa.</summary>
+    // Todos os nomes que chamam a versão com prefixo, o oficial junto. O /help também usa.
     internal static IEnumerable<string> AliasesDeTexto(Type tipo) =>
         Atributos<CommandAttribute>(tipo).SelectMany(a => a.Aliases);
 

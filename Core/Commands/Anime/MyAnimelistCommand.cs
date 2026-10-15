@@ -16,10 +16,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Anime;
 
-/// <summary>
-/// /ma anime, /ma manga — procura no MyAnimeList e mostra a ficha: capa, nota, ranking,
-/// formato, gêneros e a sinopse inteira, traduzida pro português.
-/// </summary>
+// /ma anime, /ma manga — a ficha do MyAnimeList, com a sinopse traduzida.
 [SlashCommand("ma", "Procura um anime ou mangá no MyAnimeList.")]
 public sealed class MyAnimelistCommand : AlephSlashModule
 {
@@ -54,7 +51,7 @@ public sealed class MyAnimelistCommand : AlephSlashModule
 
     private async Task ExecutarAsync(TipoDeObra tipo, string nome)
     {
-        // perguntar ao MAL e depois ao tradutor passa fácil dos 3 segundos que o Discord dá; peço tempo
+        // perguntar ao MAL e ao tradutor passa dos 3 segundos do Discord; peço tempo
         await DeferAsync();
 
         var (embed, erro) = await MyAnimelist.ProcurarAsync(
@@ -67,7 +64,7 @@ public sealed class MyAnimelistCommand : AlephSlashModule
     }
 }
 
-/// <summary>!ma anime/mangá — a mesma ficha do /ma, para quem prefere o prefixo.</summary>
+// !ma anime/mangá — a mesma ficha do /ma, para quem prefere o prefixo.
 public sealed class MyAnimelistTextCommand : AlephTextModule
 {
     private readonly IMyAnimeList _mal;
@@ -119,25 +116,21 @@ internal static class MyAnimelist
 {
     internal const string Uso = "ma <anime|mangá> <nome>";
 
-    /// <summary>O MAL não procura por menos que isso: devolve 400 "invalid q".</summary>
+    // O MAL não procura por menos que isso: devolve 400 "invalid q".
     internal const int BuscaMínima = 3;
 
-    /// <summary>
-    /// Por quanto tempo a ficha guardada responde sozinha. Título e sinopse não mudam;
-    /// nota e ranking mudam na terceira casa decimal, então uma semana não engana ninguém.
-    /// </summary>
+    // Por quanto tempo a ficha guardada responde sozinha; nota e ranking mudam na terceira casa.
     internal static readonly TimeSpan Validade = TimeSpan.FromDays(7);
 
-    /// <summary>O azul do MyAnimeList.</summary>
+    // O azul do MyAnimeList.
     private const int Azul = 0x2E51A2;
 
-    // tetos do Discord: 256 no título, 4096 na descrição, 1024 num campo, 6000 no embed inteiro.
-    // a sinopse para bem antes do teto dela pra sobrar espaço pro resto
+    // tetos do Discord: 256 no título, 4096 na descrição, 1024 no campo, 6000 no embed
     private const int MaxTítulo = 256;
     private const int MaxSinopse = 3000;
     private const int MaxCampo = 1024;
 
-    /// <summary>Onde o título acaba e o subtítulo começa, do jeito que o MAL escreve.</summary>
+    // Onde o título acaba e o subtítulo começa, do jeito que o MAL escreve.
     private static readonly char[] Separadores = ['~', ':', '—', '–'];
 
     // o MAL assina as sinopses que reescreveu; a assinatura não é parte da história
@@ -145,7 +138,7 @@ internal static class MyAnimelist
         @"\s*\[Written by MAL Rewrite\]\s*",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>"anime", "mangá", "manga", "Animes"... o que a pessoa digitou no lugar do subcomando.</summary>
+    // "anime", "mangá", "manga", "Animes"... o que a pessoa digitou no lugar do subcomando.
     internal static TipoDeObra? LerTipo(string texto)
     {
         var limpo = SemAcentos(texto.Trim()).ToLowerInvariant();
@@ -159,10 +152,7 @@ internal static class MyAnimelist
         return null;
     }
 
-    /// <summary>
-    /// Procura, escolhe o resultado, traduz a sinopse e monta a ficha. O /ma e o !ma caem
-    /// os dois aqui; o que volta é o embed pronto ou a frase que explica por que não deu.
-    /// </summary>
+    // Procura, escolhe, traduz e monta a ficha. O /ma e o !ma caem os dois aqui.
     internal static async Task<(EmbedProperties? Embed, string? Erro)> ProcurarAsync(
         IMyAnimeList mal,
         GoogleTranslator tradutor,
@@ -178,8 +168,7 @@ internal static class MyAnimelist
         if (busca.Length < BuscaMínima)
             return (null, Denia.MalBuscaCurta(BuscaMínima));
 
-        // o que já se sabe e ainda vale não precisa ser perguntado de novo: poupa o limite
-        // de pedidos da fonte, que é de todo mundo no servidor, e responde na hora
+        // o que já se sabe e ainda vale poupa o limite da fonte, que é de todo mundo
         if (await Guardada(guarda, tipo, busca, Validade, cancellationToken) is { } fresca)
             return (await FichaAsync(fresca, tradutor, quemPediu, cancellationToken), null);
 
@@ -189,8 +178,7 @@ internal static class MyAnimelist
         {
             resultados = await mal.ProcurarAsync(tipo, busca, cancellationToken);
 
-            // ninguém copia o título de um isekai inteiro e acerta: o subtítulo colado vem
-            // com "~" onde o catálogo usa ":", e aí a busca inteira não devolve nada
+            // o subtítulo colado vem com "~" onde o catálogo usa ":", e a busca não devolve nada
             if (resultados.Count == 0 && SemSubtítulo(busca) is { } começo)
                 resultados = await mal.ProcurarAsync(tipo, começo, cancellationToken);
         }
@@ -211,8 +199,7 @@ internal static class MyAnimelist
         if (Escolhe(resultados, busca) is not { } obra)
             return (null, Denia.MalNãoAchei(tipo, busca));
 
-        // a sinopse em portugues entra antes de guardar: assim a ficha do banco ja vem com
-        // ela, e nem o MangaDex nem o tradutor sao incomodados de novo
+        // a sinopse em português entra antes de guardar, pro MangaDex não ser incomodado de novo
         obra = await EmPortuguêsAsync(mangadex, obra, cancellationToken);
 
         await Guardar(guarda, busca, obra, cancellationToken);
@@ -220,7 +207,7 @@ internal static class MyAnimelist
         return (await FichaAsync(obra, tradutor, quemPediu, cancellationToken), null);
     }
 
-    /// <summary>A ficha pronta: a sinopse traduzida e o embed montado em volta dela.</summary>
+    // A ficha pronta: a sinopse traduzida e o embed montado em volta dela.
     private static async Task<EmbedProperties> FichaAsync(
         Obra obra, GoogleTranslator tradutor, string quemPediu, CancellationToken cancellationToken)
     {
@@ -230,10 +217,7 @@ internal static class MyAnimelist
         return Embed(obra, sinopse, origem, obra.Fonte, quemPediu);
     }
 
-    /// <summary>
-    /// A obra com a sinopse em português, quando o MangaDex confirma que é a mesma. Mangá
-    /// que já veio de lá não precisa: a sinopse dele já é a melhor que existe.
-    /// </summary>
+    // A obra com a sinopse em português, quando o MangaDex confirma que é a mesma obra.
     private static async Task<Obra> EmPortuguêsAsync(
         ISinopseEmPortuguês mangadex, Obra obra, CancellationToken cancellationToken)
     {
@@ -245,11 +229,7 @@ internal static class MyAnimelist
         return português is null ? obra : obra with { Sinopse = português, SinopseEmPortuguês = true };
     }
 
-    /// <summary>
-    /// O banco é conveniência, não dependência: se ele falhar, a busca segue pela fonte e
-    /// ninguém fica sabendo. Guardar vale o mesmo — ficha não guardada só custa uma busca
-    /// a mais amanhã.
-    /// </summary>
+    // O banco é conveniência, não dependência: se falhar, a busca segue pela fonte.
     private static async Task<Obra?> Guardada(
         IFichasGuardadas guarda, TipoDeObra tipo, string busca, TimeSpan? validade, CancellationToken cancellationToken)
     {
@@ -266,10 +246,7 @@ internal static class MyAnimelist
             await guarda.GuardarAsync(busca, obra, cancellationToken);
     }
 
-    /// <summary>
-    /// O que vem antes do subtítulo: "Nome ~o resto~" vira "Nome". Null quando não há
-    /// separador, ou quando o que sobra é curto demais pra procurar com ele.
-    /// </summary>
+    // O que vem antes do subtítulo: "Nome ~o resto~" vira "Nome". Null quando não dá.
     internal static string? SemSubtítulo(string busca)
     {
         busca = busca.Trim();
@@ -290,10 +267,7 @@ internal static class MyAnimelist
         return começo.Length >= BuscaMínima && começo.Length < busca.Length ? começo : null;
     }
 
-    /// <summary>
-    /// O primeiro resultado costuma ser o certo, mas "naruto" também devolve "Naruto:
-    /// Shippuuden" e "Boruto" na frente — se algum título bate exato com a busca, é esse.
-    /// </summary>
+    // O primeiro resultado costuma ser o certo; título que bate exato com a busca ganha.
     private static Obra? Escolhe(IReadOnlyList<Obra> resultados, string busca)
     {
         foreach (var obra in resultados)
@@ -319,7 +293,7 @@ internal static class MyAnimelist
             yield return sinônimo;
     }
 
-    /// <summary>A sinopse pronta pra mostrar e se ela chegou a ser traduzida. Sem sinopse, null.</summary>
+    // A sinopse pronta pra mostrar e se ela chegou a ser traduzida. Sem sinopse, null.
     private static async Task<(string? Texto, OrigemDaSinopse Origem)> SinopseAsync(
         GoogleTranslator tradutor, Obra obra, CancellationToken cancellationToken)
     {
@@ -381,7 +355,7 @@ internal static class MyAnimelist
         return embed;
     }
 
-    /// <summary>Os personagens numa linha só, principais primeiro, como a fonte devolveu.</summary>
+    // Os personagens numa linha só, principais primeiro, como a fonte devolveu.
     private static string? Elenco(Obra obra)
     {
         if (obra.Personagens.Count == 0)
@@ -390,10 +364,7 @@ internal static class MyAnimelist
         return Recorta(string.Join(" · ", obra.Personagens.Select(quem => Markdown.Escapa(quem.Nome))), MaxCampo);
     }
 
-    /// <summary>
-    /// O rodapé de sempre; ficha que veio do banco ganha a data, porque nota de dias atrás
-    /// mostrada como se fosse de agora é mentira dita com confiança.
-    /// </summary>
+    // O rodapé de sempre; ficha do banco ganha a data, pra nota velha não passar por nova.
     private static string Rodapé(Obra obra, string fonte, string quemPediu, OrigemDaSinopse origem)
     {
         var rodapé = Denia.MalRodapé(fonte, quemPediu, origem);
@@ -401,7 +372,7 @@ internal static class MyAnimelist
         return obra.VistoEm is { } quando ? $"{rodapé} · {Denia.MalDoCache(quando)}" : rodapé;
     }
 
-    /// <summary>Os outros nomes em cima, a sinopse embaixo, e o aviso quando ela ficou em inglês.</summary>
+    // Os outros nomes em cima, a sinopse embaixo, e o aviso quando ela ficou em inglês.
     private static string Descrição(Obra obra, string? sinopse, OrigemDaSinopse origem)
     {
         var texto = new StringBuilder();
@@ -429,7 +400,7 @@ internal static class MyAnimelist
         return texto.ToString();
     }
 
-    /// <summary>O título em inglês e o japonês, quando existem e não são o principal de novo.</summary>
+    // O título em inglês e o japonês, quando existem e não são o principal de novo.
     private static string? OutrosNomes(Obra obra)
     {
         var nomes = new[] { obra.TítuloEmInglês, obra.TítuloEmJaponês }
@@ -443,7 +414,7 @@ internal static class MyAnimelist
         return nomes.Count > 0 ? string.Join(" · ", nomes) : null;
     }
 
-    /// <summary>"TV · 220 episódios · 13+", pulando o que o MAL não sabe.</summary>
+    // "TV · 220 episódios · 13+", pulando o que o MAL não sabe.
     private static string Formato(Obra obra)
     {
         var partes = new[]
@@ -470,10 +441,7 @@ internal static class MyAnimelist
 
     // ---- texto ---------------------------------------------------------------
 
-    /// <summary>
-    /// Corta no fim do último parágrafo inteiro que cabe; sem parágrafo, no fim da última
-    /// frase. Sinopse cortada no meio da palavra parece erro, não limite.
-    /// </summary>
+    // Corta no fim do último parágrafo que cabe; no meio da palavra parece erro, não limite.
     private static string CortaNoParágrafo(string texto)
     {
         var corte = texto.LastIndexOf("\n\n", MaxSinopse, StringComparison.Ordinal);
@@ -487,7 +455,7 @@ internal static class MyAnimelist
         return texto[..corte].TrimEnd();
     }
 
-    /// <summary>Corte seco com reticência, pra campo curto que estourou o teto do Discord.</summary>
+    // Corte seco com reticência, pra campo curto que estourou o teto do Discord.
     private static string Recorta(string texto, int max) =>
         texto.Length <= max ? texto : $"{texto[..(max - 1)]}…";
 

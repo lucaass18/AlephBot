@@ -6,13 +6,10 @@ using NetCord.Rest;
 
 namespace AlephBot.Core.Commands.Admin;
 
-/// <summary>
-/// O que kick, mute e ban têm em comum: as recusas, a hierarquia de cargos,
-/// o aviso na DM e o embed do resultado. Cada comando só cuida da própria ação.
-/// </summary>
+// O que kick, mute e ban têm em comum: recusas, hierarquia, aviso na DM e o embed.
 internal static class Moderation
 {
-    /// <summary>Devolve a mensagem de erro, ou null se a punição pode seguir.</summary>
+    // Devolve a mensagem de erro, ou null se a punição pode seguir.
     internal static string? Validate(
         Guild guild, GuildUser alvo, GuildUser moderador, ulong botId, AçãoModeração ação)
     {
@@ -39,14 +36,11 @@ internal static class Moderation
     internal static string NormalizeReason(string? motivo) =>
         string.IsNullOrWhiteSpace(motivo) ? Denia.SemMotivo() : motivo.Trim();
 
-    /// <summary>Motivo do audit log do Discord — quem olhar lá vê quem mandou e por quê.</summary>
+    // Motivo do audit log do Discord — quem olhar lá vê quem mandou e por quê.
     internal static RestRequestProperties AuditLog(GuildUser moderador, string motivo) =>
         new() { AuditLogReason = $"{moderador.Username}: {motivo}" };
 
-    /// <summary>
-    /// Avisa o punido antes da punição: depois do kick/ban o bot pode não conseguir
-    /// mais abrir a DM. DM fechada não interrompe nada.
-    /// </summary>
+    // Avisa antes da punição: depois do kick/ban a DM pode não abrir mais.
     internal static async Task TryNotifyAsync(
         GatewayClient client,
         Guild guild,
@@ -142,7 +136,7 @@ internal static class Moderation
         _ => 0xE74C3C,                    // vermelho
     };
 
-    /// <summary>Cargo mais alto do usuário, ou null quando ele só tem o @everyone.</summary>
+    // Cargo mais alto do usuário, ou null quando ele só tem o @everyone.
     internal static Role? TopRole(Guild guild, GuildUser user)
     {
         Role? top = null;

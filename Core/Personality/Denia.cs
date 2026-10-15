@@ -6,29 +6,24 @@ using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Core.Personality;
 
-/// <summary>
-/// A Denia (Wuthering Waves): niilista de bom humor, sonolenta, gulosa e cúmplice. Ela
-/// alfineta, mas nunca esconde a informação atrás da piada — toda frase daqui ainda diz
-/// o que aconteceu e o que fazer.
-///
-/// Todo texto que o usuário lê sai deste arquivo. Mudar o tom dela é mexer só aqui.
-/// </summary>
-/// <summary>De onde saiu a sinopse que o embed mostra; o rodapé diz isso em uma linha.</summary>
+// A Denia (Wuthering Waves): alfineta sem esconder a informação. Todo texto do usuário sai daqui.
+
+// De onde saiu a sinopse que o embed mostra.
 public enum OrigemDaSinopse
 {
-    /// <summary>Como a fonte guarda, quase sempre em inglês.</summary>
+    // Como a fonte guarda, quase sempre em inglês.
     DaFonte,
 
-    /// <summary>Passada pelo tradutor de máquina.</summary>
+    // Passada pelo tradutor de máquina.
     Traduzida,
 
-    /// <summary>Em português, escrita por gente, trazida do MangaDex.</summary>
+    // Em português, escrita por gente, trazida do MangaDex.
     DoMangaDex,
 }
 
 public static class Denia
 {
-    /// <summary>A fala de saudação dela; serve de assinatura nos rodapés.</summary>
+    // A fala de saudação dela; serve de assinatura nos rodapés.
     public const string Assinatura = "Shh... fica entre a gente.";
 
     // ---- ping ----------------------------------------------------------------
@@ -257,18 +252,14 @@ public static class Denia
     public const string MúsicaCampoAgora = "▶️ Agora";
     public const string MúsicaCampoASeguir = "⏭️ A seguir";
 
-    /// <summary>A primeira da playlist quando ela entra atrás de uma fila que já existe.</summary>
+    // A primeira da playlist quando ela entra atrás de uma fila que já existe.
     public const string MúsicaPlaylistComeçaPor = "⏭️ Começa por";
     public const string MúsicaCampoTotal = "🧮 No total";
 
-    /// <summary>Faixa sem fim: não tem barra de progresso nem duração pra mostrar.</summary>
+    // Faixa sem fim: não tem barra de progresso nem duração pra mostrar.
     public const string MúsicaAoVivo = "🔴 ao vivo";
 
-    /// <summary>
-    /// O rodapé recolhe o que não merece um campo só pra si: de onde veio a faixa e quem
-    /// pediu. Os dois são opcionais — playlist não tem fonte única, e faixa que entrou
-    /// sozinha depois de um restart não tem dono.
-    /// </summary>
+    // O rodapé recolhe o que não merece campo: a fonte e quem pediu, os dois opcionais.
     public static string MúsicaRodapé(string? quem, string? fonte)
     {
         var texto = new StringBuilder(Assinatura);
@@ -348,10 +339,7 @@ public static class Denia
         $"Peguei **{quantas}** faixas. Isso vai demorar.",
         $"**{quantas}** faixas na fila. Espero que você tenha bom gosto.");
 
-    /// <summary>
-    /// Quando tem próxima, quem apresenta ela é o anúncio automático do player — por isso
-    /// esta frase não repete o nome dela, senão o canal recebe a mesma informação duas vezes.
-    /// </summary>
+    // Não repete o nome da próxima: quem apresenta ela é o anúncio automático do player.
     public static string MúsicaPulou(string faixa, bool temPróxima) =>
         temPróxima
             ? $"Pulei **{faixa}**. Já ponho a próxima."
@@ -414,7 +402,7 @@ public static class Denia
     public static string MúsicaNãoDáProProcurar(string faixa) =>
         $"**{faixa}** não deixa avançar — transmissão ao vivo não tem onde chegar.";
 
-    /// <summary>A despedida quando ninguém sobrou no canal ou nada tocou por tempo demais.</summary>
+    // A despedida quando ninguém sobrou no canal ou nada tocou por tempo demais.
     public static string MúsicaInativa() => Pick(
         "Ficou todo mundo quieto, então eu saí. Estava mesmo com sono.",
         "Sem música e sem gente, não tenho o que fazer aqui. Saí.",
@@ -445,9 +433,8 @@ public static class Denia
             : $"A fila veio junto: mais {quantas} faixas.";
 
     // ---- login do YouTube ----------------------------------------------------
-    //
-    // sai no console: no primeiro boot com YOUTUBE_LOGIN ligado, e de novo se o Google
-    // invalidar o token que eu guardava
+
+    // sai no console no primeiro boot com YOUTUBE_LOGIN, e se o Google invalidar o token
 
     public const string YoutubeTítulo = "login do YouTube";
 
@@ -499,7 +486,7 @@ public static class Denia
     public static string MalCampoAutoria(TipoDeObra tipo) =>
         tipo == TipoDeObra.Anime ? "🎬 Estúdio" : "✍️ Autoria";
 
-    /// <summary>Os outros nomes da obra, na linha de cima da sinopse. Eles já vêm em negrito.</summary>
+    // Os outros nomes da obra, na linha de cima da sinopse. Eles já vêm em negrito.
     public static string MalTambémConhecida(string nomes) =>
         $"Também conhecido como {nomes}";
 
@@ -536,7 +523,7 @@ public static class Denia
         _ => "Ninguém sabe",
     };
 
-    /// <summary>O formato do MAL ("tv", "movie", "light novel") em português; o que eu não conheço passa como veio.</summary>
+    // O formato do MAL em português; o que eu não conheço passa como veio.
     public static string? MalFormato(string? formato) => formato switch
     {
         null => null,
@@ -561,7 +548,7 @@ public static class Denia
         _ => formato,
     };
 
-    /// <summary>Quantos episódios, ou capítulos e volumes. O que o MAL ainda não sabe fica de fora.</summary>
+    // Quantos episódios, ou capítulos e volumes. O que o MAL ainda não sabe fica de fora.
     public static string? MalQuantidade(TipoDeObra tipo, int? episódios, int? capítulos, int? volumes)
     {
         if (tipo == TipoDeObra.Anime)
@@ -578,7 +565,7 @@ public static class Denia
         return partes.Count > 0 ? string.Join(" · ", partes) : null;
     }
 
-    /// <summary>A classificação indicativa do MAL, do jeito que se lê aqui.</summary>
+    // A classificação indicativa do MAL, do jeito que se lê aqui.
     public static string? MalClassificação(string? código) => código switch
     {
         "g" => "Livre",
@@ -609,7 +596,7 @@ public static class Denia
         return $"{início} → {fim}";
     }
 
-    /// <summary>O gênero do MAL em português. Os que o Brasil usa em japonês ou inglês ficam como estão.</summary>
+    // O gênero do MAL em português. Os que o Brasil usa em japonês ou inglês ficam como estão.
     public static string MalGênero(string nome) =>
         Gêneros.TryGetValue(nome, out var traduzido) ? traduzido : nome;
 
@@ -617,15 +604,15 @@ public static class Denia
         "Sem sinopse no MAL. Ou ninguém escreveu, ou não tem o que contar.",
         "O MAL não tem sinopse pra esse. Vai ter que descobrir por conta própria.");
 
-    /// <summary>Quando o tradutor não respondeu e a sinopse ficou como o MAL guarda: em inglês.</summary>
+    // Quando o tradutor não respondeu e a sinopse ficou como o MAL guarda: em inglês.
     public static string MalSinopseEmInglês() =>
         "*(o tradutor cochilou — a sinopse ficou em inglês)*";
 
-    /// <summary>Sinopse maior que o embed aguenta: o resto fica no MAL, que o título já aponta.</summary>
+    // Sinopse maior que o embed aguenta: o resto fica no MAL, que o título já aponta.
     public static string MalSinopseCortada() =>
         "*(…continua no MyAnimeList — o título leva lá)*";
 
-    /// <summary>Quem forneceu os dados e, quando houve tradução, o aviso de que foi máquina.</summary>
+    // Quem forneceu os dados e, quando houve tradução, o aviso de que foi máquina.
     public static string MalRodapé(string fonte, string quem, OrigemDaSinopse sinopse) => sinopse switch
     {
         OrigemDaSinopse.Traduzida =>
@@ -638,10 +625,7 @@ public static class Denia
         _ => $"{Assinatura} · dados do {fonte} · pedido por {quem}",
     };
 
-    /// <summary>
-    /// A ficha veio do banco porque a fonte não respondeu. A data importa: nota de uma
-    /// semana atrás mostrada como se fosse de agora é mentira dita com confiança.
-    /// </summary>
+    // Ficha do banco porque a fonte não respondeu. A data importa: nota velha não é de agora.
     public static string MalDoCache(DateTimeOffset quando) =>
         $"dados de {quando.ToLocalTime():dd/MM} que eu já tinha aqui";
 
@@ -820,7 +804,7 @@ public static class Denia
 
     // ---- desligamento --------------------------------------------------------
 
-    /// <summary>A última fala dela: sai no console quando o processo encerra.</summary>
+    // A última fala dela: sai no console quando o processo encerra.
     public static string Despedida() => Pick(
         "Enfim. Vou dormir.",
         "Desliguei. Ninguém vai sentir falta — nem eu.",
@@ -829,7 +813,7 @@ public static class Denia
         "Tô indo. Foi bom enquanto durou, eu acho.",
         "Pronto, apaguei a luz. Boa noite pra mim.");
 
-    /// <summary>Quando o encerramento não foi escolha dela.</summary>
+    // Quando o encerramento não foi escolha dela.
     public static string DespedidaComErro() => Pick(
         "Caí. Não foi por querer.",
         "Alguma coisa quebrou e eu fui junto.",
@@ -837,9 +821,8 @@ public static class Denia
         "Bom, isso doeu. Boa sorte aí.");
 
     // ---- API -----------------------------------------------------------------
-    //
-    // sem sorteio aqui: quem lê primeiro é um programa, e programa estranha resposta que muda
-    // sozinha. A personalidade fica no texto, que é o que chega no humano lá do outro lado
+
+    // sem sorteio: quem lê primeiro é um programa, e programa estranha resposta que muda sozinha
 
     public static string ApiSemChave(string header) =>
         $"Sem chave eu não converso. Manda ela no header {header}.";
@@ -888,7 +871,7 @@ public static class Denia
 
     // --------------------------------------------------------------------------
 
-    /// <summary>Varia a fala pra ela não parecer um gravador.</summary>
+    // Varia a fala pra ela não parecer um gravador.
     private static string Pick(params string[] falas) =>
         falas[Random.Shared.Next(falas.Length)];
 }

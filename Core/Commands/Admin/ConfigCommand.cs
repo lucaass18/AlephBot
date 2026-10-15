@@ -10,13 +10,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace AlephBot.Core.Commands.Admin;
 
-/// <summary>
-/// /config — o que este servidor escolheu pra si. Sem nenhuma opção, mostra como está;
-/// com elas, muda só o que foi preenchido e deixa o resto quieto.
-///
-/// Pede "Gerenciar servidor" porque mexe no bot pra todo mundo que está lá dentro, não só
-/// pra quem digitou.
-/// </summary>
+// /config — mostra ou muda o que o servidor escolheu. Pede "Gerenciar servidor": vale pra todos.
 public sealed class ConfigCommand(ConfigDosServidores configs) : AlephSlashModule
 {
     public override string Name => "config";
@@ -24,7 +18,7 @@ public sealed class ConfigCommand(ConfigDosServidores configs) : AlephSlashModul
     public override CommandCategory Category => CommandCategory.Moderation;
     public override string? Usage => "config [prefixo] [canal-de-log] [espera]";
 
-    /// <summary>O que o usuário digita pra tirar uma escolha e voltar ao padrão do bot.</summary>
+    // O que o usuário digita pra tirar uma escolha e voltar ao padrão do bot.
     private const string Limpar = "padrão";
 
     private const int EsperaMínima = 1;
@@ -96,10 +90,7 @@ public sealed class ConfigCommand(ConfigDosServidores configs) : AlephSlashModul
     internal static bool ÉPadrão(string valor) =>
         string.Equals(valor.Trim(), Limpar, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Prefixo com espaço no meio ou vazio faria comando nenhum ser reconhecido, e quem
-    /// mudou não teria como desfazer — o comando de texto pra voltar atrás também pararia.
-    /// </summary>
+    // Prefixo vazio ou com espaço faria comando nenhum ser reconhecido, nem o de desfazer.
     internal static bool ÉPrefixoAceitável(string valor)
     {
         if (ÉPadrão(valor))

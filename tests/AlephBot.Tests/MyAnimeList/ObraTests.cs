@@ -42,7 +42,7 @@ public class ObraTests
     }
 }
 
-/// <summary>Data como o MAL guarda: às vezes só o ano. Completar o resto seria inventar.</summary>
+// Data como o MAL guarda: às vezes só o ano. Completar o resto seria inventar.
 public class DataParcialTests
 {
     [Theory]

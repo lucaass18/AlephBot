@@ -15,7 +15,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
     [Migration("20261011204611_Playlists")]
     partial class Playlists
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

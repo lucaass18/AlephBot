@@ -7,13 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Youtube;
 
-/// <summary>
-/// Onde o refresh token do YouTube mora entre um boot e outro.
-///
-/// Antes ele vivia só no .env, e qualquer token que o Google trocasse por baixo dos panos
-/// se perdia no próximo restart. Agora o arquivo em data/ é a verdade; o .env é só a
-/// semente — vale na primeira vez, ou quando alguém colar um token novo nele.
-/// </summary>
+// Onde o refresh token mora entre um boot e outro: o arquivo é a verdade, o .env é a semente.
 public sealed class YoutubeTokenStore
 {
     private static readonly JsonSerializerOptions Formato = new() { WriteIndented = true };
@@ -33,7 +27,7 @@ public sealed class YoutubeTokenStore
         _logger = logger;
     }
 
-    /// <summary>O token em uso, ou null quando ninguém fez login ainda.</summary>
+    // O token em uso, ou null quando ninguém fez login ainda.
     public string? Token { get; private set; }
 
     public string Caminho => _caminho;
@@ -42,8 +36,7 @@ public sealed class YoutubeTokenStore
     {
         var salvo = Ler();
 
-        // .env com token que não foi o que semeou o arquivo: alguém colou um novo, e o
-        // novo ganha do que eu tinha guardado
+        // token no .env diferente do que semeou o arquivo: alguém colou um novo, e o novo ganha
         if (_semente is not null && salvo?.Semente != _semente)
         {
             _sementeUsada = _semente;
@@ -55,7 +48,7 @@ public sealed class YoutubeTokenStore
         Token = salvo?.Token;
     }
 
-    /// <summary>Troca o token em uso e grava. Falha de disco não derruba nada: fica em memória.</summary>
+    // Troca o token em uso e grava. Falha de disco não derruba nada: fica em memória.
     public void Guardar(string token)
     {
         Token = token;

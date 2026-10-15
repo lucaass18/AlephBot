@@ -1,8 +1,8 @@
 #:project ../AlephBot.csproj
 #:property PublishAot=false
 
-// Roda os testes de unidade e mostra o resultado na paleta do console do bot, agrupado por
-// pasta e classe. O que vier depois do "--" vai direto pro dotnet test:
+// Roda os testes e mostra o resultado na paleta do bot. O que vier depois do "--" vai pro dotnet
+// test:
 //
 //   dotnet run tests/relatorio.cs
 //   dotnet run tests/relatorio.cs -- --filter-class AlephBot.Tests.Commands.MuteCommandTests
@@ -43,7 +43,7 @@ var (código, saída) = await Script.RodarAsync(raiz, "dotnet",
     .. args,
 ]);
 
-// sem relatório o problema veio antes dos testes (quase sempre o build): o que o dotnet disse é o que importa
+// sem relatório o problema veio antes dos testes (quase sempre o build)
 if (!File.Exists(xml))
 {
     Console.WriteLine($"  {cinza}{Denia.TestesNãoRodaram()}{fim}");
@@ -137,7 +137,7 @@ void Falha(Teste teste)
         Console.WriteLine($"            {apagado}{onde}{fim}");
 }
 
-/// <summary>Um teste como o xUnit escreve no relatório XML.</summary>
+// Um teste como o xUnit escreve no relatório XML.
 sealed partial record Teste(
     string Tipo, string Nome, string Resultado, double Segundos, string Mensagem, string? Pilha, string? Arquivo, string? Linha)
 {
@@ -159,12 +159,12 @@ sealed partial record Teste(
 
     public bool Ignorado => Resultado is "Skip" or "NotRun";
 
-    /// <summary>"AlephBot.Tests.Commands.MuteCommandTests" mora na pasta "Commands".</summary>
+    // "AlephBot.Tests.Commands.MuteCommandTests" mora na pasta "Commands".
     public string Pasta => Tipo.StartsWith(Prefixo, StringComparison.Ordinal) ? Tipo[Prefixo.Length..].Split('.')[0] : "?";
 
     public string Classe => Tipo[(Tipo.LastIndexOf('.') + 1)..];
 
-    /// <summary>"Senha_errada_não_abre(tentativa: \"x\")" vira "Senha errada não abre (tentativa: "x")".</summary>
+    // "Senha_errada_não_abre(tentativa: \"x\")" vira "Senha errada não abre (tentativa: "x")".
     public string NomeLegível
     {
         get
@@ -179,13 +179,13 @@ sealed partial record Teste(
         }
     }
 
-    /// <summary>Onde o Assert estourou — a primeira linha da pilha que cai num .cs — ou, sem pilha, o teste.</summary>
+    // Onde o Assert estourou — a primeira linha da pilha que cai num .cs — ou, sem pilha, o teste.
     public string? Onde =>
         Pilha is not null && LinhaDaPilha().Match(Pilha) is { Success: true } achado
             ? $"{Path.GetFileName(achado.Groups["arquivo"].Value)}:{achado.Groups["linha"].Value}"
             : Arquivo is not null ? $"{Path.GetFileName(Arquivo)}:{Linha}" : null;
 
-    /// <summary>O relatório XML escapa aspas e barras mais uma vez por cima do que o xUnit escreveu.</summary>
+    // O relatório XML escapa aspas e barras mais uma vez por cima do que o xUnit escreveu.
     private static string Desescapa(string texto) => Escapado().Replace(texto, "$1");
 
     // "em X.cs:linha 41", "in X.cs:line 41" e o que mais o idioma do sistema escrever no meio
@@ -198,7 +198,7 @@ sealed partial record Teste(
 
 static class Script
 {
-    /// <summary>A pasta deste arquivo, gravada na compilação: o script acha o repositório de onde quer que rode.</summary>
+    // A pasta deste arquivo, gravada na compilação: o script acha o repositório de onde rodar.
     public static string Pasta([CallerFilePath] string arquivo = "") => Path.GetDirectoryName(arquivo)!;
 
     public static async Task<(int Código, string Saída)> RodarAsync(string pasta, string programa, IEnumerable<string> argumentos)

@@ -6,12 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.Dados;
 
-/// <summary>
-/// A regra que o banco não pode quebrar: sem ele, o bot segue inteiro. Tocar música e
-/// responder comando não passam por Postgres — ele guarda o que cada servidor escolheu, e
-/// servidor sem escolha (ou com o banco fora) fica com o padrão do .env, que é exatamente
-/// como o bot funcionava antes de existir banco aqui.
-/// </summary>
+// A regra que o banco não pode quebrar: sem ele, o bot segue inteiro, com o padrão do .env.
 public class ConfigDosServidoresTests
 {
     private const ulong Servidor = 1071673946337972307;
@@ -55,8 +50,7 @@ public class ConfigDosServidoresTests
     [Fact]
     public async Task Sem_banco_salvar_devolve_false_em_vez_de_fingir()
     {
-        // quem chamou precisa saber pra avisar a pessoa: dizer "guardei" sem ter guardado
-        // é pior do que não guardar
+        // quem chamou precisa avisar a pessoa: dizer "guardei" sem guardar é pior que não guardar
         var guardou = await SemBanco().SalvaAsync(Servidor, linha => linha.Prefixo = "?");
 
         Assert.False(guardou);
@@ -69,10 +63,7 @@ public class ConfigDosServidoresTests
     }
 }
 
-/// <summary>
-/// O que o /config aceita. Prefixo ruim trava o servidor inteiro: se o bot passar a
-/// responder a um prefixo impossível, nem o comando de texto pra desfazer funciona.
-/// </summary>
+// O que o /config aceita. Prefixo impossível trava até o comando de texto pra desfazer.
 public class ConfigCommandTests
 {
     [Theory]
@@ -113,11 +104,7 @@ public class ConfigCommandTests
     }
 }
 
-/// <summary>
-/// Como o bot decide se uma mensagem é comando. Quem fazia essa conta era o NetCord, pelo
-/// options.Prefix; desde que o prefixo passou a mudar por servidor, a conta é nossa — e o
-/// que o NetCord fazia de graça tem que continuar valendo.
-/// </summary>
+// Como o bot decide se a mensagem é comando — conta que era do NetCord e agora é nossa.
 public class TamanhoDoPrefixoTests
 {
     [Theory]
@@ -151,8 +138,7 @@ public class TamanhoDoPrefixoTests
     [Fact]
     public void O_negativo_é_o_que_o_NetCord_entende_como_não_é_pra_mim()
     {
-        // o NetCord testa "< 0" antes de cortar o prefixo fora do texto; um 0 aqui faria
-        // ele tratar a mensagem inteira como comando
+        // o NetCord testa "< 0"; um 0 aqui faria a mensagem inteira virar comando
         Assert.True(AlephBot.Threnodian.Inicialização.AlephBot.NãoÉComando < 0);
     }
 }

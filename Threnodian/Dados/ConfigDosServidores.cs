@@ -7,14 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// O que cada servidor escolheu, com o padrão do .env atrás. Quem pergunta nunca recebe
-/// null: ou vem o que o servidor escolheu, ou vem o padrão.
-///
-/// Fica em memória de propósito. O prefixo é lido em toda mensagem de texto que chega, e
-/// ir ao banco a cada uma seria uma consulta por mensagem do Discord inteiro — o cache
-/// enche sozinho na primeira pergunta de cada servidor e só muda quando alguém escreve.
-/// </summary>
+// O que cada servidor escolheu, com o padrão atrás. Em memória: o prefixo é lido a cada mensagem.
 public sealed class ConfigDosServidores(
     IDbContextFactory<AlephDb>? fábrica,
     MigracaoDoBanco? banco,
@@ -23,7 +16,7 @@ public sealed class ConfigDosServidores(
 {
     private readonly ConcurrentDictionary<ulong, ConfigDoServidor?> _cache = new();
 
-    /// <summary>Sem banco configurado, ou com ele fora do ar, todo servidor usa o padrão.</summary>
+    // Sem banco configurado, ou com ele fora do ar, todo servidor usa o padrão.
     private bool TemBanco => fábrica is not null && banco?.Pronto == true;
 
     public async ValueTask<string> PrefixoAsync(ulong guildId) =>
@@ -37,7 +30,7 @@ public sealed class ConfigDosServidores(
             ? TimeSpan.FromMinutes(minutos)
             : config.MusicIdleTimeout;
 
-    /// <summary>A linha do servidor, ou null se ele nunca mexeu em nada (ou se o banco está fora).</summary>
+    // A linha do servidor, ou null se ele nunca mexeu em nada (ou se o banco está fora).
     public async ValueTask<ConfigDoServidor?> DoServidorAsync(ulong guildId)
     {
         if (_cache.TryGetValue(guildId, out var guardado))
@@ -59,17 +52,13 @@ public sealed class ConfigDosServidores(
         }
         catch (Exception erro)
         {
-            // o banco caiu depois de ter subido: não guardo o null no cache, pra voltar a
-            // perguntar quando ele voltar
+            // o banco caiu depois de subir: não guardo o null, pra voltar a perguntar quando voltar
             logger.LogWarning(erro, "Não consegui ler a configuração do servidor {GuildId}", guildId);
             return null;
         }
     }
 
-    /// <summary>
-    /// Escreve o que mudou e deixa o resto como está. Devolve false quando o banco está
-    /// fora — quem chamou avisa a pessoa, em vez de dizer que guardou o que não guardou.
-    /// </summary>
+    // Escreve o que mudou. False quando o banco está fora — quem chamou avisa a pessoa.
     public async Task<bool> SalvaAsync(ulong guildId, Action<ConfigDoServidor> muda)
     {
         if (!TemBanco)
@@ -103,6 +92,6 @@ public sealed class ConfigDosServidores(
         }
     }
 
-    /// <summary>Esquece o servidor: a próxima pergunta vai ao banco de novo.</summary>
+    // Esquece o servidor: a próxima pergunta vai ao banco de novo.
     public void Esquece(ulong guildId) => _cache.TryRemove(guildId, out _);
 }

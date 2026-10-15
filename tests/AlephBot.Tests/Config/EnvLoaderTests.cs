@@ -2,10 +2,7 @@ using AlephBot.Config;
 
 namespace AlephBot.Tests.Config;
 
-/// <summary>
-/// O EnvLoader escreve no ambiente do processo, que é um só pra todos os testes: cada teste
-/// usa nomes únicos e apaga o que criou.
-/// </summary>
+// O EnvLoader escreve no ambiente do processo: nomes únicos, e cada teste apaga o que criou.
 public sealed class EnvLoaderTests : IDisposable
 {
     private readonly string _prefixo = $"ALEPH_TESTE_{Guid.NewGuid():N}_";

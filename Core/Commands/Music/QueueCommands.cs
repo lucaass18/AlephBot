@@ -9,7 +9,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>Como o usuário escolhe o modo de repetição — o /loop mostra estas três opções.</summary>
+// Como o usuário escolhe o modo de repetição — o /loop mostra estas três opções.
 public enum ModoDeRepetição
 {
     [SlashCommandChoice(Name = "desligado")]
@@ -22,7 +22,7 @@ public enum ModoDeRepetição
     Fila,
 }
 
-/// <summary>O que se faz com a fila: olhar, embaralhar e escolher como ela se repete.</summary>
+// O que se faz com a fila: olhar, embaralhar e escolher como ela se repete.
 internal static class Fila
 {
     internal static Task<Music.Resposta> MostrarAsync(AlephPlayer player) =>
@@ -71,7 +71,7 @@ internal static class Fila
     }
 }
 
-/// <summary>/queue</summary>
+// /queue
 public sealed class QueueCommand : MusicSlashModule
 {
     public QueueCommand(IAudioService áudio) : base(áudio) { }
@@ -85,7 +85,7 @@ public sealed class QueueCommand : MusicSlashModule
     public Task QueueAsync() => ExecutarAsync(Fila.MostrarAsync, exigirMesmoCanal: false);
 }
 
-/// <summary>!queue</summary>
+// !queue
 public sealed class QueueTextCommand : MusicTextModule
 {
     public QueueTextCommand(IAudioService áudio) : base(áudio) { }
@@ -99,7 +99,7 @@ public sealed class QueueTextCommand : MusicTextModule
     public Task QueueAsync() => ExecutarAsync(Fila.MostrarAsync, exigirMesmoCanal: false);
 }
 
-/// <summary>/nowplaying</summary>
+// /nowplaying
 public sealed class NowPlayingCommand : MusicSlashModule
 {
     public NowPlayingCommand(IAudioService áudio) : base(áudio) { }
@@ -113,7 +113,7 @@ public sealed class NowPlayingCommand : MusicSlashModule
     public Task NowPlayingAsync() => ExecutarAsync(Fila.AgoraAsync, exigirMesmoCanal: false);
 }
 
-/// <summary>!nowplaying</summary>
+// !nowplaying
 public sealed class NowPlayingTextCommand : MusicTextModule
 {
     public NowPlayingTextCommand(IAudioService áudio) : base(áudio) { }
@@ -127,7 +127,7 @@ public sealed class NowPlayingTextCommand : MusicTextModule
     public Task NowPlayingAsync() => ExecutarAsync(Fila.AgoraAsync, exigirMesmoCanal: false);
 }
 
-/// <summary>/shuffle</summary>
+// /shuffle
 public sealed class ShuffleCommand : MusicSlashModule
 {
     public ShuffleCommand(IAudioService áudio) : base(áudio) { }
@@ -141,7 +141,7 @@ public sealed class ShuffleCommand : MusicSlashModule
     public Task ShuffleAsync() => ExecutarAsync(Fila.EmbaralharAsync);
 }
 
-/// <summary>!shuffle</summary>
+// !shuffle
 public sealed class ShuffleTextCommand : MusicTextModule
 {
     public ShuffleTextCommand(IAudioService áudio) : base(áudio) { }
@@ -155,7 +155,7 @@ public sealed class ShuffleTextCommand : MusicTextModule
     public Task ShuffleAsync() => ExecutarAsync(Fila.EmbaralharAsync);
 }
 
-/// <summary>/loop</summary>
+// /loop
 public sealed class LoopCommand : MusicSlashModule
 {
     public LoopCommand(IAudioService áudio) : base(áudio) { }
@@ -171,7 +171,7 @@ public sealed class LoopCommand : MusicSlashModule
         ExecutarAsync(player => Fila.RepetirAsync(player, modo));
 }
 
-/// <summary>!loop</summary>
+// !loop
 public sealed class LoopTextCommand : MusicTextModule
 {
     public LoopTextCommand(IAudioService áudio) : base(áudio) { }
@@ -187,10 +187,7 @@ public sealed class LoopTextCommand : MusicTextModule
             ? ExecutarAsync(player => Fila.RepetirAsync(player, escolhido))
             : ErrorAsync(Denia.NãoEntendi(Usage!));
 
-    /// <summary>
-    /// O slash tem menu de escolha; aqui vem texto livre, então aceito os dois idiomas —
-    /// quem escreve `!loop off` e quem escreve `!loop fila` quer a mesma coisa.
-    /// </summary>
+    // Em texto livre aceito os dois idiomas: `!loop off` e `!loop fila` querem o mesmo.
     private static ModoDeRepetição? Ler(string modo) => modo.Trim().ToLowerInvariant() switch
     {
         "off" or "no" or "nao" or "não" or "desligado" or "desligar" or "none" => ModoDeRepetição.Desligado,

@@ -13,31 +13,16 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Youtube;
 
-/// <summary>
-/// O áudio do YouTube pelo yt-audio, o serviço do compose que pega o áudio com o yt-dlp, sem
-/// conta. De um servidor o YouTube não entrega mais o áudio pro plugin do Lavalink sem login;
-/// pro yt-audio, que sai pelo WARP com um token anti-robô, entrega.
-///
-/// A faixa continua sendo a do plugin — título, capa, link, fila, a foto do restart. Só muda
-/// o que o Lavalink toca: no lugar da faixa do YouTube, o link HTTP do yt-audio. Se ele
-/// falhar, a faixa vai como sempre foi, pelo plugin (e pelo login, se houver).
-/// </summary>
+// O áudio do YouTube pelo yt-audio do compose: de servidor o plugin do Lavalink não consegue.
 public sealed partial class YoutubeAudio : IDisposable
 {
-    /// <summary>Quantos canais eu guardo antes de recomeçar a lista.</summary>
+    // Quantos canais eu guardo antes de recomeçar a lista.
     private const int CanaisGuardados = 500;
 
-    /// <summary>
-    /// O primeiro pedido de uma música faz o yt-audio rodar o yt-dlp inteiro — o player do
-    /// YouTube, o desafio dele no deno, o token. Leva segundos; no boot do contêiner, mais.
-    /// </summary>
+    // O primeiro pedido roda o yt-dlp inteiro — player, desafio no deno, token. Leva segundos.
     private static readonly TimeSpan Espera = TimeSpan.FromSeconds(60);
 
-    /// <summary>
-    /// O canal de quem publicou cada vídeo, pelo id. Quem descobre é o yt-dlp, lá no
-    /// yt-audio, enquanto acha o áudio — então vem de graça junto do /preparar, e fica aqui
-    /// pro embed não ter que perguntar nada ao YouTube na hora de montar a ficha.
-    /// </summary>
+    // O canal de cada vídeo, que o yt-dlp já acha no /preparar; assim o embed não pergunta nada.
     private readonly ConcurrentDictionary<string, string> _canais = new();
 
     private readonly Uri? _base;
@@ -55,10 +40,7 @@ public sealed partial class YoutubeAudio : IDisposable
     {
     }
 
-    /// <summary>
-    /// Os testes entram por aqui: o Lavalink vira uma função e o yt-audio, um handler HTTP
-    /// de mentira.
-    /// </summary>
+    // Os testes entram por aqui: o Lavalink vira função e o yt-audio, um handler de mentira.
     internal YoutubeAudio(
         Uri? @base,
         Func<string, CancellationToken, ValueTask<LavalinkTrack?>> carregar,
@@ -72,10 +54,7 @@ public sealed partial class YoutubeAudio : IDisposable
         _logger = logger;
     }
 
-    /// <summary>
-    /// A faixa que toca pelo yt-audio, ou ela mesma quando não é caso: yt-audio desligado,
-    /// faixa de outra fonte, transmissão ao vivo (o yt-audio só serve arquivo) ou já envolvida.
-    /// </summary>
+    // A faixa que toca pelo yt-audio, ou ela mesma quando não é caso (ao vivo, outra fonte).
     public LavalinkTrack Envolver(LavalinkTrack faixa) =>
         Serve(faixa) ? new FaixaDoYoutube(faixa, this) : faixa;
 
@@ -86,22 +65,14 @@ public sealed partial class YoutubeAudio : IDisposable
         && !faixa.IsLiveStream
         && IdDeVídeo().IsMatch(faixa.Identifier);
 
-    /// <summary>
-    /// Pede pro yt-audio já descobrir o link de uma faixa que ainda vai tocar — a próxima da
-    /// fila —, pra ela começar sem o silêncio do yt-dlp. Não espera: se falhar, ela só começa
-    /// mais devagar.
-    /// </summary>
+    // Pede o link da próxima antes da vez, pra ela começar sem o silêncio do yt-dlp.
     public void Preparar(LavalinkTrack? faixa)
     {
         if (faixa is FaixaDoYoutube doYoutube)
             _ = PrepararAsync(doYoutube, CancellationToken.None);
     }
 
-    /// <summary>
-    /// O que o Lavalink toca no lugar da faixa: primeiro o yt-audio prepara o link (é a parte
-    /// demorada, e assim ela não esbarra no tempo de leitura do Lavalink); depois o Lavalink
-    /// carrega o link pronto. Qualquer falha devolve a faixa original, que vai pelo plugin.
-    /// </summary>
+    // O yt-audio prepara o link e o Lavalink carrega ele pronto; falha devolve a faixa original.
     internal async ValueTask<LavalinkTrack> TocávelAsync(FaixaDoYoutube faixa, CancellationToken cancellationToken)
     {
         try
@@ -126,11 +97,11 @@ public sealed partial class YoutubeAudio : IDisposable
         return faixa.Original;
     }
 
-    /// <summary>O canal de quem publicou, quando o yt-audio já contou qual é.</summary>
+    // O canal de quem publicou, quando o yt-audio já contou qual é.
     internal string? CanalDe(string id) =>
         _canais.TryGetValue(id, out var canal) ? canal : null;
 
-    /// <summary>O yt-audio descobre e guarda o link. True quando ele conseguiu.</summary>
+    // O yt-audio descobre e guarda o link. True quando ele conseguiu.
     private async Task<bool> PrepararAsync(FaixaDoYoutube faixa, CancellationToken cancellationToken)
     {
         try
@@ -158,10 +129,7 @@ public sealed partial class YoutubeAudio : IDisposable
         return false;
     }
 
-    /// <summary>
-    /// Guarda o canal que veio na resposta do /preparar. Falha nenhuma daqui atrapalha a
-    /// música: sem o canal, o embed só deixa de pôr o link no nome do artista.
-    /// </summary>
+    // Guarda o canal que veio no /preparar; sem ele, o embed só não linka o artista.
     private async Task AnotarCanalAsync(string id, HttpResponseMessage resposta, CancellationToken cancellationToken)
     {
         try
@@ -174,8 +142,7 @@ public sealed partial class YoutubeAudio : IDisposable
                 && canal.ValueKind is JsonValueKind.String
                 && canal.GetString() is { Length: > 0 } endereço)
             {
-                // o teto evita a memória crescer sozinha num servidor que toca o dia inteiro;
-                // o que cair fora volta no próximo /preparar da mesma faixa
+                // o teto evita a memória crescer sozinha; o que sair volta no próximo /preparar
                 if (_canais.Count >= CanaisGuardados)
                     _canais.Clear();
 
@@ -190,20 +157,14 @@ public sealed partial class YoutubeAudio : IDisposable
 
     internal Uri Endereço(string rota, string id) => new(_base!, $"{rota}/{id}");
 
-    /// <summary>O id de um vídeo do YouTube: 11 caracteres do alfabeto base64 de URL.</summary>
+    // O id de um vídeo do YouTube: 11 caracteres do alfabeto base64 de URL.
     [GeneratedRegex("^[A-Za-z0-9_-]{11}$")]
     private static partial Regex IdDeVídeo();
 
     public void Dispose() => _http.Dispose();
 }
 
-/// <summary>
-/// Uma faixa do YouTube que toca pelo yt-audio. Pro resto do bot é a faixa de sempre: título,
-/// capa, link e o texto codificado são os da faixa do plugin. Só o que vai pro Lavalink na
-/// hora de tocar sai do yt-audio — pelo gancho que a biblioteca oferece pra isso, o mesmo das
-/// faixas do Spotify que tocam por outra fonte. A biblioteca guarda a faixa da fila como a
-/// atual, e não o link tocado: o "tocando agora" segue mostrando o YouTube.
-/// </summary>
+// Uma faixa do YouTube que toca pelo yt-audio: pro resto do bot é a faixa de sempre.
 public sealed record FaixaDoYoutube : LavalinkTrack
 {
     private readonly YoutubeAudio _áudio;
@@ -216,22 +177,15 @@ public sealed record FaixaDoYoutube : LavalinkTrack
         _áudio = áudio;
     }
 
-    /// <summary>A faixa como o plugin entregou: é ela que toca quando o yt-audio falha.</summary>
+    // A faixa como o plugin entregou: é ela que toca quando o yt-audio falha.
     public LavalinkTrack Original { get; }
 
-    /// <summary>
-    /// O canal de quem publicou, ou null enquanto o yt-audio ainda não falou dela — é o que
-    /// acontece com uma faixa que entrou na fila e nem foi preparada ainda.
-    /// </summary>
+    // O canal de quem publicou, ou null enquanto o yt-audio ainda não falou dela.
     public string? Canal => _áudio.CanalDe(Identifier);
 
     public override ValueTask<LavalinkTrack> GetPlayableTrackAsync(CancellationToken cancellationToken = default) =>
         _áudio.TocávelAsync(this, cancellationToken);
 
-    /// <summary>
-    /// O texto codificado da faixa original, e não um feito de novo: é ele que vai pra foto do
-    /// restart, e o Lavalink lê de volta exatamente o que ele mesmo escreveu. Sem isto o record
-    /// geraria um ToString próprio, com nome de propriedade, e a retomada não decodificaria.
-    /// </summary>
+    // O texto codificado da original: é ele que vai pra foto, e o Lavalink lê o que escreveu.
     public override string ToString() => Original.ToString();
 }

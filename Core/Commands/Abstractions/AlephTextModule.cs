@@ -6,7 +6,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Abstractions;
 
-/// <summary>Base para comandos com prefixo (!comando).</summary>
+// Base para comandos com prefixo (!comando).
 public abstract class AlephTextModule : CommandModule<CommandContext>, ICommand
 {
     public abstract string Name { get; }
@@ -22,7 +22,7 @@ public abstract class AlephTextModule : CommandModule<CommandContext>, ICommand
     protected Task<RestMessage> ReplyAsync(EmbedProperties embed) =>
         Context.Message.ReplyAsync(new ReplyMessageProperties { Embeds = [embed] });
 
-    /// <summary>A resposta no formato novo. Ver o módulo de barra.</summary>
+    // A resposta no formato novo. Ver o módulo de barra.
     protected Task<RestMessage> ReplyAsync(ComponentContainerProperties cartão, AttachmentProperties? anexo = null) =>
         Context.Message.ReplyAsync(new ReplyMessageProperties
         {

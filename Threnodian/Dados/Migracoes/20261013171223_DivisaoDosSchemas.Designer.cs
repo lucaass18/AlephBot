@@ -16,7 +16,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
     [Migration("20261013171223_DivisaoDosSchemas")]
     partial class DivisaoDosSchemas
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

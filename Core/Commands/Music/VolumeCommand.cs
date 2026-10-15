@@ -8,10 +8,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// /volume — com número, muda; sem número, só diz onde está. O Lavalink aceita volume
-/// muito além de 200%, mas ali em cima já é distorção, não música.
-/// </summary>
+// /volume — com número muda, sem número diz onde está. Acima de 200% é distorção.
 public sealed class VolumeCommand : MusicSlashModule
 {
     public VolumeCommand(IAudioService áudio) : base(áudio) { }
@@ -27,7 +24,7 @@ public sealed class VolumeCommand : MusicSlashModule
         ExecutarAsync(player => Volume.AjustarAsync(player, porcento));
 }
 
-/// <summary>!volume</summary>
+// !volume
 public sealed class VolumeTextCommand : MusicTextModule
 {
     public VolumeTextCommand(IAudioService áudio) : base(áudio) { }

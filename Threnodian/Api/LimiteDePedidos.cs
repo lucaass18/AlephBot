@@ -14,21 +14,13 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// O limite de pedidos da API, pra todo mundo: cada IP tem uma cota por minuto, e toda resposta
-/// conta a cota no X-RateLimit-Limit e quanto ainda sobra no X-RateLimit-Remaining. Passou,
-/// 429 com Retry-After até a janela virar.
-///
-/// De fora (Funnel ou IP público) a cota é a de uma pessoa usando a página e a IA. De dentro
-/// ela é dez vezes maior: a casa nunca chega perto, e um script em loop não derruba o bot — a
-/// API mora no mesmo processo que atende o Discord.
-/// </summary>
+// A cota por IP a cada minuto, contada nos headers. De dentro ela é dez vezes maior.
 public sealed class LimiteDePedidos : IDisposable
 {
-    /// <summary>Por minuto, por IP de fora. A página dos docs gasta uns cinco pedidos pra abrir.</summary>
+    // Por minuto, por IP de fora. A página dos docs gasta uns cinco pedidos pra abrir.
     public const int DeFora = 60;
 
-    /// <summary>Por minuto, por IP de dentro.</summary>
+    // Por minuto, por IP de dentro.
     public const int DeDentro = 600;
 
     public const string CabeçalhoDaCota = "X-RateLimit-Limit";
@@ -44,8 +36,7 @@ public sealed class LimiteDePedidos : IDisposable
     {
         _logger = logger;
 
-        // janela fixa: a cota inteira volta a cada minuto. Todo pedido conta, docs e 404
-        // inclusive — quem varre endereço atrás de brecha também esbarra aqui
+        // janela fixa: a cota volta a cada minuto, e todo pedido conta, docs e 404 inclusive
         _limitador = PartitionedRateLimiter.Create<HttpContext, Cota>(http =>
             RateLimitPartition.GetFixedWindowLimiter(CotaDe(http), cota => new FixedWindowRateLimiterOptions
             {
@@ -54,7 +45,7 @@ public sealed class LimiteDePedidos : IDisposable
             }));
     }
 
-    /// <summary>Quem divide a cota (o IP) e de quantos pedidos ela é.</summary>
+    // Quem divide a cota (o IP) e de quantos pedidos ela é.
     internal readonly record struct Cota(string Cliente, int Pedidos);
 
     public static void Configure(IServiceCollection services)
@@ -70,10 +61,7 @@ public sealed class LimiteDePedidos : IDisposable
         });
     }
 
-    /// <summary>
-    /// Entra depois do X-Forwarded-For, que é por onde eu sei quem pediu, e antes da senha dos
-    /// docs, pra que chutar senha também gaste a cota.
-    /// </summary>
+    // Depois do X-Forwarded-For, que diz quem pediu, e antes da senha dos docs.
     public static void Use(WebApplication app)
     {
         var limite = app.Services.GetRequiredService<LimiteDePedidos>();
@@ -92,11 +80,7 @@ public sealed class LimiteDePedidos : IDisposable
         ClienteDe(http.Connection.RemoteIpAddress),
         RedeDeDentro.ÉDeDentro(http) ? DeDentro : DeFora);
 
-    /// <summary>
-    /// O IP de quem pede. IPv6 conta pelo /64: é o que o provedor entrega pra uma casa só, e
-    /// trocar de endereço dentro dele é de graça — contando por endereço, cada pedido viria de
-    /// um IP novo e o limite não valeria nada.
-    /// </summary>
+    // O IP de quem pede. IPv6 conta pelo /64: dentro dele trocar de endereço é de graça.
     internal static string ClienteDe(IPAddress? ip)
     {
         if (ip is null)
@@ -115,10 +99,7 @@ public sealed class LimiteDePedidos : IDisposable
         return $"{new IPAddress(bytes)}/64";
     }
 
-    /// <summary>
-    /// Anoto a recusa uma vez por janela e por IP. Quem martela leva centenas de 429 por
-    /// segundo, e uma linha de log por recusa encheria o disco da VPS com a mesma frase.
-    /// </summary>
+    // Anoto a recusa uma vez por janela e por IP; quem martela encheria o disco da VPS.
     internal bool DeveAnotar(string cliente, long agoraEmMs)
     {
         var janela = (long)Janela.TotalMilliseconds;

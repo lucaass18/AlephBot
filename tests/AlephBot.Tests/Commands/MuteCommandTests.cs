@@ -3,7 +3,7 @@ using AlephBot.Core.Personality;
 
 namespace AlephBot.Tests.Commands;
 
-/// <summary>A duração do /mute: o que a pessoa digita vira tempo, e o tempo vira português.</summary>
+// A duração do /mute: o que a pessoa digita vira tempo, e o tempo vira português.
 public class MuteCommandTests
 {
     [Theory]

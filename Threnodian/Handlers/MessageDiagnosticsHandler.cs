@@ -5,11 +5,7 @@ using NetCord.Hosting.Gateway;
 
 namespace AlephBot.Threnodian.Handlers;
 
-/// <summary>
-/// Diagnóstico temporário: loga toda mensagem que chega pelo gateway. Se o Content vier
-/// vazio, a intent de MessageContent está desligada no Developer Portal. Pode apagar
-/// quando os comandos com prefixo estiverem de pé.
-/// </summary>
+// Diagnóstico temporário: Content vazio é a intent de MessageContent desligada no portal.
 public sealed class MessageDiagnosticsHandler : IMessageCreateGatewayHandler
 {
     private readonly ILogger<MessageDiagnosticsHandler> _logger;

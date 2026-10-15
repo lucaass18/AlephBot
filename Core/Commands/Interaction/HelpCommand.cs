@@ -10,10 +10,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Interaction;
 
-/// <summary>
-/// /help — a lista por categoria, e o detalhe de um comando só. Nada escrito à mão: quem sabe
-/// o que existe é o <see cref="CommandRegistry"/>, então a lista se cuida sozinha.
-/// </summary>
+// /help — a lista por categoria e o detalhe de um comando, lidos do CommandRegistry.
 public sealed class HelpCommand : AlephSlashModule
 {
     // roxo da Denia, o mesmo do mute
@@ -25,8 +22,7 @@ public sealed class HelpCommand : AlephSlashModule
     private readonly CommandRegistry _registry;
     private readonly AlephConfig _config;
 
-    // o registry me instancia pra ler meus metadados e acaba pedindo ele mesmo aqui.
-    // por isso só guardo a referência — ler qualquer coisa dele agora seria dar a volta
+    // o registry me instancia pra ler meus metadados, então só guardo a referência
     public HelpCommand(CommandRegistry registry, AlephConfig config)
     {
         _registry = registry;
@@ -50,7 +46,7 @@ public sealed class HelpCommand : AlephSlashModule
             : ErrorAsync(Denia.HelpNãoAchei(comando.Trim()));
     }
 
-    /// <summary>A lista inteira: uma categoria por campo, um comando por linha.</summary>
+    // A lista inteira: uma categoria por campo, um comando por linha.
     internal static EmbedProperties BuildList(CommandRegistry registry, string prefixo)
     {
         var categorias = registry.ByCategory.ToList();
@@ -69,13 +65,12 @@ public sealed class HelpCommand : AlephSlashModule
         };
     }
 
-    /// <summary>O detalhe de um comando, ou null quando não existe nenhum com esse nome.</summary>
+    // O detalhe de um comando, ou null quando não existe nenhum com esse nome.
     internal static EmbedProperties? BuildDetail(CommandRegistry registry, string prefixo, string comando)
     {
         var busca = Normaliza(comando, prefixo);
 
-        // slash e prefixo são classes separadas com o mesmo Name; pego as duas, e é
-        // por isso que o "Como chamar" mostra as duas formas juntas
+        // slash e prefixo são classes com o mesmo Name, e o "Como chamar" mostra as duas
         var entradas = registry.All
             .Where(c => string.Equals(c.Name, busca, StringComparison.OrdinalIgnoreCase))
             .ToList();
@@ -144,7 +139,7 @@ public sealed class HelpCommand : AlephSlashModule
     private static string Linha(CommandInfo comando) =>
         $"`/{comando.Name}` — {comando.Description}";
 
-    /// <summary>Aceita "mute", "/mute" e "!mute" — quem pede ajuda costuma colar o comando inteiro.</summary>
+    // Aceita "mute", "/mute" e "!mute" — quem pede ajuda costuma colar o comando inteiro.
     internal static string Normaliza(string comando, string prefixo)
     {
         var limpo = comando.Trim();
@@ -153,8 +148,7 @@ public sealed class HelpCommand : AlephSlashModule
         if (limpo.StartsWith(prefixo, StringComparison.Ordinal))
             limpo = limpo[prefixo.Length..];
 
-        // nome de comando não começa com sinal — o que vier antes da primeira letra
-        // é enfeite, nem que seja o prefixo de outro bot
+        // nome de comando não começa com sinal: o que vem antes da primeira letra é enfeite
         var início = 0;
 
         while (início < limpo.Length && !char.IsLetterOrDigit(limpo[início]))
@@ -163,7 +157,7 @@ public sealed class HelpCommand : AlephSlashModule
         return limpo[início..].Trim();
     }
 
-    /// <summary>Corta no fim da última linha inteira: campo estourado o Discord recusa.</summary>
+    // Corta no fim da última linha inteira: campo estourado o Discord recusa.
     private static string Recorta(string texto)
     {
         if (texto.Length <= MaxCampo)
@@ -175,7 +169,7 @@ public sealed class HelpCommand : AlephSlashModule
     }
 }
 
-/// <summary>!help — mesma lista do /help, para quem prefere o prefixo.</summary>
+// !help — mesma lista do /help, para quem prefere o prefixo.
 public sealed class HelpTextCommand : AlephTextModule
 {
     private readonly CommandRegistry _registry;

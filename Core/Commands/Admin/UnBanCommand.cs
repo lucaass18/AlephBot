@@ -11,10 +11,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Admin;
 
-/// <summary>
-/// /unban — tira alguém da lista de banidos. Banido não é membro do servidor, então o
-/// Discord não resolve menção nem autocompleta: só o ID serve.
-/// </summary>
+// /unban — banido não é membro, então o Discord não resolve menção: só o ID serve.
 public sealed class UnBanCommand : AlephSlashModule
 {
     private const AçãoModeração Ação = AçãoModeração.Unban;
@@ -66,14 +63,13 @@ public sealed class UnBanCommand : AlephSlashModule
             return;
         }
 
-        // desbanido não divide servidor comigo, então a DM quase sempre falha — e tudo bem.
-        // se por acaso a gente tiver outro servidor em comum, o aviso chega
+        // desbanido não divide servidor comigo, então a DM quase sempre falha — e tudo bem
         await Moderation.TryNotifyAsync(Context.Client, guild, ban.User, moderador, motivo, Ação);
 
         await RespondAsync(Moderation.BuildEmbed(Ação, ban.User, moderador, motivo, MotivoOriginal(ban)));
     }
 
-    /// <summary>Valida o ID cru e as recusas que não dependem de cargo.</summary>
+    // Valida o ID cru e as recusas que não dependem de cargo.
     internal static (ulong? Id, string? Erro) Validate(string id, ulong moderadorId, ulong botId)
     {
         if (ParseId(id) is not { } alvoId)
@@ -88,10 +84,7 @@ public sealed class UnBanCommand : AlephSlashModule
         return (alvoId, null);
     }
 
-    /// <summary>
-    /// Aceita o ID cru e também a menção colada (&lt;@123&gt; / &lt;@!123&gt;), que é o que
-    /// sai do "Copiar ID" quando o usuário ainda aparece em alguma mensagem antiga.
-    /// </summary>
+    // Aceita o ID cru e a menção colada (<@123>), que é o que sai do "Copiar ID".
     internal static ulong? ParseId(string texto)
     {
         var limpo = texto.Trim().Trim('<', '>', '@', '!');
@@ -99,7 +92,7 @@ public sealed class UnBanCommand : AlephSlashModule
         return ulong.TryParse(limpo, out var id) ? id : null;
     }
 
-    /// <summary>O banimento existente, ou null se não há banimento para esse ID.</summary>
+    // O banimento existente, ou null se não há banimento para esse ID.
     internal static async Task<GuildBan?> ResolveBanAsync(Guild guild, ulong alvoId)
     {
         try
@@ -113,7 +106,7 @@ public sealed class UnBanCommand : AlephSlashModule
         }
     }
 
-    /// <summary>Devolve a mensagem de erro, ou null se o banimento foi removido.</summary>
+    // Devolve a mensagem de erro, ou null se o banimento foi removido.
     internal static async Task<string?> TryUnBanAsync(
         Guild guild, User alvo, GuildUser moderador, string motivo)
     {
@@ -129,12 +122,12 @@ public sealed class UnBanCommand : AlephSlashModule
         }
     }
 
-    /// <summary>Por que a pessoa tinha sido banida — o campo extra do embed.</summary>
+    // Por que a pessoa tinha sido banida — o campo extra do embed.
     internal static string MotivoOriginal(GuildBan ban) =>
         string.IsNullOrWhiteSpace(ban.Reason) ? Denia.SemMotivo() : ban.Reason;
 }
 
-/// <summary>!unban — mesmo perdão do /unban, para quem prefere o prefixo.</summary>
+// !unban — mesmo perdão do /unban, para quem prefere o prefixo.
 public sealed class UnBanTextCommand : AlephTextModule
 {
     private const AçãoModeração Ação = AçãoModeração.Unban;

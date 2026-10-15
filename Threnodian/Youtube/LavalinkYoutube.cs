@@ -6,10 +6,7 @@ using AlephBot.Config;
 
 namespace AlephBot.Threnodian.Youtube;
 
-/// <summary>
-/// A porta do plugin do YouTube no Lavalink: ler e trocar o refresh token em tempo de
-/// execução, sem application.yml e sem restart. É por aqui que o token chega nele.
-/// </summary>
+// A porta do plugin do YouTube no Lavalink: ler e trocar o token sem yml e sem restart.
 public sealed class LavalinkYoutube : IDisposable
 {
     // entregar o token faz o Lavalink renovar o acesso no Google na hora, síncrono
@@ -25,10 +22,7 @@ public sealed class LavalinkYoutube : IDisposable
         _http.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", config.LavalinkPassword);
     }
 
-    /// <summary>
-    /// O token que o plugin tem em mãos agora. Null quando ele não tem nenhum — ou quando
-    /// o Lavalink não respondeu, que pra quem pergunta dá no mesmo.
-    /// </summary>
+    // O token que o plugin tem agora. Null quando não tem — ou quando o Lavalink não respondeu.
     public async Task<string?> TokenAtualAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -48,14 +42,10 @@ public sealed class LavalinkYoutube : IDisposable
         }
     }
 
-    /// <summary>
-    /// Entrega o token. O plugin testa ele no Google antes de aceitar, então a recusa aqui
-    /// é a resposta do Google, não do Lavalink.
-    /// </summary>
+    // Entrega o token. O plugin testa no Google, então a recusa aqui é do Google.
     public async Task<Entrega> EntregarAsync(string token, CancellationToken cancellationToken = default)
     {
-        // poToken e visitorData vazios de propósito: o plugin lê "vazio" como "não mexe",
-        // e nulo como "apaga" — e o poToken dele vem do ambiente, não de mim
+        // poToken e visitorData vazios: o plugin lê vazio como "não mexe" e nulo como "apaga"
         var corpo = new
         {
             refreshToken = token,
@@ -98,14 +88,14 @@ public sealed class LavalinkYoutube : IDisposable
         return resposta.ReasonPhrase ?? "sem motivo";
     }
 
-    /// <summary>Lavalink fora, lento ou falando outra língua. Cancelamento meu não entra aqui.</summary>
+    // Lavalink fora, lento ou falando outra língua. Cancelamento meu não entra aqui.
     private static bool Rede(Exception erro, CancellationToken cancellationToken) =>
         !cancellationToken.IsCancellationRequested
         && erro is HttpRequestException or TaskCanceledException or JsonException;
 
     public void Dispose() => _http.Dispose();
 
-    /// <summary>O que o Lavalink respondeu à entrega.</summary>
+    // O que o Lavalink respondeu à entrega.
     public readonly record struct Entrega(Entrega.Resultado Estado, string? Motivo)
     {
         public enum Resultado
@@ -121,11 +111,7 @@ public sealed class LavalinkYoutube : IDisposable
 
         public static Entrega Recusado(string motivo) => new(Resultado.Recusado, motivo);
 
-        /// <summary>
-        /// Recusa que vem do Google, e não de um tropeço de rede entre o Lavalink e ele.
-        /// <c>invalid_grant</c> é "esse token não vale mais"; qualquer outro erro do OAuth
-        /// também só se resolve com login novo.
-        /// </summary>
+        // Recusa do Google, não tropeço de rede: invalid_grant só se resolve com login novo.
         public bool TokenMorreu =>
             Motivo is not null
             && (Motivo.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase)

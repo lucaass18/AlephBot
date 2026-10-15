@@ -1,27 +1,15 @@
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// De qual página o navegador pode chamar a API. Antes valia qualquer uma — o que aqui não
-/// abre buraco, porque a API é só leitura e não usa cookie nem sessão (nada viaja sozinho
-/// junto do pedido, e sem a chave na mão ninguém passa do 401) —, mas era amplo à toa: fora
-/// destas, página nenhuma tem o que fazer com as rotas do bot.
-///
-/// Quem escreve a <c>Origin</c> é o navegador, não a página: site nenhum forja a dele. Pra
-/// quem chama de fora de um navegador (curl, o n8n, um script) nada disto vale — ali quem
-/// guarda a porta é a chave, como sempre foi.
-/// </summary>
+// De qual página o navegador pode chamar a API. Pra quem não é navegador, quem guarda é a chave.
 internal static class OrigensDeConfiança
 {
-    /// <summary>Em <c>API_CORS_ORIGINS</c>, volta a liberar qualquer página.</summary>
+    // Em API_CORS_ORIGINS, volta a liberar qualquer página.
     public const string Qualquer = "*";
 
-    /// <summary>
-    /// <c>.ts.net</c> é a tailnet e o Funnel, de onde a própria página dos docs abre;
-    /// <c>.scalar.com</c> é a IA dela, que chama a API de fora da página.
-    /// </summary>
+    // ts.net é a tailnet e o Funnel; scalar.com é a IA dos docs, que chama de fora da página.
     private static readonly string[] Domínios = [".ts.net", ".scalar.com"];
 
-    /// <summary>A máquina de quem desenvolve, o nome curto do bot na tailnet e o Scalar.</summary>
+    // A máquina de quem desenvolve, o nome curto do bot na tailnet e o Scalar.
     private static readonly string[] Nomes = ["localhost", "127.0.0.1", "::1", "aleph", "scalar.com"];
 
     public static bool Confia(string origem, IReadOnlyList<string> extras)

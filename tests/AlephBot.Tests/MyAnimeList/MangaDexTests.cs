@@ -4,11 +4,7 @@ using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>
-/// O MangaDex fala outro dialeto: título é um dicionário por idioma, autor e capa vêm na
-/// lista de relacionamentos junto com dezenas de obras parecidas, e a sinopse existe em
-/// português escrita por gente — que é o motivo de ele estar aqui.
-/// </summary>
+// O MangaDex fala outro dialeto; está aqui pela sinopse em português escrita por gente.
 public class MangaDexTests
 {
     private static readonly JsonElement OnePiece = JsonDocument.Parse(
@@ -65,7 +61,7 @@ public class MangaDexTests
         Assert.Equal("MangaDex", obra.Fonte);
     }
 
-    /// <summary>O id do MAL mantém o link do embed indo pra ficha de sempre.</summary>
+    // O id do MAL mantém o link do embed indo pra ficha de sempre.
     [Fact]
     public void Link_aponta_pro_MAL_quando_eles_sabem_o_id()
     {
@@ -92,7 +88,7 @@ public class MangaDexTests
         Assert.Equal("https://mangadex.org/title/abc-123", MangaDex.Ler(sem)!.Link);
     }
 
-    /// <summary>É por isto que o MangaDex entrou: sinopse em português escrita por gente.</summary>
+    // É por isto que o MangaDex entrou: sinopse em português escrita por gente.
     [Fact]
     public void A_sinopse_vem_em_português_quando_existe()
     {
@@ -119,10 +115,7 @@ public class MangaDexTests
         Assert.Equal("Only in English.", MangaDex.Ler(só_inglês)!.Sinopse);
     }
 
-    /// <summary>
-    /// Autor e desenhista costumam ser a mesma pessoa; o embed não precisa dizer o nome
-    /// dela duas vezes. E a lista de relacionamentos vem cheia de obras parecidas.
-    /// </summary>
+    // Autor e desenhista costumam ser a mesma pessoa, e o embed não repete o nome.
     [Fact]
     public void Autoria_sai_dos_relacionamentos_sem_repetir()
     {
@@ -137,7 +130,7 @@ public class MangaDexTests
             MangaDex.Ler(OnePiece)!.Imagem);
     }
 
-    /// <summary>"Award Winning" é etiqueta de formato, não gênero; demografia é como o MAL mostra.</summary>
+    // "Award Winning" é etiqueta de formato, não gênero; demografia é como o MAL mostra.
     [Fact]
     public void Gêneros_pegam_gênero_e_tema_mais_a_demografia()
     {
@@ -149,7 +142,7 @@ public class MangaDexTests
         Assert.DoesNotContain("Award Winning", gêneros);
     }
 
-    /// <summary>Mangá é japonês; coreano é manhwa e chinês é manhua, e o leitor sabe a diferença.</summary>
+    // Mangá é japonês; coreano é manhwa e chinês é manhua, e o leitor sabe a diferença.
     [Theory]
     [InlineData("ja", "manga")]
     [InlineData("ko", "manhwa")]
@@ -201,7 +194,7 @@ public class MangaDexTests
         Assert.Equal(esperada, MangaDex.Ler(json)!.Situação);
     }
 
-    /// <summary>Obra em andamento vem com capítulo e volume vazios; zero capítulos seria mentira.</summary>
+    // Obra em andamento vem com capítulo e volume vazios; zero capítulos seria mentira.
     [Fact]
     public void Capítulo_e_volume_vazios_não_viram_zero()
     {
@@ -245,7 +238,7 @@ public class MangaDexTests
         Assert.Null(MangaDex.Ler(json));
     }
 
-    /// <summary>O MangaDex não tem anime. Perguntar seria gastar requisição pra ouvir "não tenho".</summary>
+    // O MangaDex não tem anime. Perguntar seria gastar requisição pra ouvir "não tenho".
     [Fact]
     public async Task Busca_de_anime_nem_sai_da_máquina()
     {
@@ -257,11 +250,7 @@ public class MangaDexTests
         Assert.Empty(achados);
     }
 
-    /// <summary>
-    /// A busca deles não traz nota; ela mora em /statistics/manga, que aceita várias obras
-    /// numa requisição só. Sem isso o embed dizia "ninguém se animou a votar" sobre obra
-    /// com dez mil votos — que foi o bug que o dono do bot viu.
-    /// </summary>
+    // A busca não traz nota: sem /statistics o embed dizia que ninguém votou em obra popular.
     [Fact]
     public void Lê_as_notas_da_resposta_de_estatísticas()
     {
@@ -289,7 +278,7 @@ public class MangaDexTests
         Assert.Equal(9.554036539311955, notas["a1c7c817-4e59-43b7-9365-09675a149a6f"]);
     }
 
-    /// <summary>Obra sem nota nenhuma não pode virar zero: zero seria uma nota péssima, não "não sei".</summary>
+    // Obra sem nota nenhuma não pode virar zero: zero seria uma nota péssima, não "não sei".
     [Fact]
     public void Obra_sem_nota_fica_de_fora_do_mapa()
     {
@@ -306,7 +295,7 @@ public class MangaDexTests
         Assert.Empty(MangaDex.LerNotas(json));
     }
 
-    /// <summary>Sem a bayesiana vale a média simples: melhor a nota que eles têm do que nenhuma.</summary>
+    // Sem a bayesiana vale a média simples: melhor a nota que eles têm do que nenhuma.
     [Fact]
     public void Sem_a_bayesiana_vale_a_média()
     {

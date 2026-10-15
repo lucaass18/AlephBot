@@ -2,11 +2,7 @@ using AlephBot.Threnodian.Dados;
 
 namespace AlephBot.Tests.Dados;
 
-/// <summary>
-/// A leitura do histórico exportado do n8n. É o único dado do bot que não se refaz:
-/// configuração a pessoa digita de novo, playlist se monta outra vez, mas série temporal
-/// só existe porque alguém coletou semana após semana. Ler errado aqui é perder isso.
-/// </summary>
+// A leitura do histórico do n8n: é o único dado que não se refaz, e ler errado é perder.
 public class ImportadorDoHistoricoTests
 {
     private const string UmaLinha = """
@@ -46,8 +42,7 @@ public class ImportadorDoHistoricoTests
     [Fact]
     public void O_backup_das_3h_volta_a_ser_lido()
     {
-        // o arquivo que o fluxo guarda toda noite tem que servir pra restaurar; senão é
-        // arquivo, não cópia de segurança
+        // o arquivo de toda noite tem que servir pra restaurar; senão é arquivo, não backup
         var backup = $$"""
             {
               "salvoEm": "2026-10-11T06:00:00Z",
@@ -114,8 +109,7 @@ public class ImportadorDoHistoricoTests
     [Fact]
     public void Json_quebrado_estoura_pra_quem_chamou_decidir()
     {
-        // o chamador registra no log e deixa o arquivo onde está, em vez de renomear e
-        // perder o que não conseguiu ler
+        // o chamador registra no log e deixa o arquivo onde está, pra não perder o que não leu
         Assert.ThrowsAny<Exception>(() => ImportadorDoHistorico.Lê("{isto não é json"));
     }
 }

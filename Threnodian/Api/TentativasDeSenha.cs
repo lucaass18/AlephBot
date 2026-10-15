@@ -5,35 +5,23 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// Quem erra a senha dos docs quatro vezes fica de castigo por um tempo. O limite de pedidos
-/// já segura o volume (60 por minuto de fora), mas 60 chutes por minuto, hora após hora, dão
-/// muitos chutes; aqui a conta é por erro, e não por pedido, então quem sabe a senha nunca
-/// esbarra nisto.
-///
-/// A conta é por IP, do mesmo jeito que a cota (IPv6 pelo /64, senão trocar de endereço dentro
-/// da casa zeraria o castigo de graça). Mora na memória e morre com o contêiner: castigo de
-/// quinze minutos não vale um banco.
-/// </summary>
+// Quem erra a senha dos docs quatro vezes fica de castigo. Conta por erro, por IP, na memória.
 public sealed class TentativasDeSenha(ILogger<TentativasDeSenha> logger)
 {
-    /// <summary>Quantos erros até o castigo.</summary>
+    // Quantos erros até o castigo.
     public const int Limite = 4;
 
-    /// <summary>Quanto tempo sem poder tentar de novo.</summary>
+    // Quanto tempo sem poder tentar de novo.
     public static readonly TimeSpan Castigo = TimeSpan.FromMinutes(15);
 
     private readonly ConcurrentDictionary<string, Conta> _contas = new();
 
     private sealed record Conta(int Erros, long SoltaEmMs);
 
-    /// <summary>Quem está contando: o IP, normalizado como o do limite de pedidos.</summary>
+    // Quem está contando: o IP, normalizado como o do limite de pedidos.
     public static string ClienteDe(IPAddress? ip) => LimiteDePedidos.ClienteDe(ip);
 
-    /// <summary>
-    /// Quanto ainda falta do castigo, ou null se a pessoa pode tentar. Passado o tempo, a conta
-    /// é esquecida e ela recomeça do zero.
-    /// </summary>
+    // Quanto falta do castigo, ou null. Passado o tempo, a conta é esquecida.
     public TimeSpan? Falta(string cliente, long agoraEmMs)
     {
         if (!_contas.TryGetValue(cliente, out var conta) || conta.Erros < Limite)
@@ -71,10 +59,10 @@ public sealed class TentativasDeSenha(ILogger<TentativasDeSenha> logger)
         Limpa(agoraEmMs);
     }
 
-    /// <summary>Acertou: a conta zera, e os erros de antes não contam mais.</summary>
+    // Acertou: a conta zera, e os erros de antes não contam mais.
     public void Acertou(string cliente) => _contas.TryRemove(cliente, out _);
 
-    /// <summary>Quem parou de tentar sai da lista; sem isto ela só cresceria.</summary>
+    // Quem parou de tentar sai da lista; sem isto ela só cresceria.
     private void Limpa(long agoraEmMs)
     {
         if (_contas.Count <= 1024)

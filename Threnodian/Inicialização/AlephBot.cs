@@ -21,8 +21,7 @@ using Lavalink4NET.InactivityTracking.Trackers.Idle;
 using Lavalink4NET.InactivityTracking.Trackers.Users;
 using Lavalink4NET.NetCord;
 
-// existe AddLavalink nos dois namespaces, e importar os dois deixa a chamada ambígua.
-// o do NetCord é o que serve; o core entra por apelido só pra eu alcançar o Configure
+// AddLavalink existe nos dois namespaces; o apelido desfaz a ambiguidade.
 using LavalinkCore = Lavalink4NET.Extensions.ServiceCollectionExtensions;
 
 using Microsoft.AspNetCore.Builder;
@@ -67,7 +66,7 @@ public sealed class AlephBot
         _config = config;
     }
 
-    /// <summary>A versão do csproj, como sai no banner e na API.</summary>
+    // A versão do csproj, como sai no banner e na API.
     public static string Version => ModulesAssembly.GetName().Version?.ToString(3) ?? "dev";
 
     public async Task RunAsync(string[] args, CancellationToken cancellationToken = default)
@@ -95,10 +94,7 @@ public sealed class AlephBot
         await host.RunAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Com API_KEY o host vira um app web: o mesmo bot, os mesmos serviços, com um Kestrel a
-    /// mais dentro. Sem ela fica o host genérico de sempre — nenhuma porta aberta à toa.
-    /// </summary>
+    // Com API_KEY o host vira app web, com um Kestrel dentro. Sem ela, nenhuma porta aberta à toa.
     private IHost BuildHost(string[] args)
     {
         IHost host;
@@ -161,14 +157,10 @@ public sealed class AlephBot
             .AddComponentInteractions()            // botões, selects, modais
             .AddCommands<CommandContext>((options, provider) =>
             {
-                // o prefixo pode ser outro em cada servidor (/config), com o do .env atrás.
-                // Sem isto o /config guardava a escolha e nada a lia: o bot seguia ouvindo
-                // só o prefixo do arquivo, e quem trocou ficava sem comando de texto
+                // o prefixo pode ser outro em cada servidor (/config), com o do .env atrás
                 options.GetPrefixLengthAsync = async (mensagem, _, serviços) =>
                 {
-                    // o caminho pronto do NetCord (options.Prefix) ignora mensagem de bot
-                    // sozinho; assumindo o lugar dele, a conta é minha — sem isto o bot
-                    // obedeceria outro bot, e a si mesmo, que é como nasce um laço
+                    // assumindo o lugar do NetCord, a conta é minha: sem isto o bot se obedeceria
                     if (mensagem.Author.IsBot)
                         return NãoÉComando;
 
@@ -185,38 +177,25 @@ public sealed class AlephBot
                 options.ResultHandler = provider.GetRequiredService<CommandFailureHandler>();
             });
 
-        // depois do gateway de propósito: os serviços param na ordem inversa, e este precisa
-        // tirar a última foto dos players — com a posição exata — enquanto tudo ainda está de pé
+        // depois do gateway de propósito: ele tira a última foto dos players com tudo ainda de pé
         builder.Services.AddHostedService<PlayerResumeService>();
     }
 
-    /// <summary>
-    /// O que devolver quando a mensagem não é pra mim. Qualquer negativo serve: o NetCord
-    /// testa <c>&lt; 0</c> antes de cortar o prefixo fora do texto.
-    /// </summary>
+    // O que devolver quando a mensagem não é pra mim — o NetCord só testa < 0.
     internal const int NãoÉComando = -1;
 
-    /// <summary>
-    /// Quantas letras o prefixo ocupa nesta mensagem, ou <see cref="NãoÉComando"/> quando
-    /// ela não é. A comparação ignora maiúscula: com prefixo de uma letra tanto faz, mas
-    /// quem puser "aleph" no /config não vai querer explicar a diferença pro servidor.
-    /// </summary>
+    // Quantas letras o prefixo ocupa, ou NãoÉComando. Ignora maiúscula, que ninguém quer explicar.
     internal static int TamanhoDoPrefixo(string conteúdo, string prefixo) =>
         conteúdo.StartsWith(prefixo, StringComparison.OrdinalIgnoreCase)
             ? prefixo.Length
             : NãoÉComando;
 
-    /// <summary>
-    /// O banco, se houver um. Sem DATABASE_URL eu subo sem ele e cada servidor fica com o
-    /// padrão do .env — que é exatamente como era antes de existir banco aqui. Nada do que
-    /// faz o bot responder passa por este caminho; o Postgres guarda escolha, não comando.
-    /// </summary>
+    // O banco, se houver. Sem DATABASE_URL cada servidor fica com o padrão do .env.
     private void ConfigureBanco(IServiceCollection services)
     {
         if (!string.IsNullOrWhiteSpace(_config.DatabaseUrl))
         {
-            // fábrica, e não DbContext direto: quem lê a configuração é singleton (o prefixo
-            // é perguntado a cada mensagem), e singleton não pode depender de scoped
+            // fábrica, e não DbContext direto: quem lê a config é singleton, e não pega scoped
             services.AddDbContextFactory<AlephDb>(options => options.UseNpgsql(
                 _config.DatabaseUrl,
                 npgsql => npgsql.MigrationsHistoryTable("__migracoes", AlephDb.Schema)));
@@ -224,12 +203,10 @@ public sealed class AlephBot
             services.AddSingleton<MigracaoDoBanco>();
             services.AddHostedService(provider => provider.GetRequiredService<MigracaoDoBanco>());
 
-            // o que ficou na tabela do n8n entra antes de tudo, pra linha do tempo não
-            // nascer com um buraco entre o histórico velho e a primeira coleta nova
+            // o que ficou na tabela do n8n entra antes, pra linha do tempo não nascer com buraco
             services.AddHostedService<ImportadorDoHistorico>();
 
-            // quem sabe os números é o BotStatus, que só existe junto da API: sem API_KEY
-            // não há o que coletar, e o histórico simplesmente não começa
+            // quem sabe os números é o BotStatus, que só existe junto da API
             if (_config.Api is not null)
                 services.AddHostedService<ColetorDeStats>();
         }
@@ -239,8 +216,7 @@ public sealed class AlephBot
             provider.GetService<MigracaoDoBanco>(),
             provider.GetRequiredService<ILogger<PlaylistsSalvas>>()));
 
-        // as fichas que o /ma já mostrou. Sem banco ela se declara indisponível e o comando
-        // volta a perguntar à fonte toda vez, como fazia antes de existir cache
+        // as fichas que o /ma já mostrou; sem banco ela se declara indisponível
         services.AddSingleton<IFichasGuardadas>(provider => new ObrasEmCache(
             provider.GetService<IDbContextFactory<AlephDb>>(),
             provider.GetService<MigracaoDoBanco>(),
@@ -253,10 +229,7 @@ public sealed class AlephBot
             provider.GetRequiredService<ILogger<ConfigDosServidores>>()));
     }
 
-    /// <summary>
-    /// O áudio não roda dentro de mim: quem decodifica é um Lavalink separado, e aqui eu só
-    /// me ligo nele. Com ele fora eu sigo respondendo /ping e /ban — só a música é que falta.
-    /// </summary>
+    // O áudio não roda dentro de mim: quem decodifica é o Lavalink, e aqui eu só me ligo nele.
     private void ConfigureMusic(IServiceCollection services)
     {
         services.AddLavalink();
@@ -264,19 +237,15 @@ public sealed class AlephBot
         // o /playlist add procura playlist pelo nome, coisa que o Lavalink não sabe fazer
         services.AddSingleton<YoutubeSearch>();
 
-        // o login do YouTube: o token fica comigo, e sou eu quem entrega ele ao Lavalink a
-        // cada conexão. Registrado sempre — em casa, sem token e sem YOUTUBE_LOGIN, ele
-        // vê que não tem o que fazer e sai
+        // o token fica comigo, e sou eu quem entrega ele ao Lavalink a cada conexão
         services.AddSingleton<YoutubeTokenStore>();
         services.AddSingleton<LavalinkYoutube>();
         services.AddHostedService<YoutubeLoginService>();
 
-        // o áudio do YouTube pelo yt-audio do compose: o player pega daqui na hora de pôr
-        // faixa na fila. Sem YOUTUBE_AUDIO_URI ele não envolve nada e tudo vai pelo plugin
+        // o áudio do YouTube pelo yt-audio; sem YOUTUBE_AUDIO_URI tudo vai pelo plugin
         services.AddSingleton<YoutubeAudio>();
 
-        // a foto de cada player, pra eu voltar ao mesmo ponto depois de um restart. quem tira
-        // é o player; quem revela é o PlayerResumeService, registrado lá no fim do BuildHost
+        // a foto de cada player, pra eu voltar ao mesmo ponto depois de um restart
         services.AddSingleton<PlayerSnapshotStore>();
 
         LavalinkCore.ConfigureLavalink(services, options =>
@@ -289,8 +258,7 @@ public sealed class AlephBot
             options.ReadyTimeout = TimeSpan.FromSeconds(20);
         });
 
-        // sozinha num canal eu ficaria ali pra sempre. os dois rastreadores cobrem os dois
-        // jeitos de isso acontecer: todo mundo saiu (Users) e ninguém pediu mais nada (Idle)
+        // os dois rastreadores cobrem as duas formas: todos saíram, e ninguém pediu nada
         services
             .AddInactivityTracking()
             .ConfigureInactivityTracking(options =>
@@ -301,26 +269,19 @@ public sealed class AlephBot
                 // eu quero sair do canal, não pausar e ficar lá parada
                 options.InactivityBehavior = PlayerInactivityBehavior.None;
 
-                // desligo pra lista abaixo ser a única resposta: apagou uma linha de lá, o
-                // rastreamento sai — em vez de voltar calado pro padrão de outra versão
+                // desligo pra lista abaixo ser a única resposta: apagou uma linha, o rastreio sai
                 options.UseDefaultTrackers = false;
             })
             .AddInactivityTracker<UsersInactivityTracker>()
             .AddInactivityTracker<IdleInactivityTracker>();
     }
 
-    /// <summary>
-    /// O /ma: quem procura no MyAnimeList e quem traduz a sinopse. As fontes são montadas em
-    /// fila — com Client ID no .env a API oficial atende primeiro, e o AniList fica de
-    /// reserva pra quando ela cair ou não conhecer a obra. Sem chave, só o AniList, que não
-    /// pede nada. A fila existe porque antes era uma fonte só, e o /ma caiu junto com ela.
-    /// </summary>
+    // O /ma: as fontes em fila — a API oficial na frente quando tem chave, o AniList de reserva.
     private void ConfigureAnime(IServiceCollection services)
     {
         services.AddSingleton<GoogleTranslator>();
 
-        // o MangaDex é dois papéis no mesmo objeto: reserva de mangá na fila, e quem traz a
-        // sinopse em português das fichas que as outras fontes acharam
+        // o MangaDex é reserva de mangá e quem traz a sinopse em português
         services.AddSingleton<MangaDex>();
         services.AddSingleton<ISinopseEmPortuguês>(provider => provider.GetRequiredService<MangaDex>());
 
