@@ -6,10 +6,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace AlephBot.Core.Commands.Abstractions;
 
-/// <summary>
-/// Base para comandos de barra (/comando).
-/// Classes abstratas são ignoradas pelo AddModules, então isso não vira comando.
-/// </summary>
+// Base dos comandos de barra. Classe abstrata o AddModules ignora, então não vira comando.
 public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCommandContext>, ICommand
 {
     public abstract string Name { get; }
@@ -40,10 +37,7 @@ public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCom
             }));
 
     
-    /// <summary>
-    /// A resposta no formato novo de mensagem (o container com a capa grande). Ele e embed
-    /// não convivem na mesma mensagem: a flag troca o conteúdo por componentes.
-    /// </summary>
+    // A resposta no formato novo (container com capa grande); ele e embed não convivem.
     protected Task RespondAsync(ComponentContainerProperties cartão, AttachmentProperties? anexo = null) =>
         Context.Interaction.SendResponseAsync(
             InteractionCallback.Message(new InteractionMessageProperties
@@ -69,17 +63,11 @@ public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCom
             Color = new Color(0xE74C3C),
         }, ephemeral: true);
 
-    /// <summary>
-    /// Fecha um <see cref="DeferAsync"/>. O "pensando..." já é mensagem publicada e tem que
-    /// ser editada: followup criaria uma segunda e deixaria a primeira carregando pra sempre.
-    /// </summary>
+    // Fecha um DeferAsync: o "pensando..." já é mensagem e tem que ser editada, não seguida.
     protected Task<RestMessage> EditarRespostaAsync(EmbedProperties embed) =>
         Context.Interaction.ModifyResponseAsync(mensagem => mensagem.Embeds = [embed]);
 
-    /// <summary>
-    /// O ErrorAsync de quem já adiou. Sai visível pra todo mundo, e não escondido como o
-    /// ErrorAsync: a visibilidade da resposta foi decidida no DeferAsync e não dá pra mudar.
-    /// </summary>
+    // O ErrorAsync de quem já adiou: sai visível, porque isso foi decidido no DeferAsync.
     protected Task<RestMessage> EditarComErroAsync(string message) =>
         EditarRespostaAsync(new EmbedProperties
         {

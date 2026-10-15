@@ -7,10 +7,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace AlephBot.Threnodian.Dados.Migracoes
 {
-    /// <inheritdoc />
     public partial class CacheDeObras : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -136,7 +134,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                 column: "obra_id");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

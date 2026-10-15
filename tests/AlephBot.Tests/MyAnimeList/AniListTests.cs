@@ -4,10 +4,7 @@ using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>
-/// O AniList fala o dialeto dele: nota de 0 a 100, situação em maiúsculas, sinopse com HTML
-/// e ranking numa lista só. Aqui é onde isso vira a mesma <see cref="Obra"/> que o MAL dá.
-/// </summary>
+// O AniList fala o dialeto dele: nota até 100, HTML na sinopse. Aqui vira a mesma Obra.
 public class AniListTests
 {
     private static readonly JsonElement Anime = JsonDocument.Parse(
@@ -110,7 +107,7 @@ public class AniListTests
         Assert.Equal(["Studio Pierrot"], obra.Autoria);
     }
 
-    /// <summary>O AniList dá a nota de 0 a 100; o embed mostra de 0 a 10, como o MAL.</summary>
+    // O AniList dá a nota de 0 a 100; o embed mostra de 0 a 10, como o MAL.
     [Fact]
     public void Nota_vira_a_escala_do_MAL()
     {
@@ -118,10 +115,7 @@ public class AniListTests
         Assert.Equal(9.3, AniList.Ler(TipoDeObra.Manga, Mangá)!.Nota);
     }
 
-    /// <summary>
-    /// "popularity" no AniList é quanta gente tem a obra na lista, não a posição. A posição
-    /// está em "rankings", e só a de todos os tempos compara com a do MAL.
-    /// </summary>
+    // "popularity" é quanta gente tem a obra na lista; a posição está em "rankings".
     [Fact]
     public void Ranking_sai_da_lista_de_rankings_e_só_o_de_todos_os_tempos()
     {
@@ -140,7 +134,7 @@ public class AniListTests
         Assert.Null(obra.Popularidade);
     }
 
-    /// <summary>O link é o do MAL quando a obra existe lá: o comando promete MyAnimeList.</summary>
+    // O link é o do MAL quando a obra existe lá: o comando promete MyAnimeList.
     [Fact]
     public void Link_aponta_pro_MAL_quando_a_obra_tem_id_lá()
     {
@@ -167,7 +161,7 @@ public class AniListTests
         Assert.Equal("https://anilist.co/manga/999", obra.Link);
     }
 
-    /// <summary>A sinopse do AniList vem com HTML e assinada; nada disso é parte da história.</summary>
+    // A sinopse do AniList vem com HTML e assinada; nada disso é parte da história.
     [Fact]
     public void Sinopse_perde_o_HTML_e_a_assinatura()
     {
@@ -181,7 +175,7 @@ public class AniListTests
         Assert.EndsWith("Acredite!", sinopse);
     }
 
-    /// <summary>Mangá não tem estúdio: quem assina é quem escreveu e desenhou, não o assistente.</summary>
+    // Mangá não tem estúdio: quem assina é quem escreveu e desenhou, não o assistente.
     [Fact]
     public void Autoria_de_mangá_sai_do_staff_pelo_papel()
     {
@@ -193,11 +187,7 @@ public class AniListTests
         Assert.Null(obra.Episódios);
     }
 
-    /// <summary>
-    /// O staff de mangá publicado lá fora vem cheio: tradutor, supervisor, quem fez o
-    /// letreiro. "Touch-Up Art" tem "art" no nome e não é autoria nenhuma — o que vale é o
-    /// papel inteiro, e o "(vols 1-41)" que o AniList pendura nele não muda isso.
-    /// </summary>
+    // O staff de mangá lá fora vem cheio: "Touch-Up Art" tem "art" no nome e não é autoria.
     [Fact]
     public void Autoria_de_mangá_ignora_quem_só_ajudou()
     {
@@ -237,7 +227,7 @@ public class AniListTests
         Assert.Equal(esperada, AniList.Ler(TipoDeObra.Anime, json)!.Situação);
     }
 
-    /// <summary>Sem título não é obra; é lixo que não pode virar embed.</summary>
+    // Sem título não é obra; é lixo que não pode virar embed.
     [Fact]
     public void Sem_título_não_vira_obra()
     {
@@ -246,7 +236,7 @@ public class AniListTests
         Assert.Null(AniList.Ler(TipoDeObra.Anime, json));
     }
 
-    /// <summary>O elenco vem no mesmo pedido da ficha, então não custa requisição nenhuma.</summary>
+    // O elenco vem no mesmo pedido da ficha, então não custa requisição nenhuma.
     [Fact]
     public void Lê_o_elenco_na_ordem_em_que_veio()
     {
@@ -260,10 +250,7 @@ public class AniListTests
         Assert.False(elenco[1].Principal);
     }
 
-    /// <summary>
-    /// O nome romanizado do AniList já é o que se escreve em inglês; o que sobra em
-    /// "alternative" é localização e apelido, e isso vale guardar.
-    /// </summary>
+    // O romanizado já é o que se escreve em inglês; o que sobra é localização e apelido.
     [Fact]
     public void Guarda_os_outros_nomes_do_personagem()
     {
@@ -272,10 +259,7 @@ public class AniListTests
         Assert.Equal(["Nanadaime Hokage"], naruto.OutrosNomes);
     }
 
-    /// <summary>
-    /// O "alternativeSpoiler" é o nome que entrega reviravolta. Numa ficha de busca isso
-    /// não é informação, é estrago.
-    /// </summary>
+    // O "alternativeSpoiler" entrega reviravolta: numa busca isso é estrago, não informação.
     [Fact]
     public void Nome_que_é_spoiler_fica_de_fora()
     {
@@ -290,7 +274,7 @@ public class AniListTests
         Assert.Empty(AniList.Ler(TipoDeObra.Manga, Mangá)!.Personagens);
     }
 
-    /// <summary>O rodapé do embed diz de onde vieram os dados, e aqui não vieram do MAL.</summary>
+    // O rodapé do embed diz de onde vieram os dados, e aqui não vieram do MAL.
     [Fact]
     public void A_obra_sabe_dizer_que_veio_do_AniList()
     {

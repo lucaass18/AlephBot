@@ -8,11 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// As fichas do /ma que já foram mostradas. Sem banco não há ficha guardada — e isso não
-/// cala o comando: ele volta a perguntar à fonte toda vez, que é como ele viveu até aqui.
-/// Nada do que acontece neste arquivo pode derrubar uma resposta em andamento.
-/// </summary>
+// As fichas do /ma já mostradas. Sem banco o comando só pergunta à fonte toda vez.
 public sealed class ObrasEmCache(
     IDbContextFactory<AlephDb>? fábrica,
     MigracaoDoBanco? banco,
@@ -45,7 +41,7 @@ public sealed class ObrasEmCache(
         }
     }
 
-    /// <summary>A ficha que alguém já viu procurando exatamente isto.</summary>
+    // A ficha que alguém já viu procurando exatamente isto.
     private static async Task<ObraGuardada?> PeloTermoAsync(
         AlephDb db, TipoDeObra tipo, string termo, TimeSpan? validade, CancellationToken cancellationToken)
     {
@@ -65,10 +61,7 @@ public sealed class ObrasEmCache(
         return achada?.Obra;
     }
 
-    /// <summary>
-    /// Ninguém procurou por este termo ainda, mas a obra pode estar aqui por outro nome.
-    /// Só vale com a fonte fora (validade nula): com ela de pé, quem acha é ela.
-    /// </summary>
+    // A obra pode estar aqui por outro nome. Só vale com a fonte fora: de pé, quem acha é ela.
     private static async Task<ObraGuardada?> PeloNomeAsync(
         AlephDb db, TipoDeObra tipo, string termo, TimeSpan? validade, CancellationToken cancellationToken)
     {
@@ -109,8 +102,7 @@ public sealed class ObrasEmCache(
             }
             else
             {
-                // o elenco é regravado inteiro: comparar personagem a personagem custaria
-                // mais código do que apagar e pôr de novo dez linhas
+                // o elenco é regravado inteiro: comparar um a um custaria mais que refazer
                 db.RemoveRange(guardada.Personagens);
                 guardada.Personagens.Clear();
             }
@@ -147,7 +139,7 @@ public sealed class ObrasEmCache(
 
     // ---- conversão -----------------------------------------------------------
 
-    /// <summary>A ficha pronta pra gravar; separada pra dar pra conferir a ida e a volta sem banco.</summary>
+    // A ficha pronta pra gravar; separada pra dar pra conferir a ida e a volta sem banco.
     internal static ObraGuardada Guardada(Obra obra)
     {
         var guardada = new ObraGuardada();
@@ -241,7 +233,7 @@ public sealed class ObrasEmCache(
             })],
     };
 
-    /// <summary>A data parcial de volta ao texto do MAL: "2002", "2002-10" ou "2002-10-03".</summary>
+    // A data parcial de volta ao texto do MAL: "2002", "2002-10" ou "2002-10-03".
     private static string? EmTexto(DataParcial data) => (data.Ano, data.Mês, data.Dia) switch
     {
         (null, _, _) => null,
@@ -250,10 +242,7 @@ public sealed class ObrasEmCache(
         ({ } ano, { } mês, { } dia) => $"{ano:D4}-{mês:D2}-{dia:D2}",
     };
 
-    /// <summary>
-    /// Todos os nomes da obra numa linha, normalizados. É o que permite achar a ficha pelo
-    /// título em inglês ou por um sinônimo quando a fonte não está respondendo.
-    /// </summary>
+    // Todos os nomes numa linha, normalizados: acha pelo título em inglês ou por sinônimo.
     internal static string LinhaDeProcura(Obra obra)
     {
         var nomes = new List<string> { obra.Título };
@@ -269,10 +258,7 @@ public sealed class ObrasEmCache(
         return string.Join(" | ", nomes.Select(Normaliza).Distinct());
     }
 
-    /// <summary>
-    /// Sem acento, em minúscula e sem espaço sobrando: "NARUTO ", "naruto" e "Naruto" são a
-    /// mesma pergunta, e quem digita de celular não vai acertar o acento do título.
-    /// </summary>
+    // Sem acento, minúsculo e sem espaço sobrando: "NARUTO " e "naruto" são a mesma pergunta.
     internal static string Normaliza(string texto)
     {
         var decomposto = texto.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);

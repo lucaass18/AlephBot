@@ -43,66 +43,38 @@ public sealed class AlephConfig
     public ulong? DevGuildId { get; }
     public LogLevel LogLevel { get; }
 
-    /// <summary>REST do servidor Lavalink; o WebSocket sai daqui sozinho.</summary>
+    // REST do servidor Lavalink; o WebSocket sai daqui sozinho.
     public Uri LavalinkUri { get; }
 
     public string LavalinkPassword { get; }
 
-    /// <summary>Quanto tempo parado — sem ninguém no canal ou sem tocar — antes de eu sair.</summary>
+    // Quanto tempo parado — sem ninguém no canal ou sem tocar — antes de eu sair.
     public TimeSpan MusicIdleTimeout { get; }
 
-    /// <summary>
-    /// Pede o login do YouTube no console durante o boot. Só faz sentido em servidor, onde
-    /// o YouTube barra o IP; em casa a música toca sem isso.
-    /// </summary>
+    // Pede o login do YouTube no boot. Só serve em servidor, onde o YouTube barra o IP.
     public bool YoutubeLogin { get; }
 
-    /// <summary>
-    /// Semente do token do YouTube: vale no primeiro boot, ou quando alguém cola um token
-    /// novo no .env. Depois disso quem guarda o token em uso é o <c>YoutubeTokenStore</c>,
-    /// porque o Google pode trocar ele sem avisar, e o .env não acompanharia.
-    /// </summary>
+    // Semente do token do YouTube: vale no primeiro boot. Depois quem guarda é o YoutubeTokenStore.
     public string? YoutubeRefreshToken { get; }
 
-    /// <summary>
-    /// O yt-audio, o serviço do compose que pega o áudio do YouTube com o yt-dlp, sem conta.
-    /// Com ele as faixas do YouTube tocam pelo link dele; null (o padrão fora do compose)
-    /// deixa tudo com o plugin do Lavalink. O endereço é como o Lavalink alcança o serviço,
-    /// não como eu alcanço — no compose, os dois são o mesmo.
-    /// </summary>
+    // O yt-audio do compose, que pega o áudio com yt-dlp. null deixa tudo com o plugin do Lavalink.
     public Uri? YoutubeAudioUri { get; }
 
-    /// <summary>
-    /// Client ID da API oficial do MyAnimeList. Opcional: sem ele o /ma pergunta ao AniList,
-    /// que não pede chave mas só enxerga o MAL quando o MAL deixa. Com ele a busca vai
-    /// direto na fonte.
-    /// </summary>
+    // Client ID da API oficial do MAL. Sem ele o /ma vai no AniList, que não pede chave.
     public string? MalClientId { get; }
 
-    /// <summary>
-    /// A API HTTP de status. Null quando não há API_KEY: aí nenhuma porta abre — API sem
-    /// chave seria o bot contando a vida dele pra quem passar na rua.
-    /// </summary>
+    // A API HTTP de status. Null sem API_KEY: API sem chave seria o bot contando a vida na rua.
     public ApiConfig? Api { get; }
 
-    /// <summary>
-    /// Como chegar no Postgres (DATABASE_URL). Null = o bot sobe sem banco: a música, o
-    /// /ping e tudo que não precisa lembrar de nada seguem funcionando, e só o que depende
-    /// de guardar estado fica de fora. O banco guarda estado; ele não está no caminho de
-    /// tocar uma faixa.
-    /// </summary>
+    // Como chegar no Postgres. Null = subo sem banco; só o que guarda estado fica de fora.
     public string? DatabaseUrl { get; }
 
-    /// <summary>O DOTNET_ENVIRONMENT: o compose põe "Production"; rodando em casa, fica vazio.</summary>
+    // O DOTNET_ENVIRONMENT: o compose põe "Production"; rodando em casa, fica vazio.
     public string? Ambiente { get; }
 
     public bool IsProduction => string.Equals(Ambiente, "Production", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Dev é quem tem DEV_GUILD_ID e não está em produção. O ambiente vence: um DEV_GUILD_ID
-    /// esquecido no .env do servidor não faz o bot se anunciar como dev no banner, no log e
-    /// no /api/status.
-    /// </summary>
+    // Dev é quem tem DEV_GUILD_ID e não está em produção — o ambiente vence.
     public bool IsDevelopment => DevGuildId is not null && !IsProduction;
 
     private const string EnvFile = "Config/.env";
@@ -113,10 +85,7 @@ public sealed class AlephConfig
 
     private const int PortaDaApiPadrão = 8080;
 
-    /// <summary>
-    /// Abaixo disso a chave cai pra força bruta. A porta pode acabar aberta na internet, e
-    /// quem bate nela não tem pressa.
-    /// </summary>
+    // Abaixo disso a chave cai pra força bruta, e quem bate na porta não tem pressa.
     private const int ChaveMínima = 16;
 
     public static AlephConfig Load()
@@ -138,11 +107,7 @@ public sealed class AlephConfig
         return De(Environment.GetEnvironmentVariable);
     }
 
-    /// <summary>
-    /// Monta a config a partir de uma fonte de variáveis: o ambiente do processo no boot, um
-    /// dicionário nos testes — que assim não dependem do .env de quem roda nem mexem no
-    /// ambiente uns dos outros.
-    /// </summary>
+    // Monta a config de uma fonte de variáveis: o ambiente no boot, um dicionário nos testes.
     internal static AlephConfig De(Func<string, string?> variável)
     {
         var env = new Variáveis(variável);
@@ -164,13 +129,10 @@ public sealed class AlephConfig
             databaseUrl: env.OptionalOuNulo("DATABASE_URL"));
     }
 
-    /// <summary>Lê cada variável da fonte e converte; o que vem torto vira erro com o nome dela.</summary>
+    // Lê cada variável da fonte e converte; o que vem torto vira erro com o nome dela.
     private sealed class Variáveis(Func<string, string?> ler)
     {
-        /// <summary>
-        /// Sem API_KEY a API não existe. Chave curta é erro, não aviso: subir com ela seria
-        /// trancar a porta com um barbante e não contar pra ninguém.
-        /// </summary>
+        // Sem API_KEY não há API. Chave curta é erro: trancar a porta com barbante é pior que nada.
         public ApiConfig? OptionalApi()
         {
             if (OptionalOuNulo("API_KEY") is not { } chave)
@@ -192,7 +154,7 @@ public sealed class AlephConfig
                 OptionalOuNulo("API_DOCS_ADMIN_PASSWORD"));
         }
 
-        /// <summary>Uma variável com vários valores, separados por vírgula.</summary>
+        // Uma variável com vários valores, separados por vírgula.
         private IReadOnlyList<string> Lista(string key) =>
             OptionalOuNulo(key) is { } valor
                 ? [.. valor.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]
@@ -214,11 +176,11 @@ public sealed class AlephConfig
             return string.IsNullOrWhiteSpace(value) ? fallback : value;
         }
 
-        /// <summary>Aceita o que alguém escreveria sem pensar: 1, true, yes, sim, on.</summary>
+        // Aceita o que alguém escreveria sem pensar: 1, true, yes, sim, on.
         public bool OptionalBool(string key) =>
             ler(key)?.Trim().ToLowerInvariant() is "1" or "true" or "yes" or "sim" or "on";
 
-        /// <summary>Vazio e ausente são a mesma coisa aqui: os dois querem dizer "não tenho".</summary>
+        // Vazio e ausente são a mesma coisa aqui: os dois querem dizer "não tenho".
         public string? OptionalOuNulo(string key)
         {
             var value = ler(key);
@@ -233,10 +195,7 @@ public sealed class AlephConfig
                 ? parsed
                 : fallback;
 
-        /// <summary>
-        /// Endereço torto no .env é erro, não motivo pra cair no padrão calado: quem trocou
-        /// quer saber que errou, não descobrir depois de um boot inteiro batendo em localhost.
-        /// </summary>
+        // Endereço torto é erro, não motivo pra cair no padrão calado.
         public Uri OptionalUri(string key, string fallback)
         {
             var value = Optional(key, fallback);
@@ -247,7 +206,7 @@ public sealed class AlephConfig
             return uri;
         }
 
-        /// <summary>Endereço que pode faltar; torto continua sendo erro, pelo mesmo motivo do de cima.</summary>
+        // Endereço que pode faltar; torto continua sendo erro, pelo mesmo motivo do de cima.
         public Uri? OptionalUriOuNulo(string key)
         {
             if (OptionalOuNulo(key) is not { } value)
@@ -264,7 +223,7 @@ public sealed class AlephConfig
                 ? TimeSpan.FromMinutes(minutos)
                 : fallback;
 
-        /// <summary>Porta torta é erro pelo mesmo motivo do endereço torto: cair no padrão calado esconde o engano.</summary>
+        // Porta torta é erro pelo mesmo motivo do endereço torto.
         public int OptionalPort(string key, int fallback)
         {
             var value = ler(key);
@@ -280,10 +239,7 @@ public sealed class AlephConfig
     }
 }
 
-/// <summary>
-/// Como a API escuta. Classe e não record de propósito: o ToString de um record imprimiria a
-/// chave, e um log descuidado da config viraria vazamento.
-/// </summary>
+// Como a API escuta. Classe e não record: o ToString de record imprimiria a chave no log.
 public sealed class ApiConfig
 {
     public ApiConfig(
@@ -302,35 +258,20 @@ public sealed class ApiConfig
         DocsAdminPassword = docsAdminPassword;
     }
 
-    /// <summary>O que todo pedido tem que trazer no header X-Api-Key.</summary>
+    // O que todo pedido tem que trazer no header X-Api-Key.
     public string Key { get; }
 
     public int Port { get; }
 
-    /// <summary>
-    /// A chave da IA do Scalar nos docs (/api/v1/docs). Sem ela a IA só aparece abrindo pelo
-    /// localhost, que é onde o Scalar dá a cota grátis.
-    /// </summary>
+    // A chave da IA do Scalar nos docs. Sem ela a IA só aparece pelo localhost.
     public string? ScalarAgentKey { get; }
 
-    /// <summary>
-    /// Senha dos docs (/api/v1/docs) pra quem vem de fora (Funnel ou IP público). A página leva
-    /// a chave da IA do Scalar no HTML, e sem senha qualquer um com o link usa as suas
-    /// mensagens. Null = página aberta; de dentro ela nunca é pedida.
-    /// </summary>
+    // Senha dos docs pra quem vem de fora: a página leva a chave da IA no HTML. Null = aberta.
     public string? DocsPassword { get; }
 
-    /// <summary>
-    /// Páginas a mais de onde o navegador pode chamar a API (API_CORS_ORIGINS, separadas por
-    /// vírgula), além das que o <see cref="OrigensDeConfiança"/> já conhece. Um "*" sozinho
-    /// volta a liberar qualquer uma.
-    /// </summary>
+    // Páginas a mais que podem chamar a API (API_CORS_ORIGINS); um "*" libera qualquer uma.
     public IReadOnlyList<string> CorsOrigins { get; }
 
-    /// <summary>
-    /// A senha de dono dos docs (API_DOCS_ADMIN_PASSWORD): de fora, abre a página inteira, com
-    /// a IA. A <see cref="DocsPassword"/> ao lado abre a mesma página sem ela — visitante lê a
-    /// documentação sem gastar mensagem paga. Null = ninguém entra de fora como dono.
-    /// </summary>
+    // A senha de dono dos docs: de fora, abre a página inteira, com a IA. Null = ninguém como dono.
     public string? DocsAdminPassword { get; }
 }

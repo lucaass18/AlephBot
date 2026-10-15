@@ -5,11 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.MyAnimeList;
 
-/// <summary>
-/// As fontes do /ma em fila: a primeira que responder atende, e quem vier depois é reserva.
-/// Existe porque o comando já dependeu de uma fonte só — o Jikan — e morreu junto com ela
-/// em outubro de 2026, sem deixar no log nenhuma pista de que a culpa era de fora.
-/// </summary>
+// As fontes do /ma em fila: a primeira que responder atende. O Jikan morreu e levou o /ma.
 public sealed class FontesEmCadeia : IMyAnimeList
 {
     private readonly ILogger<FontesEmCadeia> _logger;
@@ -41,9 +37,7 @@ public sealed class FontesEmCadeia : IMyAnimeList
             }
             catch (CredencialRecusadaException)
             {
-                // credencial recusada é erro de configuração, não queda: tapar isso com a
-                // reserva faria o Client ID errado funcionar calado pra sempre. 403 sozinho
-                // não serve de pista — é como o AniList avisa que desligou a API
+                // credencial recusada é configuração, não queda: a reserva esconderia o erro
                 throw;
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
@@ -61,8 +55,7 @@ public sealed class FontesEmCadeia : IMyAnimeList
             _logger.LogDebug("A fonte {Fonte} não achou nada para {Busca}", fonte.Nome, busca);
         }
 
-        // ninguém respondeu: quem chamou precisa saber que foi queda, e não "não achei".
-        // vai com a pilha original, que é o que diz no log onde a coisa quebrou
+        // ninguém respondeu: quem chamou precisa saber que foi queda, e não "não achei"
         if (primeiraFalha is not null)
             ExceptionDispatchInfo.Capture(primeiraFalha).Throw();
 

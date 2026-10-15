@@ -6,15 +6,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// O que eu sei do Lavalink sem perguntar a ele: se a conexão está de pé e os últimos números
-/// que ele mandou. Ele avisa quando conecta, quando cai, e manda estatísticas a cada minuto —
-/// eu só anoto. Perguntar a cada pedido da API seria bater nele à toa.
-///
-/// É hosted service só pra nascer no boot. Os eventos são assinados no construtor, não no
-/// StartAsync: o host constrói todos os serviços antes de ligar o primeiro, e o Lavalink
-/// liga antes de mim — esperar a minha vez seria perder o primeiro "conectei".
-/// </summary>
+// O que eu sei do Lavalink sem perguntar: ele avisa e eu anoto, desde o construtor.
 public sealed class LavalinkMonitor : IHostedService
 {
     private const double Mb = 1024 * 1024;
@@ -72,7 +64,7 @@ public sealed class LavalinkMonitor : IHostedService
         return Task.CompletedTask;
     }
 
-    /// <summary>Caiu e vai tentar de novo é "conectando"; caiu pra ficar é "desconectado".</summary>
+    // Caiu e vai tentar de novo é "conectando"; caiu pra ficar é "desconectado".
     private Task AoCairAsync(object sender, ConnectionClosedEventArgs eventArgs)
     {
         Mudar(eventArgs.AllowReconnect ? ConnectionStatus.Connecting : ConnectionStatus.Disconnected);

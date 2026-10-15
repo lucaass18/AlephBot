@@ -14,8 +14,7 @@ public static class Program
         }
         catch (OperationCanceledException)
         {
-            // com o Lavalink fora do ar o áudio fica tentando reconectar, e a tentativa
-            // morre junto com o shutdown. Chega aqui como exceção, mas eu parei certinho
+            // com o Lavalink fora, a reconexão morre no shutdown: é exceção, mas eu parei certinho
         }
         catch (Exception erro)
         {
@@ -28,10 +27,7 @@ public static class Program
         return 0;
     }
 
-    /// <summary>
-    /// Fecha o que o banner de boot abriu, na mesma paleta. Sai no console e não pelo
-    /// NLog: despedida com timestamp e nome de logger na frente perde a graça.
-    /// </summary>
+    // Fecha o que o banner abriu, na mesma paleta. No console: com timestamp perde a graça.
     private static void Despedida(TextWriter saida, Exception? erro)
     {
         var cor = Banner.UsaCor();

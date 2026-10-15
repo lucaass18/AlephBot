@@ -6,22 +6,14 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// Anota os números do bot de tempos em tempos, direto no banco. Quem fazia isso era um
-/// fluxo do n8n, chamando a API de fora a cada quinze minutos; agora a foto é tirada aqui
-/// dentro, sem passar por HTTP nem por chave, e continua sendo tirada mesmo com o n8n
-/// parado — que foi exatamente o que aconteceu quando os fluxos caíram e ninguém viu.
-///
-/// Falhar aqui não derruba nada: coleta perdida é buraco na linha do tempo, não bot fora
-/// do ar.
-/// </summary>
+// Anota os números de tempos em tempos, aqui dentro: com o n8n parado a coleta continua.
 public sealed class ColetorDeStats(
     IDbContextFactory<AlephDb> fábrica,
     MigracaoDoBanco banco,
     BotStatus bot,
     ILogger<ColetorDeStats> logger) : BackgroundService
 {
-    /// <summary>A mesma cadência do fluxo que fazia isto antes, pra linha do tempo não mudar de passo.</summary>
+    // A mesma cadência do fluxo que fazia isto antes, pra linha do tempo não mudar de passo.
     public static readonly TimeSpan Intervalo = TimeSpan.FromMinutes(15);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -30,8 +22,7 @@ public sealed class ColetorDeStats(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            // espera antes da primeira: no boot o cache do gateway ainda está enchendo, e
-            // a foto sairia com menos servidores e menos gente do que existe de verdade
+            // espera antes da primeira: no boot o cache do gateway ainda está enchendo
             try
             {
                 if (!await relógio.WaitForNextTickAsync(stoppingToken))

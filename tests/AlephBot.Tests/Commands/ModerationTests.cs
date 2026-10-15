@@ -35,7 +35,7 @@ public class ModerationTests
     }
 }
 
-/// <summary>A cor do /ping acompanha a latência: verde, amarelo, vermelho.</summary>
+// A cor do /ping acompanha a latência: verde, amarelo, vermelho.
 public class PingCommandTests
 {
     [Theory]

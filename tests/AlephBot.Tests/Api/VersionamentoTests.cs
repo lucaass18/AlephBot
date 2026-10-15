@@ -2,10 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace AlephBot.Tests.Api;
 
-/// <summary>
-/// A versão mora no caminho (/api/v1/...). Quem usava os endereços de antes não quebra: o
-/// health continua respondendo onde estava, e o resto manda pra versão atual.
-/// </summary>
+// A versão mora no caminho. O health segue onde estava, e o resto manda pra versão atual.
 public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private readonly ApiDeTeste _api = fixture.Api;
@@ -92,8 +89,7 @@ public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     [Fact]
     public async Task A_página_mora_dentro_da_v1_e_mostra_o_documento_dela()
     {
-        // sem a barra no fim o Scalar manda pra com barra, senão os arquivos dele não carregam.
-        // Ele responde "docs/", relativo, e quem resolve o endereço é o navegador
+        // sem a barra no fim o Scalar manda pra com barra, senão os arquivos dele não carregam
         var (redireciona, _, headers) = await _api.GetComHeadersAsync("/api/v1/docs");
         var destino = new Uri(new Uri("https://aleph.tailc38add.ts.net/api/v1/docs"), headers.Location.ToString());
         var (status, html) = await _api.GetAsync("/api/v1/docs/");

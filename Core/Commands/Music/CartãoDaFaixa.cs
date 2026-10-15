@@ -13,22 +13,13 @@ using NetCord.Rest;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// O card pronto pra enviar: o container e, quando deu pra baixar a capa a tempo, o arquivo
-/// dela. O Discord exige que o arquivo vá na mesma mensagem que o referencia.
-/// </summary>
+// O card pronto: o container e, quando a capa chegou a tempo, o arquivo dela na mesma mensagem.
 internal readonly record struct Cartão(ComponentContainerProperties Container, AttachmentProperties? Anexo);
 
-/// <summary>
-/// O "tocando agora" no formato novo de mensagem do Discord, e não como embed. O motivo é
-/// um só: a imagem de um embed nunca passa da largura dele, e aqui a capa entra numa galeria
-/// de mídia, que ocupa a largura do container inteiro. O resto é o mesmo conteúdo de antes —
-/// a barra roxa virou a cor do container, e os campos viraram uma linha de texto miúdo, que
-/// é o que este formato tem no lugar de colunas.
-/// </summary>
+// O "tocando agora" no formato novo: a capa entra em galeria e ocupa a largura inteira.
 internal static class CartãoDaFaixa
 {
-    /// <summary>A faixa que começou a tocar, com a próxima quando tem fila.</summary>
+    // A faixa que começou a tocar, com a próxima quando tem fila.
     internal static async Task<Cartão> TocandoAsync(
         LavalinkTrack faixa,
         string? quemPediu,
@@ -56,7 +47,7 @@ internal static class CartãoDaFaixa
         return cartão;
     }
 
-    /// <summary>O /nowplaying: a mesma faixa, com a barra de progresso no lugar da frase.</summary>
+    // O /nowplaying: a mesma faixa, com a barra de progresso no lugar da frase.
     internal static Task<Cartão> ProgressoAsync(
         AlephPlayer player, LavalinkTrack faixa, string progresso, CancellationToken cancellationToken = default)
     {
@@ -94,8 +85,7 @@ internal static class CartãoDaFaixa
 
         var anexo = await CapaDaFaixa.AnexoAsync(faixa, logger, cancellationToken);
 
-        // o arquivo que sobe junto é referenciado por nome; sem ele, resta o link, e aí a
-        // capa só aparece quando o Discord for buscar ela no YouTube
+        // o arquivo que sobe junto é referenciado por nome; sem ele resta o link, que demora
         var capa = anexo is not null ? $"attachment://{anexo.FileName}" : faixa.ArtworkUri?.ToString();
 
         if (capa is not null)
@@ -111,10 +101,7 @@ internal static class CartãoDaFaixa
         return new Cartão(container, anexo);
     }
 
-    /// <summary>
-    /// A linha miúda do fim: o que no embed eram os campos e o rodapé. Vai tudo junto porque
-    /// este formato não tem coluna — e três linhas curtas pesariam mais que uma só.
-    /// </summary>
+    // A linha miúda do fim: o que eram campos e rodapé. Este formato não tem coluna.
     private static string Rodapé(LavalinkTrack faixa, string duração, string? quemPediu)
     {
         var partes = new List<string>

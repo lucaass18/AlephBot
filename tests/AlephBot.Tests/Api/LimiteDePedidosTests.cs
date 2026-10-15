@@ -8,11 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.Api;
 
-/// <summary>
-/// O limite de pedidos. Cada teste sobe a própria API: o limite guarda estado, e um teste não
-/// pode gastar a cota do outro. Os nomes dos headers ficam escritos por extenso de propósito:
-/// são contrato com quem usa a API, e mudar um deles tem que quebrar teste.
-/// </summary>
+// Cada teste sobe a própria API, porque o limite guarda estado. Os headers são contrato.
 public class LimiteDePedidosTests
 {
     private static readonly IPAddress IpDeFora = IPAddress.Parse("203.0.113.77");

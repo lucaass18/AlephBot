@@ -8,17 +8,10 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// Os comandos que só mexem no que já está tocando: pular, parar, sair, pausar e voltar.
-/// Cada ação mora aqui uma vez só; as classes abaixo são as duas portas de entrada pra ela.
-/// </summary>
+// Os comandos que só mexem no que já toca; as classes abaixo são as duas portas de entrada.
 internal static class Playback
 {
-    /// <summary>
-    /// Pular é a única ação que faz o player falar por conta própria: a faixa seguinte
-    /// começa e ele anuncia. Por isso o pulo em si fica pro <c>Depois</c> — sem isso ele
-    /// ganhava a corrida e o "Pulei" aparecia embaixo do "tocando agora".
-    /// </summary>
+    // Pular faz o player falar sozinho; o pulo fica pro Depois, senão o "Pulei" sai embaixo.
     internal static Task<Music.Resposta> PularAsync(AlephPlayer player)
     {
         if (player.CurrentTrack is not { } atual)
@@ -31,7 +24,7 @@ internal static class Playback
         return Task.FromResult(Music.Resposta.Ok(aviso, depois: () => player.SkipAsync().AsTask()));
     }
 
-    /// <summary>Para e esvazia a fila, mas continua no canal — quem me tira é o /disconnect.</summary>
+    // Para e esvazia a fila, mas continua no canal — quem me tira é o /disconnect.
     internal static async Task<Music.Resposta> PararAsync(AlephPlayer player)
     {
         // a fila sai primeiro: parar com faixa esperando faria o player emendar na próxima
@@ -76,7 +69,7 @@ internal static class Playback
     }
 }
 
-/// <summary>/skip</summary>
+// /skip
 public sealed class SkipCommand : MusicSlashModule
 {
     public SkipCommand(IAudioService áudio) : base(áudio) { }
@@ -90,7 +83,7 @@ public sealed class SkipCommand : MusicSlashModule
     public Task SkipAsync() => ExecutarAsync(Playback.PularAsync);
 }
 
-/// <summary>!skip</summary>
+// !skip
 public sealed class SkipTextCommand : MusicTextModule
 {
     public SkipTextCommand(IAudioService áudio) : base(áudio) { }
@@ -104,7 +97,7 @@ public sealed class SkipTextCommand : MusicTextModule
     public Task SkipAsync() => ExecutarAsync(Playback.PularAsync);
 }
 
-/// <summary>/stop</summary>
+// /stop
 public sealed class StopCommand : MusicSlashModule
 {
     public StopCommand(IAudioService áudio) : base(áudio) { }
@@ -118,7 +111,7 @@ public sealed class StopCommand : MusicSlashModule
     public Task StopAsync() => ExecutarAsync(Playback.PararAsync);
 }
 
-/// <summary>!stop</summary>
+// !stop
 public sealed class StopTextCommand : MusicTextModule
 {
     public StopTextCommand(IAudioService áudio) : base(áudio) { }
@@ -132,7 +125,7 @@ public sealed class StopTextCommand : MusicTextModule
     public Task StopAsync() => ExecutarAsync(Playback.PararAsync);
 }
 
-/// <summary>/disconnect</summary>
+// /disconnect
 public sealed class DisconnectCommand : MusicSlashModule
 {
     public DisconnectCommand(IAudioService áudio) : base(áudio) { }
@@ -146,7 +139,7 @@ public sealed class DisconnectCommand : MusicSlashModule
     public Task DisconnectAsync() => ExecutarAsync(Playback.SairAsync);
 }
 
-/// <summary>!disconnect</summary>
+// !disconnect
 public sealed class DisconnectTextCommand : MusicTextModule
 {
     public DisconnectTextCommand(IAudioService áudio) : base(áudio) { }
@@ -160,7 +153,7 @@ public sealed class DisconnectTextCommand : MusicTextModule
     public Task DisconnectAsync() => ExecutarAsync(Playback.SairAsync);
 }
 
-/// <summary>/pause</summary>
+// /pause
 public sealed class PauseCommand : MusicSlashModule
 {
     public PauseCommand(IAudioService áudio) : base(áudio) { }
@@ -174,7 +167,7 @@ public sealed class PauseCommand : MusicSlashModule
     public Task PauseAsync() => ExecutarAsync(Playback.PausarAsync);
 }
 
-/// <summary>!pause</summary>
+// !pause
 public sealed class PauseTextCommand : MusicTextModule
 {
     public PauseTextCommand(IAudioService áudio) : base(áudio) { }
@@ -188,7 +181,7 @@ public sealed class PauseTextCommand : MusicTextModule
     public Task PauseAsync() => ExecutarAsync(Playback.PausarAsync);
 }
 
-/// <summary>/resume</summary>
+// /resume
 public sealed class ResumeCommand : MusicSlashModule
 {
     public ResumeCommand(IAudioService áudio) : base(áudio) { }
@@ -202,7 +195,7 @@ public sealed class ResumeCommand : MusicSlashModule
     public Task ResumeAsync() => ExecutarAsync(Playback.VoltarAsync);
 }
 
-/// <summary>!resume</summary>
+// !resume
 public sealed class ResumeTextCommand : MusicTextModule
 {
     public ResumeTextCommand(IAudioService áudio) : base(áudio) { }

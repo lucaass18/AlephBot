@@ -2,18 +2,15 @@ using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Tests.MyAnimeList;
 
-/// <summary>
-/// Uma guarda de mentira: diz o que foi guardado e devolve o que mandarem devolver. Com
-/// <see cref="Disponível"/> falso ela é o bot rodando sem Postgres.
-/// </summary>
+// Uma guarda de mentira. Com Disponível falso ela é o bot rodando sem Postgres.
 internal sealed class GuardaFalsa : IFichasGuardadas
 {
     public bool Disponível { get; init; } = true;
 
-    /// <summary>A ficha dentro da validade, que dispensa perguntar à fonte.</summary>
+    // A ficha dentro da validade, que dispensa perguntar à fonte.
     public Obra? Recente { get; init; }
 
-    /// <summary>A ficha vencida, que só serve quando a fonte caiu.</summary>
+    // A ficha vencida, que só serve quando a fonte caiu.
     public Obra? Velha { get; init; }
 
     public Obra? Guardada { get; private set; }
@@ -33,10 +30,7 @@ internal sealed class GuardaFalsa : IFichasGuardadas
     }
 }
 
-/// <summary>
-/// O MangaDex que nunca casa a obra. Serve aos testes que não são sobre a sinopse em
-/// português: com ele, a ficha segue o caminho de sempre.
-/// </summary>
+// O MangaDex que nunca casa a obra, pros testes que não são sobre a sinopse.
 internal sealed class SemMangaDex : ISinopseEmPortuguês
 {
     public Task<string?> ParaAsync(Obra obra, CancellationToken cancellationToken = default) =>

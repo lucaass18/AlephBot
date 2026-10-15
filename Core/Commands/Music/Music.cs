@@ -26,35 +26,29 @@ using NetCord.Services;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// O que todo comando de música repete: pegar o player do servidor, traduzir a recusa do
-/// Lavalink pra uma frase da Denia e montar os embeds. Cada comando cuida só da própria ação.
-/// </summary>
+// O que todo comando de música repete: pegar o player, traduzir a recusa e montar os embeds.
 internal static class Music
 {
-    /// <summary>O mesmo roxo do /help e do /mute — música não é notícia boa nem ruim.</summary>
+    // O mesmo roxo do /help e do /mute — música não é notícia boa nem ruim.
     internal const int Roxo = 0x9B59B6;
 
-    /// <summary>Volume máximo aceito, em porcento. O Lavalink vai a 1000; ninguém precisa.</summary>
+    // Volume máximo aceito, em porcento. O Lavalink vai a 1000; ninguém precisa.
     internal const int VolumeMáximo = 200;
 
-    /// <summary>Quantas faixas o /queue lista antes de resumir o resto numa linha só.</summary>
+    // Quantas faixas o /queue lista antes de resumir o resto numa linha só.
     internal const int FilaVisível = 10;
 
     internal const string ExemploPosição = "1:30";
 
     private const int TamanhoBarra = 18;
 
-    /// <summary>O teto do Discord é 4096; a folga é pra linha de resumo do fim.</summary>
+    // O teto do Discord é 4096; a folga é pra linha de resumo do fim.
     private const int MaxDescrição = 3800;
 
-    /// <summary>O teto do Discord pro título do embed, onde agora vai o nome da faixa.</summary>
+    // O teto do Discord pro título do embed, onde agora vai o nome da faixa.
     private const int MaxTítulo = 256;
 
-    /// <summary>
-    /// Quanto eu espero o servidor de áudio ficar pronto antes de desistir. Ele sobe mais
-    /// devagar que eu, e comando dado nos primeiros segundos pegava o nó no meio da conexão.
-    /// </summary>
+    // Quanto eu espero o servidor de áudio: ele sobe mais devagar que eu.
     private static readonly TimeSpan EsperaPeloServidor = TimeSpan.FromSeconds(10);
 
     private static readonly PlayerFactory<AlephPlayer, AlephPlayerOptions> Fábrica =
@@ -62,14 +56,7 @@ internal static class Music
 
     // ---- player --------------------------------------------------------------
 
-    /// <summary>
-    /// O player deste servidor. Com <paramref name="conectar"/> eu entro no canal de quem
-    /// chamou; sem ele, quem não tem player leva
-    /// <see cref="PlayerRetrieveStatus.BotNotConnected"/> em vez de me arrastar pra voz.
-    ///
-    /// <paramref name="exigirMesmoCanal"/> impede alguém de outro canal pausar a música dos
-    /// outros. Fica falso pra quem só olha: exigir voz pra ler a fila seria implicância.
-    /// </summary>
+    // O player do servidor. conectar me põe no canal de quem chamou; exigirMesmoCanal, só quem age.
     internal static ValueTask<PlayerResult<AlephPlayer>> ObterAsync(
         IAudioService áudio,
         IGuildContext contexto,
@@ -92,10 +79,7 @@ internal static class Music
             cancellationToken: cancellationToken);
     }
 
-    /// <summary>
-    /// O mesmo player, sem ninguém ter pedido: é como eu volto pro canal depois de um
-    /// restart. Sem contexto de comando, o canal de voz vem de quem lembra dele.
-    /// </summary>
+    // O mesmo player sem ninguém pedir: é como eu volto pro canal depois de um restart.
     internal static ValueTask<PlayerResult<AlephPlayer>> VoltarAsync(
         IAudioService áudio,
         ulong guildId,
@@ -123,17 +107,13 @@ internal static class Music
         // surdo desde o começo: eu não escuto ninguém, e o Discord mostra isso
         player.SelfDeaf = true;
 
-        // sem isto o /stop me tira do canal junto, e aí não sobra o que /resume
-        // ou /play possa reaproveitar — quem me tira do canal é o /disconnect
+        // sem isto o /stop me tira do canal junto, e não sobra o que o /resume reaproveite
         player.DisconnectOnStop = false;
 
         return player;
     }
 
-    /// <summary>
-    /// O player pronto, ou a frase que explica por que não deu. Recusa e servidor fora do ar
-    /// saem pelo mesmo caminho: pra quem digitou, os dois são "não rolou".
-    /// </summary>
+    // O player pronto, ou a frase que explica o porquê — recusa e servidor fora dão no mesmo.
     internal static async Task<(AlephPlayer? Player, string? Erro)> PlayerAsync(
         IAudioService áudio,
         IGuildContext contexto,
@@ -144,8 +124,7 @@ internal static class Music
     {
         try
         {
-            // sem esperar, o comando dado logo depois do boot morria com "session identifier
-            // is not available" — erro interno pra quem só chegou dois segundos cedo demais
+            // sem esperar, comando dado após o boot morria com um erro de sessão interno
             using var espera = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             espera.CancelAfter(EsperaPeloServidor);
 
@@ -166,8 +145,7 @@ internal static class Music
         }
         catch (TimeoutException) when (conectar)
         {
-            // o Discord não confirmou a entrada, e quase sempre é permissão de Conectar
-            // faltando. culpar o Lavalink aqui manda o cara procurar no lugar errado
+            // o Discord não confirmou a entrada, e quase sempre é permissão de Conectar faltando
             return (null, Denia.MúsicaNãoConsegui());
         }
         catch (Exception ex) when (ÉServidorFora(ex))
@@ -176,7 +154,7 @@ internal static class Music
         }
     }
 
-    /// <summary>A frase que explica por que não deu, ou null quando o player veio.</summary>
+    // A frase que explica por que não deu, ou null quando o player veio.
     internal static string? Recusa(PlayerRetrieveStatus status) => status switch
     {
         PlayerRetrieveStatus.Success => null,
@@ -186,23 +164,14 @@ internal static class Music
         _ => Denia.MúsicaNãoConsegui(),
     };
 
-    /// <summary>
-    /// Separa "o Lavalink não está lá" de um erro meu. Conexão recusada, senha errada e
-    /// timeout viram a frase do servidor; o resto sobe pro log, em vez de virar desculpa.
-    /// </summary>
+    // Separa "o Lavalink não está lá" de um erro meu; o resto sobe pro log.
     internal static bool ÉServidorFora(Exception ex) =>
         ex is HttpRequestException or TimeoutException or TaskCanceledException or WebSocketException
         // nó ainda conectando: o Lavalink4NET avisa por texto, não tem exceção própria pra isso
         || (ex is InvalidOperationException && ex.Message.Contains("session identifier", StringComparison.OrdinalIgnoreCase))
         || (ex.InnerException is { } dentro && ÉServidorFora(dentro));
 
-    /// <summary>O que um comando de música devolve: o embed pronto, ou a recusa em texto.</summary>
-    /// <summary>
-    /// O que o comando respondeu e, quando tem, o que ainda falta fazer. O <c>Depois</c>
-    /// existe pra uma coisa só: ação que faz o player anunciar sozinho — pular é o caso —
-    /// precisa rodar com a resposta já no canal, senão o anúncio da faixa seguinte sai
-    /// primeiro e o "Pulei" aparece embaixo dele.
-    /// </summary>
+    // O que um comando devolve. Depois roda já com a resposta no canal, senão o anúncio sai antes.
     internal readonly record struct Resposta(
         EmbedProperties? Embed,
         string? Erro,
@@ -211,7 +180,7 @@ internal static class Music
     {
         internal static Resposta Ok(EmbedProperties embed, Func<Task>? depois = null) => new(embed, null, depois);
 
-        /// <summary>A resposta que vai no formato novo, com a capa grande dentro do card.</summary>
+        // A resposta que vai no formato novo, com a capa grande dentro do card.
         internal static Resposta Ok(Cartão cartão) => new(null, null, null, cartão);
 
         internal static Resposta Falha(string erro) => new(null, erro);
@@ -219,20 +188,7 @@ internal static class Music
 
     // ---- busca ---------------------------------------------------------------
 
-    /// <summary>
-    /// Link vai cru pro Lavalink, que resolve a fonte sozinho; texto solto vira busca no
-    /// YouTube, que é o que quem digita o nome da música espera.
-    /// </summary>
-    /// <summary>
-    /// Tira a rádio automática de um link de vídeo.
-    ///
-    /// Quem copia o link direto do player do YouTube leva junto <c>&amp;list=RD...</c> — a
-    /// rádio que ele monta sozinho a partir da faixa. O Lavalink obedece e carrega as cem
-    /// faixas dela, então um "toca essa música" vira uma fila que ninguém pediu.
-    ///
-    /// Só a rádio sai. Playlist de verdade (<c>list=PL...</c>) continua entrando inteira:
-    /// aquela a pessoa escolheu, esta o YouTube inventou.
-    /// </summary>
+    // Link vai cru pro Lavalink, texto vira busca. Tira a rádio (RD...) que o YouTube inventa.
     internal static string SemRádio(string busca)
     {
         if (!Uri.TryCreate(busca, UriKind.Absolute, out var uri)
@@ -282,11 +238,7 @@ internal static class Music
         Uri.TryCreate(texto, UriKind.Absolute, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
-    /// <summary>
-    /// Pede ao Lavalink e traduz o que deu errado. Servidor fora e busca recusada viram
-    /// frase; o que passa daqui ainda pode vir vazio, e o que dizer nesse caso depende de
-    /// quem pediu — por isso o <see cref="TrackLoadResult.HasMatches"/> fica com o chamador.
-    /// </summary>
+    // Pede ao Lavalink e traduz o erro. Pode vir vazio, e o que dizer aí fica com o chamador.
     internal static async Task<(TrackLoadResult Resultado, string? Erro)> CarregarAsync(
         IAudioService áudio, string busca, CancellationToken cancellationToken = default)
     {
@@ -313,10 +265,7 @@ internal static class Music
 
     // ---- embeds --------------------------------------------------------------
 
-    /// <summary>
-    /// O anúncio da faixa que começou. Com fila atrás dela, a próxima entra numa linha
-    /// embaixo — quem está ouvindo quer saber o que vem, e o espaço já estava lá.
-    /// </summary>
+    // O anúncio da faixa que começou, com a próxima numa linha embaixo quando tem fila.
     internal static Task<Cartão> CartãoTocandoAsync(
         LavalinkTrack faixa,
         string? quemPediu,
@@ -325,7 +274,7 @@ internal static class Music
         CancellationToken cancellationToken = default) =>
         CartãoDaFaixa.TocandoAsync(faixa, quemPediu, próxima, logger, cancellationToken);
 
-    /// <summary>A primeira da fila, ou null quando a faixa de agora é a última.</summary>
+    // A primeira da fila, ou null quando a faixa de agora é a última.
     internal static LavalinkTrack? Próxima(AlephPlayer player) =>
         player.Queue.Count > 0 ? player.Queue[0].Track : null;
 
@@ -333,11 +282,7 @@ internal static class Music
         Base(Denia.MúsicaTítuloNaFila, faixa, quemPediu, Denia.MúsicaEntrouNaFila())
             .ComCampo(Denia.MúsicaCampoPosição, $"#{posição}", inline: true);
 
-    /// <summary>
-    /// A playlist inteira num embed só. <paramref name="começouAgora"/> diz se a primeira
-    /// faixa já saiu tocando ou se ela vai esperar a vez — a linha que nomeia ela muda de
-    /// rótulo por causa disso, porque "Agora" numa faixa que não está tocando mente.
-    /// </summary>
+    // A playlist inteira num embed. começouAgora troca o rótulo: "Agora" em faixa parada mente.
     internal static EmbedProperties EmbedPlaylist(
         string nome, IReadOnlyList<LavalinkTrack> faixas, string? quemPediu, bool começouAgora)
     {
@@ -349,8 +294,7 @@ internal static class Music
             descrição.Append('\n').Append(rótulo).Append(": ").Append(Link(faixas[0]));
         }
 
-        // sem capa e sem campo de duração: este embed só apresenta a playlist, e logo
-        // abaixo vem o "tocando agora", que já traz arte, artista e duração da faixa
+        // sem capa e sem duração: o "tocando agora" logo abaixo já traz isso
         var embed = new EmbedProperties
         {
             Author = new EmbedAuthorProperties { Name = Denia.MúsicaTítuloPlaylist },
@@ -362,7 +306,7 @@ internal static class Music
         return embed.ComRodapé(quemPediu, faixas.Count > 0 ? faixas[0].SourceName : null);
     }
 
-    /// <summary>O aviso de que voltei depois de um restart, no lugar do "tocando agora".</summary>
+    // O aviso de que voltei depois de um restart, no lugar do "tocando agora".
     internal static EmbedProperties EmbedVoltei(LavalinkTrack faixa, TimeSpan? posição, bool pausada, int naFila)
     {
         var texto = new StringBuilder(
@@ -391,7 +335,7 @@ internal static class Music
         return embed.ComRodapé(null, faixa.SourceName);
     }
 
-    /// <summary>O /nowplaying: a mesma faixa do anúncio, com a barra de progresso viva.</summary>
+    // O /nowplaying: a mesma faixa do anúncio, com a barra de progresso viva.
     internal static Task<Cartão> CartãoProgressoAsync(AlephPlayer player, LavalinkTrack faixa)
     {
         var posição = player.Position?.Position ?? TimeSpan.Zero;
@@ -422,8 +366,7 @@ internal static class Music
                 ? $"`{i + 1}.` —\n"
                 : $"`{i + 1}.` {Link(faixa)} · `{DuraçãoDe(faixa)}`\n";
 
-            // dez títulos quilométricos estouram o teto do embed, e embed recusado não
-            // mostra fila nenhuma. melhor listar menos e avisar quantas ficaram de fora
+            // título quilométrico estoura o teto do embed, e embed recusado não mostra fila nenhuma
             if (linhas.Length + linha.Length > MaxDescrição)
                 break;
 
@@ -458,7 +401,7 @@ internal static class Music
         };
     }
 
-    /// <summary>Aviso simples de uma linha — o que quase todo comando devolve.</summary>
+    // Aviso simples de uma linha — o que quase todo comando devolve.
     internal static EmbedProperties Aviso(string texto) =>
         new()
         {
@@ -466,11 +409,7 @@ internal static class Music
             Color = new Color(Roxo),
         };
 
-    /// <summary>
-    /// O esqueleto dos embeds de faixa: o rótulo ("Tocando agora") vai na linha de cima,
-    /// pequena, e o título grande fica com o nome da música, clicável. Assim o nome aparece
-    /// uma vez só — antes ele vinha no título, na frase e no link logo abaixo, tudo junto.
-    /// </summary>
+    // O esqueleto dos embeds de faixa: rótulo pequeno em cima, nome da faixa no título, clicável.
     private static EmbedProperties Base(
         string rótulo, LavalinkTrack faixa, string? quemPediu, string descrição)
     {
@@ -506,10 +445,7 @@ internal static class Music
         return embed;
     }
 
-    /// <summary>
-    /// O título do embed não lê markdown — vai cru, sem escapar, só cortado no teto do
-    /// Discord. Nome de faixa com a discografia inteira no meio passa de 256 com folga.
-    /// </summary>
+    // O título do embed não lê markdown — vai cru, só cortado no teto do Discord.
     private static string Título(string? texto) =>
         string.IsNullOrWhiteSpace(texto) ? "?"
             : texto.Length <= MaxTítulo ? texto
@@ -517,25 +453,17 @@ internal static class Music
 
     // ---- formatação ----------------------------------------------------------
 
-    /// <summary>Quem pediu a faixa, ou null quando ela entrou por caminho que não guarda isso.</summary>
+    // Quem pediu a faixa, ou null quando ela entrou por caminho que não guarda isso.
     internal static string? QuemPediu(ITrackQueueItem? item) =>
         (item as FaixaPedida)?.QuemPediu;
 
-    /// <summary>
-    /// Título clicável. O texto do link é escapado porque nome de faixa vem com `[`, `]` e
-    /// `*` o tempo todo, e um colchete solto quebra a sintaxe do markdown do Discord.
-    /// </summary>
+    // Título clicável. O texto é escapado porque nome de faixa vem cheio de `[`, `]` e `*`.
     internal static string Link(LavalinkTrack faixa) =>
         faixa.Uri is { } uri
             ? $"[{Escapa(faixa.Title)}]({uri})"
             : $"**{Escapa(faixa.Title)}**";
 
-    /// <summary>
-    /// O artista, clicável quando eu sei o endereço do canal dele. Pro YouTube quem conta é
-    /// o yt-audio, que já tinha perguntado ao yt-dlp na hora de achar o áudio; outras fontes
-    /// mandam isso na própria faixa. Sem endereço, fica o nome puro — link pra busca seria
-    /// prometer o canal e entregar outra coisa.
-    /// </summary>
+    // O artista, clicável quando eu sei o canal dele — pro YouTube quem conta é o yt-audio.
     internal static string Artista(LavalinkTrack faixa)
     {
         var nome = Escapa(faixa.Author);
@@ -559,14 +487,14 @@ internal static class Music
         return null;
     }
 
-    /// <summary>O <see cref="Markdown.Escapa"/> de quem não tem título: faixa sem nome vira "?".</summary>
+    // O Escapa de quem não tem título: faixa sem nome vira "?".
     internal static string Escapa(string? texto) =>
         string.IsNullOrEmpty(texto) ? "?" : Markdown.Escapa(texto);
 
     internal static string DuraçãoDe(LavalinkTrack faixa) =>
         faixa.IsLiveStream ? Denia.MúsicaAoVivo : Duração(faixa.Duration);
 
-    /// <summary>"3:41" quando cabe na hora, "1:02:03" quando não cabe.</summary>
+    // "3:41" quando cabe na hora, "1:02:03" quando não cabe.
     internal static string Duração(TimeSpan tempo) =>
         tempo.TotalHours >= 1
             ? $"{(int)tempo.TotalHours}:{tempo.Minutes:D2}:{tempo.Seconds:D2}"
@@ -581,7 +509,7 @@ internal static class Music
         _ => "➖",
     };
 
-    /// <summary>Soma que ignora transmissão ao vivo — somar "infinito" não informa nada.</summary>
+    // Soma que ignora transmissão ao vivo — somar "infinito" não informa nada.
     private static TimeSpan Soma(IReadOnlyList<LavalinkTrack> faixas)
     {
         var total = TimeSpan.Zero;
@@ -607,10 +535,7 @@ internal static class Music
 
     // ---- entrada do usuário --------------------------------------------------
 
-    /// <summary>
-    /// Lê "1:30", "1:02:03", "90" (segundos) e "1m30s". Devolve null quando o texto não vira
-    /// uma posição — negativo incluso, que só apareceria por engano de digitação.
-    /// </summary>
+    // Lê "1:30", "1:02:03", "90" e "1m30s"; null quando o texto não vira posição.
     internal static TimeSpan? ParsePosição(string texto)
     {
         texto = texto.Trim();
@@ -623,7 +548,7 @@ internal static class Music
             : PorUnidade(texto);
     }
 
-    /// <summary>"mm:ss" e "hh:mm:ss" — o formato que aparece no player do YouTube.</summary>
+    // "mm:ss" e "hh:mm:ss" — o formato que aparece no player do YouTube.
     private static TimeSpan? PorRelógio(string texto)
     {
         var partes = texto.Split(':');
@@ -648,7 +573,7 @@ internal static class Music
         return total;
     }
 
-    /// <summary>"90", "1m30s", "2m" — número solto fecha em segundos.</summary>
+    // "90", "1m30s", "2m" — número solto fecha em segundos.
     private static TimeSpan? PorUnidade(string texto)
     {
         var total = TimeSpan.Zero;

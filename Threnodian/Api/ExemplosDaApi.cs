@@ -1,15 +1,10 @@
 using AlephBot.Core.Commands.Interface;
-// apelido de propósito: dentro de AlephBot.Threnodian.Api, escrever "AlephBot" acha o
-// namespace raiz antes da classe, e o compilador reclama de um "Version" que não existe ali
+// apelido de propósito: aqui "AlephBot" acha o namespace raiz antes da classe
 using Bot = AlephBot.Threnodian.Inicialização.AlephBot;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// O que os docs mostram como resposta de cada rota, no lugar de "string" e 0. São objetos de
-/// verdade dos contratos: se uma resposta mudar de formato, o exemplo para de compilar em vez
-/// de ficar mentindo. Os comandos são dois que existem mesmo, com a descrição que o /help dá.
-/// </summary>
+// O que os docs mostram no lugar de "string" e 0: objetos de verdade, que param de compilar.
 internal static class ExemplosDaApi
 {
     private static readonly DateTimeOffset Subiu = new(2026, 10, 7, 12, 48, 42, TimeSpan.Zero);

@@ -16,20 +16,10 @@ using Scalar.AspNetCore;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// Os docs: a API no navegador, pelo Scalar — cada rota, o formato da resposta e um botão pra
-/// testar. Moram dentro da versão, ao lado das rotas dela: a página em /api/v1/docs e o
-/// documento por trás em /api/v1/openapi.json, que sai das próprias rotas — não existe arquivo
-/// de documentação pra ficar desatualizado. Tudo debaixo do /api/v1, um mount só no Funnel
-/// leva a versão inteira.
-///
-/// Essas rotas ficam fora da chave de propósito: o navegador não manda header ao abrir uma
-/// página, e elas só contam o formato da API, nada de dentro do bot. A chave você cola uma
-/// vez no Scalar, e é ele quem manda o X-Api-Key nos testes.
-/// </summary>
+// Os docs: a API no navegador pelo Scalar. O documento sai das rotas; a página fica fora da chave.
 public static partial class ApiDocs
 {
-    /// <summary>A página da versão atual; o /api/docs de antes leva pra ela.</summary>
+    // A página da versão atual; o /api/docs de antes leva pra ela.
     public static readonly string Página = $"/api/v{AlephApi.VersãoAtual}/docs";
 
     // /api/v1/openapi.json: um documento por versão, cada um dentro da sua
@@ -44,7 +34,7 @@ public static partial class ApiDocs
     public const string GrupoStatus = "Status";
     public const string GrupoBot = "Bot";
 
-    /// <summary>O topo da página, em Markdown: cada título vira um item da barra lateral.</summary>
+    // O topo da página, em Markdown: cada título vira um item da barra lateral.
     private static readonly string Introdução = $"""
         O estado do AlephBot, os números dele e os comandos que ele sabe. Só leitura: nada daqui
         muda o bot.
@@ -80,10 +70,7 @@ public static partial class ApiDocs
         nasce numa versão nova, do lado desta, que continua de pé.
         """;
 
-    /// <summary>
-    /// Um documento por versão da API, todos com o mesmo acabamento: título, servidor sem barra,
-    /// a chave e o nome de cada operação. A versão do documento é a da API (1.0), não a do bot.
-    /// </summary>
+    // Um documento por versão, com o mesmo acabamento. A versão é a da API (1.0), não a do bot.
     public static void Configure(IApiVersioningBuilder versões) =>
         versões.AddOpenApi(versionado =>
         {
@@ -111,7 +98,7 @@ public static partial class ApiDocs
                     },
                 };
 
-                // "http://aleph/" vira "http://aleph": servidor com barra no fim o linter do Scalar recusa
+                // "http://aleph/" vira "http://aleph": servidor com barra no fim o Scalar recusa
                 foreach (var servidor in documento.Servers ?? [])
                     servidor.Url = servidor.Url?.TrimEnd('/');
 
@@ -125,10 +112,7 @@ public static partial class ApiDocs
                     Description = "A API_KEY do Config/.env.",
                 };
 
-                // a chave vale pro documento inteiro, e não rota por rota: a IA do Scalar escolhe
-                // a autenticação das chamadas dela pelo primeiro item daqui — sem ele, chama sem
-                // header nenhum e leva 401 mesmo com a chave preenchida. Quem não pede chave avisa
-                // na própria rota (SemChave)
+                // a chave vale pro documento inteiro: a IA do Scalar lê o primeiro item daqui
                 documento.Security =
                 [
                     new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference(Esquema, documento)] = [] },
@@ -155,11 +139,7 @@ public static partial class ApiDocs
         ["503"] = "O bot está fora do Discord (`down`).",
     };
 
-    /// <summary>
-    /// Cada resposta com o que ela quer dizer, em português, e com os headers do limite de
-    /// pedidos: a cota e a sobra em todas, e o Retry-After no 429. Sem os headers aqui, o
-    /// Scalar (e a IA dele) não sabem que eles existem.
-    /// </summary>
+    // Cada resposta com o que quer dizer e os headers do limite; sem eles, o Scalar não os vê.
     private static void ArrumaAsRespostas(OpenApiOperation operação)
     {
         if (operação.Responses is null)
@@ -188,11 +168,7 @@ public static partial class ApiDocs
         Schema = new OpenApiSchema { Type = JsonSchemaType.Integer, Format = "int32" },
     };
 
-    /// <summary>
-    /// "GET api/v1/status" vira "getStatus": a versão já mora no documento (um por versão). O
-    /// health atende GET e HEAD na mesma rota, e por isso o método entra no nome: "getHealth"
-    /// e "headHealth", sem repetir.
-    /// </summary>
+    // "GET api/v1/status" vira "getStatus"; no health o método entra no nome (GET e HEAD).
     private static string IdDaOperação(ApiDescription rota)
     {
         var caminho = PrefixoDaApi().Replace(rota.RelativePath ?? "", "");
@@ -208,12 +184,7 @@ public static partial class ApiDocs
     [GeneratedRegex("^api/(?:v[^/]+/)?")]
     private static partial Regex PrefixoDaApi();
 
-    /// <summary>
-    /// Marca no documento a rota que não pede a chave. Quem decide de verdade é o
-    /// <see cref="ApiKeyFilter"/>, que só vigia o grupo com chave; isto é o aviso pro Scalar. O
-    /// "[{}]" é "sem autenticação", e não "[]": lista vazia some do documento e a rota herdaria
-    /// a chave do documento inteiro.
-    /// </summary>
+    // Marca a rota que não pede chave. "[{}]" é sem autenticação; lista vazia some do documento.
     public static TBuilder SemChave<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder =>
         builder.AddOpenApiOperationTransformer((operação, _, _) =>
         {
@@ -221,11 +192,7 @@ public static partial class ApiDocs
             return Task.CompletedTask;
         });
 
-    /// <summary>
-    /// O exemplo que o Scalar mostra na resposta 200 da rota (os de <see cref="ExemplosDaApi"/>).
-    /// Sai pelo mesmo JSON das respostas de verdade — camelCase, enum como texto —, então o que
-    /// a página mostra é o que a rota devolve.
-    /// </summary>
+    // O exemplo da resposta 200, pelo mesmo JSON das respostas de verdade.
     public static TBuilder ComExemplo<TBuilder>(this TBuilder builder, object exemplo) where TBuilder : IEndpointConventionBuilder =>
         builder.AddOpenApiOperationTransformer((operação, contexto, _) =>
         {
@@ -254,9 +221,7 @@ public static partial class ApiDocs
 
         MapEndereçosDeAntes(app, versão);
 
-        // a IA do Scalar não lê o formulário da página: ela só usa a chave que já estiver
-        // guardada no navegador pro documento dela, e essa guarda começa vazia. Este módulo
-        // carrega antes do Scalar e preenche a guarda com a API_KEY — só pra quem está dentro
+        // a IA do Scalar só usa a chave guardada no navegador, e este módulo preenche ela
         if (api.ScalarAgentKey is not null)
         {
             app.MapGet(Módulo, (HttpContext http) =>
@@ -275,11 +240,7 @@ public static partial class ApiDocs
             var deDentro = RedeDeDentro.ÉDeDentro(http);
             var dono = ProteçãoDeFora.ÉDono(http);
 
-            // a IA do Scalar mora no navegador: a chave dela vai no HTML de quem abre a página,
-            // e quem lê o HTML gasta as mensagens pagas. Por isso ela só vai pra casa ou pra
-            // quem entrou com a senha de dono — visitante lê a documentação e testa o que é
-            // aberto, sem conta nenhuma a pagar. A API_KEY é mais fechada ainda: nem pro dono
-            // de fora, que cola a dele à mão se quiser
+            // a chave da IA vai no HTML de quem abre: só pra casa ou pra quem tem a senha de dono
             if (api.ScalarAgentKey is { } chave && dono)
             {
                 scalar.WithAgentKey(chave);
@@ -293,8 +254,7 @@ public static partial class ApiDocs
             scalar.OpenApiRoutePattern = Documento;
             scalar.AddDocument(versão, $"{Título} {versão}", isDefault: true);
 
-            // em casa a chave fica guardada no navegador, porque colar de novo a cada F5 cansa.
-            // Em máquina dos outros ela não fica pra trás: some quando a aba fecha
+            // em casa a chave fica guardada; em máquina dos outros ela some quando a aba fecha
             scalar.PersistentAuthentication = deDentro;
             scalar.AddPreferredSecuritySchemes([Esquema]);
 
@@ -302,25 +262,18 @@ public static partial class ApiDocs
             scalar.Telemetry = false;
             scalar.DefaultFonts = false;
 
-            // a cara é a padrão do Scalar, de propósito: aqui só se arruma o que a página mostra.
-            // O que é propaganda do Scalar, e não da API, sai: a barra de ferramentas dele e o
-            // "Generate MCP"
+            // a cara é a padrão do Scalar; só sai o que é propaganda dele, não da API
             scalar.HideDeveloperTools();
             scalar.DisableMcp();
 
-            // os exemplos de chamada nas linguagens de quem usa este bot: curl na VPS, PowerShell
-            // no Windows, C# do próprio projeto, e JavaScript e Python pra quem vier de fora
+            // os exemplos nas linguagens de quem usa este bot: curl, PowerShell, C#, JS e Python
             scalar.EnabledTargets =
                 [ScalarTarget.Shell, ScalarTarget.PowerShell, ScalarTarget.CSharp, ScalarTarget.JavaScript, ScalarTarget.Python];
             scalar.WithDefaultHttpClient(ScalarTarget.Shell, ScalarClient.Curl);
         });
     }
 
-    /// <summary>
-    /// Os endereços de antes da versão. O documento muda de endereço de vez (301), como as
-    /// rotas de antes. A página leva pra da versão atual com 302, que o navegador não guarda:
-    /// quando nascer a v2, o /api/docs passa a levar pra ela.
-    /// </summary>
+    // Os endereços de antes da versão: o documento muda com 301, a página com 302.
     private static void MapEndereçosDeAntes(WebApplication app, string versão)
     {
         app.MapGet("/api/openapi.json", () => Results.Redirect(
@@ -332,13 +285,7 @@ public static partial class ApiDocs
             .ExcludeFromDescription();
     }
 
-    /// <summary>
-    /// O Scalar guarda a autenticação de cada documento no localStorage, em
-    /// "scalar-reference-auth-{documento}", e é lendo dali que a IA monta o header. O módulo
-    /// intercepta essa leitura e põe a chave do bot — vale pro documento da página e pro do
-    /// Registry, cujo nome só a IA sabe. A do bot sempre vence: uma chave velha ou errada que
-    /// ficou guardada de antes não atrapalha, e trocar a API_KEY já vale no próximo F5.
-    /// </summary>
+    // O Scalar guarda a autenticação no localStorage; o módulo lê na frente e põe a do bot.
     private static string MóduloDaChave(string chave) =>
         $$"""
         // AlephBot: põe a API_KEY na autenticação que o Scalar guarda no navegador

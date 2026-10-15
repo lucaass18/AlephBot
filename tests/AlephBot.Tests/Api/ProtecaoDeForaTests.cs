@@ -7,10 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.Api;
 
-/// <summary>
-/// As camadas de quem vem de fora: os headers de proteção e a senha dos docs. Cada teste sobe
-/// a própria API: a senha muda de um pra outro, e o limite de pedidos guarda estado.
-/// </summary>
+// Os headers de proteção e a senha dos docs. Cada teste sobe a própria API: há estado.
 public class ProtecaoDeForaTests
 {
     private static readonly IPAddress IpDeFora = IPAddress.Parse("203.0.113.77");
@@ -109,7 +106,7 @@ public class ProtecaoDeForaTests
         Assert.DoesNotContain(ApiDeTeste.ChaveDaApi, html);
     }
 
-    /// <summary>Preenche a tela e manda, como o navegador faria; devolve o biscoito que voltou.</summary>
+    // Preenche a tela e manda, como o navegador faria; devolve o biscoito que voltou.
     private static async Task<(int Status, string Html, string? Biscoito)> MandaASenhaAsync(
         ApiDeTeste api, string senha)
     {
@@ -119,8 +116,7 @@ public class ProtecaoDeForaTests
             http.Request.Path = "/api/v1/docs/entrar";
             http.Request.Headers["Tailscale-Funnel-Request"] = "?1";
 
-            // o mesmo IP que o GetAsync usa: o castigo conta por IP, e sem isto cada pedido
-            // seria de um cliente diferente
+            // o mesmo IP que o GetAsync usa: o castigo conta por IP
             http.Connection.RemoteIpAddress = IPAddress.Loopback;
             http.Request.ContentType = "application/x-www-form-urlencoded";
             http.Request.Form = new Microsoft.AspNetCore.Http.FormCollection(
@@ -316,8 +312,7 @@ public class ProtecaoDeForaTests
     [Fact]
     public async Task Sem_senha_configurada_não_há_tela_pedindo_nada()
     {
-        // sem senha os docs são abertos, como sempre foram: o caminho da tela nem é registrado,
-        // e quem pedir por ele cai na própria página
+        // sem senha os docs são abertos: o caminho da tela nem é registrado
         await using var api = await ApiDeTeste.SubirAsync();
 
         var (status, html) = await api.GetAsync("/api/v1/docs/entrar", headers: PeloFunnel);

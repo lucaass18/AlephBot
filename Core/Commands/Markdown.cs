@@ -2,11 +2,7 @@ using System.Text;
 
 namespace AlephBot.Core.Commands;
 
-/// <summary>
-/// O que todo embed precisa antes de mostrar texto que veio de fora: nome de faixa vem
-/// com `[`, `]` e `*` o tempo todo, e um colchete solto quebra a sintaxe do markdown do
-/// Discord. O título de anime também — "[Oshi no Ko]" existe.
-/// </summary>
+// Texto de fora vem com `[`, `]` e `*`, e um colchete solto quebra o markdown do Discord.
 internal static class Markdown
 {
     internal static string Escapa(string? texto)

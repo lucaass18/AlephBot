@@ -1,13 +1,6 @@
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// Uma foto dos números do bot, tirada de tempos em tempos. É o que desenha a linha do
-/// tempo do painel: sozinha não diz nada, em série conta se o bot está crescendo, se a
-/// memória está subindo devagar e a que horas as pessoas aparecem.
-///
-/// Os nomes são os mesmos que a tabela do n8n já usava, pra que o histórico de antes e o
-/// de agora sejam a mesma coluna — e não duas que quase combinam.
-/// </summary>
+// Uma foto dos números, de tempos em tempos. Os nomes são os que a tabela do n8n usava.
 public sealed class ColetaDeStats
 {
     public long Id { get; set; }
@@ -16,10 +9,10 @@ public sealed class ColetaDeStats
 
     public int Servidores { get; set; }
 
-    /// <summary>Soma os membros de cada servidor: quem está em dois conta duas vezes.</summary>
+    // Soma os membros de cada servidor: quem está em dois conta duas vezes.
     public int Membros { get; set; }
 
-    /// <summary>Pessoas distintas online, sem bots.</summary>
+    // Pessoas distintas online, sem bots.
     public int Online { get; set; }
 
     public int Comandos { get; set; }

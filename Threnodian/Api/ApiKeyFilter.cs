@@ -9,17 +9,12 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// A porta da API: sem a chave certa no header, nada passa. Fica num filtro do grupo com chave
-/// (stats e commands) e não num middleware pro health e o status, que moram fora desse grupo,
-/// continuarem abertos.
-/// </summary>
+// A porta da API: filtro do grupo com chave, pro health e o status continuarem abertos.
 public sealed class ApiKeyFilter : IEndpointFilter
 {
     public const string Header = "X-Api-Key";
 
-    // comparo os hashes, não as chaves: dois SHA-256 têm sempre o mesmo tamanho, então nem o
-    // tempo da comparação nem o tamanho da chave contam nada pra quem está chutando
+    // comparo os hashes, não as chaves: dois SHA-256 têm o mesmo tamanho e o mesmo tempo
     private readonly byte[] _esperada;
     private readonly ILogger<ApiKeyFilter> _logger;
 
@@ -38,7 +33,7 @@ public sealed class ApiKeyFilter : IEndpointFilter
 
         if (!CryptographicOperations.FixedTimeEquals(Hash(enviada), _esperada))
         {
-            // pedido sem chave é varredura da internet; chave errada é alguém tentando, e isso eu anoto
+            // pedido sem chave é varredura; chave errada é alguém tentando, e isso eu anoto
             _logger.LogWarning(
                 "Chave errada na API: {Método} {Caminho} vindo de {Ip}",
                 context.HttpContext.Request.Method,

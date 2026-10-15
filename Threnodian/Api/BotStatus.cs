@@ -4,8 +4,7 @@ using System.Runtime.InteropServices;
 using AlephBot.Config;
 using AlephBot.Core.Commands;
 using AlephBot.Threnodian.Activity;
-// apelido de propósito: dentro de AlephBot.Threnodian.Api, escrever "AlephBot" acha o
-// namespace raiz antes da classe, e o compilador reclama de um "Version" que não existe ali
+// apelido de propósito: aqui "AlephBot" acha o namespace raiz antes da classe
 using Bot = AlephBot.Threnodian.Inicialização.AlephBot;
 
 using Lavalink4NET;
@@ -16,16 +15,12 @@ using NetCord.Gateway;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// O que a API conta, lido na hora de cada pedido. Nada aqui é guardado nem calculado em
-/// fundo: o cache do gateway, os players e o registry já são a fonte da verdade, e ler eles
-/// custa menos que manter uma cópia em dia.
-/// </summary>
+// O que a API conta, lido na hora: o gateway e o registry já são a fonte da verdade.
 public sealed class BotStatus
 {
     private const double Mb = 1024 * 1024;
 
-    // a idade do processo, não a deste objeto: ele nasce no primeiro pedido, o processo nasceu antes
+    // a idade do processo, não deste objeto: ele nasce no primeiro pedido
     private static readonly DateTimeOffset Início = InícioDoProcesso();
 
     private readonly GatewayClient _client;
@@ -52,10 +47,7 @@ public sealed class BotStatus
         _comandos = new Lazy<IReadOnlyList<CommandResponse>>(MontarComandos);
     }
 
-    /// <summary>
-    /// Sem Discord eu estou fora; sem Lavalink eu respondo, só não toco. A música cair não me
-    /// derruba — /ping e /ban seguem funcionando — e o health diz isso como "degraded".
-    /// </summary>
+    // Sem Discord eu estou fora; sem Lavalink eu respondo, só não toco — o health diz "degraded".
     public HealthResponse Saúde()
     {
         var discord = Discord();
@@ -106,10 +98,7 @@ public sealed class BotStatus
 
     public IReadOnlyList<CommandResponse> Comandos() => _comandos.Value;
 
-    /// <summary>
-    /// Slash e prefixo são classes separadas com o mesmo Name, como no detalhe do /help: aqui
-    /// elas viram um item só, com as duas formas de chamar e os atalhos do prefixo.
-    /// </summary>
+    // Slash e prefixo viram um item só, com as duas formas de chamar e os atalhos.
     private IReadOnlyList<CommandResponse> MontarComandos()
     {
         var prefixo = _config.Prefix;

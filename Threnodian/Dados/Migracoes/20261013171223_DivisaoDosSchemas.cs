@@ -4,10 +4,8 @@
 
 namespace AlephBot.Threnodian.Dados.Migracoes
 {
-    /// <inheritdoc />
     public partial class DivisaoDosSchemas : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
@@ -56,7 +54,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                 newSchema: "obras");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.RenameTable(

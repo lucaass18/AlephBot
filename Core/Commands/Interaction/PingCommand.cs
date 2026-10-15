@@ -8,7 +8,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Interaction;
 
-/// <summary>/ping</summary>
+// /ping
 public sealed class PingCommand : AlephSlashModule
 {
     public override string Name => "ping";
@@ -72,7 +72,7 @@ public sealed class PingCommand : AlephSlashModule
     };
 }
 
-/// <summary>!ping</summary>
+// !ping
 public sealed class PingTextCommand : AlephTextModule
 {
     public override string Name => "ping";

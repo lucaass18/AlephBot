@@ -2,12 +2,7 @@ using System.Net;
 
 namespace AlephBot.Tests.Api.CaixaPreta;
 
-/// <summary>
-/// Os caminhos de erro, conferidos contra o que o documento promete. O formato do erro não
-/// está escrito aqui: sai das próprias respostas de erro das operações, e o nome do header da
-/// chave sai do esquema de segurança — trocar um dos dois no documento sem trocar na API
-/// quebra teste.
-/// </summary>
+// Os caminhos de erro: o formato sai das próprias respostas, não de um nome escrito aqui.
 public class ErrosTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPretaFixture>
 {
     private static readonly IPAddress IpDeFora = IPAddress.Parse("203.0.113.55");
@@ -58,8 +53,7 @@ public class ErrosTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPretaFix
     [Fact]
     public async Task O_que_o_documento_marca_como_aberto_responde_sem_chave_nenhuma()
     {
-        // o outro lado da moeda: a rota que o monitor de uptime chama não pode passar a pedir
-        // chave sem o documento dizer
+        // a rota que o monitor chama não pode passar a pedir chave sem o documento dizer
         foreach (var operação in _documento.Operações.Where(operação => !operação.PedeChave))
         {
             var resposta = await _api.FazAsync(operação.Método, operação.Caminho);
@@ -88,7 +82,7 @@ public class ErrosTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPretaFix
     [InlineData("/api/v2/status")]
     public async Task O_endereço_que_não_existe_sai_no_formato_de_erro_do_documento(string caminho)
     {
-        // a introdução do documento promete 404 em problem+json, inclusive pra versão que não existe
+        // o documento promete 404 em problem+json, inclusive pra versão que não existe
         var resposta = await _api.FazAsync(HttpMethod.Get.Method, caminho);
 
         Assert.Equal(404, resposta.Status);
@@ -98,8 +92,7 @@ public class ErrosTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPretaFix
     [Fact]
     public async Task Passar_do_limite_dá_o_429_com_o_corpo_e_os_headers_prometidos()
     {
-        // o limite guarda estado: esta precisa da própria API. O IP de fora tem a cota menor,
-        // e é por isso que o teste cabe em poucos pedidos
+        // o limite guarda estado, então esta sobe a própria API; de fora a cota é menor
         await using var api = await ApiDeTeste.SubirAsync();
         var documento = await DocumentoDaApi.LerAsync(api);
         var aberta = documento.Operações.First(operação => !operação.PedeChave);

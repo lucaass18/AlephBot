@@ -3,12 +3,7 @@ using AlephBot.Threnodian.Dados;
 
 namespace AlephBot.Tests.Dados;
 
-/// <summary>
-/// O que o /playlist aceita e o que ele mostra. A ida e volta entre fila e playlist usa os
-/// dados codificados do Lavalink e precisa de um player de verdade pra testar; o que dá
-/// pra garantir aqui é o resto — e é o resto que decide se alguém consegue guardar uma
-/// playlist e achar ela depois.
-/// </summary>
+// O que o /playlist aceita e mostra; a ida e volta pediria um player de verdade.
 public class PlaylistGuardadaTests
 {
     [Theory]

@@ -9,15 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AlephBot.Threnodian.Api;
 
-/// <summary>
-/// A tela de entrada dos docs, no lugar da janelinha do navegador. O Basic continua valendo
-/// pra quem manda a senha no header (curl, script); quem chega de navegador sem crachá vem
-/// parar aqui, e sai com um biscoito assinado dizendo se é dono ou visitante.
-///
-/// O biscoito é assinado pela proteção de dados do próprio ASP.NET: forjar um exigiria a
-/// chave do processo. Ele morre junto com o contêiner — subiu de novo, todo mundo entra de
-/// novo, o que pra uma página de documentação é barato.
-/// </summary>
+// A tela de entrada dos docs, no lugar da janelinha. O biscoito morre junto com o contêiner.
 internal static class LoginDosDocs
 {
     public static readonly string Entrar = $"{ApiDocs.Página}/entrar";
@@ -29,11 +21,11 @@ internal static class LoginDosDocs
 
     private static readonly TimeSpan Validade = TimeSpan.FromDays(30);
 
-    /// <summary>Estas duas ficam fora da senha, senão quem chega pra entrar seria mandado pra cá de novo.</summary>
+    // Estas duas ficam fora da senha, senão quem chega pra entrar seria mandado pra cá de novo.
     public static bool ÉTelaDeEntrada(PathString caminho) =>
         caminho.StartsWithSegments(Entrar) || caminho.StartsWithSegments(Sair);
 
-    /// <summary>O que o biscoito diz, se ele existir, estiver inteiro e não tiver vencido.</summary>
+    // O que o biscoito diz, se ele existir, estiver inteiro e não tiver vencido.
     public static ProteçãoDeFora.Acesso? Crachá(HttpContext http)
     {
         if (http.Request.Cookies[Biscoito] is not { } guardado)
@@ -87,7 +79,7 @@ internal static class LoginDosDocs
             http.Response.Cookies.Append(Biscoito, Assina(http, acesso), new CookieOptions
             {
                 HttpOnly = true,
-                // só volta por HTTPS quando foi por HTTPS que chegou: na tailnet o http:// é o normal
+                // só volta por HTTPS quando chegou por HTTPS: na tailnet o http:// é o normal
                 Secure = http.Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.Add(Validade),
@@ -111,7 +103,7 @@ internal static class LoginDosDocs
         TentativasDeSenha.ClienteDe(http.Connection.RemoteIpAddress),
         Environment.TickCount64);
 
-    /// <summary>Quanto falta do castigo de quem errou demais, ou null se pode tentar.</summary>
+    // Quanto falta do castigo de quem errou demais, ou null se pode tentar.
     public static TimeSpan? Castigo(HttpContext http)
     {
         var (contador, cliente, agora) = Conta(http);
@@ -130,10 +122,7 @@ internal static class LoginDosDocs
         contador.Acertou(cliente);
     }
 
-    /// <summary>
-    /// 429 com Retry-After, o mesmo que o limite de pedidos usa: quem é programa lê o header,
-    /// quem é gente lê a tela.
-    /// </summary>
+    // 429 com Retry-After, como o limite de pedidos: programa lê o header, gente lê a tela.
     private static IResult DeCastigo(TimeSpan falta)
     {
         var minutos = Math.Max(1, (int)Math.Ceiling(falta.TotalMinutes));
@@ -156,11 +145,7 @@ internal static class LoginDosDocs
     private static string Assina(HttpContext http, ProteçãoDeFora.Acesso acesso) =>
         Protetor(http).Protect($"{acesso}|{DateTimeOffset.UtcNow.Add(Validade).ToUnixTimeSeconds()}");
 
-    /// <summary>
-    /// Senha errada devolve 401 com a mesma tela: o código conta a verdade pra quem é programa,
-    /// e a pessoa vê o aviso. Sem WWW-Authenticate, que é o que faria o navegador abrir a
-    /// janelinha de novo por cima da página.
-    /// </summary>
+    // Senha errada: 401 com a mesma tela, e sem WWW-Authenticate, que reabriria a janelinha.
     private const string Tipo = "text/html; charset=utf-8";
 
     private static IResult Mostra(HttpContext http, bool errou) =>
@@ -169,11 +154,7 @@ internal static class LoginDosDocs
             Tipo,
             statusCode: errou ? StatusCodes.Status401Unauthorized : StatusCodes.Status200OK);
 
-    /// <summary>
-    /// A tela de quem acabou de entrar. Ela diz com que crachá, porque é isso que explica o
-    /// que a pessoa vai (e não vai) encontrar do outro lado: visitante não acha a IA lá, e
-    /// sem este aviso ia procurar.
-    /// </summary>
+    // A tela diz com que crachá entrou, porque é isso que explica o que ela vai achar lá.
     private static string HtmlDoSucesso(ProteçãoDeFora.Acesso acesso) => Moldura($$"""
           <p class="selo">Tudo certo</p>
           <h1>Você entrou{{(acesso == ProteçãoDeFora.Acesso.Dono ? " como dono" : " como visitante")}}</h1>
@@ -183,10 +164,7 @@ internal static class LoginDosDocs
           <a class="botão" href="{{ApiDocs.Página}}/">Abrir a documentação</a>
         """);
 
-    /// <summary>
-    /// A cara é a mesma linha do Scalar: nada de tema, nada de fonte de fora, e o claro e o
-    /// escuro saem do que a pessoa já escolheu no sistema.
-    /// </summary>
+    // A cara é a mesma linha do Scalar; o claro e o escuro saem do sistema da pessoa.
     private static string HtmlDaEntrada(bool errou) => Moldura($$"""
           <h1>AlephBot API</h1>
           <p>A documentação desta API pede senha.</p>

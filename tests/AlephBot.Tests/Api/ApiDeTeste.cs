@@ -19,19 +19,13 @@ using NetCord.Gateway;
 
 namespace AlephBot.Tests.Api;
 
-/// <summary>
-/// A API de verdade, num TestServer em memória: as mesmas rotas, filtros e documentação do
-/// bot, sem porta aberta, sem Discord e sem Lavalink. O gateway nasce sem conectar, e o
-/// áudio é um proxy que só aceita a inscrição nos eventos.
-/// </summary>
+// A API de verdade num TestServer: as mesmas rotas, sem porta, sem Discord e sem Lavalink.
 public sealed class ApiDeTeste : IAsyncDisposable
 {
     public const string ChaveDaApi = "chave-da-api-de-teste-123";
     public const string ChaveDoAgent = "agent-key-de-teste";
 
-    // formato de token do Discord: o id do bot em base64 e mais duas partes que ninguém confere
-    // aqui. Montado na hora de propósito: escrito inteiro no código, o scanner de segredos do
-    // GitHub acha que é um token de verdade e barra o push
+    // montado na hora porque, escrito inteiro, o scanner de segredos do GitHub barra o push
     private static readonly string TokenDeMentira =
         $"{Convert.ToBase64String("123456789012345678"u8)}.teste.teste";
 
@@ -79,10 +73,7 @@ public sealed class ApiDeTeste : IAsyncDisposable
         return new ApiDeTeste(app);
     }
 
-    /// <summary>
-    /// Um pedido com o IP de origem e os headers escolhidos — o TestServer não inventa IP, e
-    /// é pelo IP (e pela marca do Funnel) que a API decide o que entregar.
-    /// </summary>
+    // Um pedido com IP e headers escolhidos: é pelo IP que a API decide o que entregar.
     public async Task<(int Status, string Corpo)> GetAsync(
         string caminho,
         IPAddress? ip = null,
@@ -93,7 +84,7 @@ public sealed class ApiDeTeste : IAsyncDisposable
         return (status, corpo);
     }
 
-    /// <summary>O mesmo pedido, devolvendo também os headers da resposta.</summary>
+    // O mesmo pedido, devolvendo também os headers da resposta.
     public async Task<(int Status, string Corpo, IHeaderDictionary Headers)> GetComHeadersAsync(
         string caminho,
         IPAddress? ip = null,
@@ -124,12 +115,7 @@ public sealed class ApiDeTeste : IAsyncDisposable
     }
 }
 
-/// <summary>
-/// Um IAudioService que não faz nada, mas que responde o bastante pra rota existir. O
-/// LavalinkMonitor só se inscreve nos eventos dele no construtor, e o proxy aceita a inscrição
-/// em silêncio; o /stats, porém, lê <c>Players.Players</c>, e devolver null ali derrubava a
-/// rota com 500 dentro do teste — um bot sem música tocando é lista vazia, não nada.
-/// </summary>
+// Um IAudioService que não faz nada mas responde o bastante: o /stats lê Players.Players.
 public class ÁudioDeMentira : DispatchProxy
 {
     public static IAudioService Criar() => Create<IAudioService, ÁudioDeMentira>();
@@ -139,8 +125,7 @@ public class ÁudioDeMentira : DispatchProxy
         if (método?.ReturnType is not { } tipo || tipo == typeof(void))
             return null;
 
-        // coleção vem vazia (nenhum player), e interface vira outro proxy igual, pra cadeia
-        // não parar num null no meio do caminho
+        // coleção vem vazia e interface vira outro proxy, pra cadeia não parar num null
         if (ItemDaColeção(tipo) is { } item)
             return Array.CreateInstance(item, 0);
 
@@ -155,8 +140,7 @@ public class ÁudioDeMentira : DispatchProxy
             ? tipo.GetGenericArguments()[0]
             : null;
 
-    // o Create tem irmãos de mesmo nome, e pedir só pelo nome dá "ambiguous match": é o
-    // genérico de dois tipos e nenhum argumento
+    // o Create tem irmãos de mesmo nome: é o genérico de dois tipos e nenhum argumento
     private static readonly MethodInfo CriaProxy = typeof(DispatchProxy)
         .GetMethods(BindingFlags.Public | BindingFlags.Static)
         .Single(método => método.Name == nameof(Create)

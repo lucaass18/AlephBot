@@ -5,7 +5,7 @@ using AlephBot.Threnodian.Api;
 
 namespace AlephBot.Tests.Api;
 
-/// <summary>Quem passa sem chave, quem não passa, e o que cada rota responde com o bot ainda desconectado.</summary>
+// Quem passa sem chave, quem não passa, e o que cada rota responde com o bot ainda desconectado.
 public class ApiRoutesTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private readonly ApiDeTeste _api = fixture.Api;

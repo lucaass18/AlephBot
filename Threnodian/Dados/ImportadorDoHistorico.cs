@@ -7,28 +7,19 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// Traz pro banco o histórico que ficou na tabela do n8n. Procura um arquivo no volume de
-/// dados; achando, lê, grava o que falta e renomeia o arquivo pra não importar duas vezes.
-///
-/// Este é o único dado daqui que não se refaz: configuração a pessoa digita de novo,
-/// playlist se monta outra vez, mas série temporal só existe porque alguém a coletou
-/// semana após semana. Por isso nada é apagado e nada é sobrescrito — coleta que já está
-/// no banco é pulada pelo horário, e rodar duas vezes não duplica nem perde.
-/// </summary>
+// Traz o histórico que ficou na tabela do n8n. Série temporal não se refaz: nada é apagado.
 public sealed class ImportadorDoHistorico(
     IDbContextFactory<AlephDb> fábrica,
     MigracaoDoBanco banco,
     ILogger<ImportadorDoHistorico> logger) : IHostedService
 {
-    /// <summary>O arquivo exportado do n8n, no mesmo volume onde moram os outros dados.</summary>
+    // O arquivo exportado do n8n, no mesmo volume onde moram os outros dados.
     public static readonly string Caminho =
         Path.Combine(AppContext.BaseDirectory, "data", "historico-do-n8n.json");
 
     private static readonly JsonSerializerOptions Formato = new()
     {
-        // as colunas de lá são coletado_em, memoria_mb, na_fila: sem isto só os nomes de
-        // uma palavra entram, e os compostos chegam zerados sem ninguém reclamar
+        // as colunas de lá são coletado_em, memoria_mb, na_fila; sem isto chegam zeradas
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = true,
 
@@ -36,7 +27,7 @@ public sealed class ImportadorDoHistorico(
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
     };
 
-    /// <summary>Uma linha como o n8n a guardava: os nomes são os das colunas de lá.</summary>
+    // Uma linha como o n8n a guardava: os nomes são os das colunas de lá.
     public sealed record Linha(
         DateTimeOffset ColetadoEm,
         int Servidores,
@@ -83,12 +74,7 @@ public sealed class ImportadorDoHistorico(
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    /// <summary>
-    /// Onde a lista pode estar escondida, por ordem: "data" é como a tabela do n8n exporta,
-    /// e "historico" é como o backup das 3h guarda. Aceitar os dois é o que faz o backup
-    /// servir pra restaurar — um arquivo que ninguém consegue ler de volta não é cópia de
-    /// segurança, é arquivo.
-    /// </summary>
+    // "data" é como o n8n exporta, "historico" é como o backup das 3h guarda; aceito os dois.
     private static readonly string[] OndeAListaMora = ["data", "historico"];
 
     internal static IReadOnlyList<Linha> Lê(string json)
@@ -114,7 +100,7 @@ public sealed class ImportadorDoHistorico(
         return JsonSerializer.Deserialize<List<Linha>>(lista.GetRawText(), Formato) ?? [];
     }
 
-    /// <summary>Grava só o que o banco ainda não tem, comparando pelo horário da coleta.</summary>
+    // Grava só o que o banco ainda não tem, comparando pelo horário da coleta.
     private async Task<int> GravaAsync(IReadOnlyList<Linha> lidas, CancellationToken cancellationToken)
     {
         await using var db = await fábrica.CreateDbContextAsync(cancellationToken);

@@ -5,18 +5,12 @@ using Json.Schema;
 
 namespace AlephBot.Tests.Api.CaixaPreta;
 
-/// <summary>
-/// O documento OpenAPI lido como quem está de fora lê: sem abrir o Contracts.cs, sem saber o
-/// nome de um record sequer. Daqui saem as operações que a API anuncia, o schema de cada
-/// resposta e até o nome do header da chave — é esta a única fonte das asserções da caixa
-/// preta. Rota nova no documento entra nos testes sozinha; promessa que o documento faz e a
-/// API não cumpre quebra teste.
-/// </summary>
+// O documento OpenAPI lido de fora: é a única fonte das asserções da caixa preta.
 public sealed class DocumentoDaApi
 {
     public const string Caminho = "/api/v1/openapi.json";
 
-    /// <summary>O dialeto do OpenAPI 3.1: os schemas dele são JSON Schema 2020-12.</summary>
+    // O dialeto do OpenAPI 3.1: os schemas dele são JSON Schema 2020-12.
     private const string Dialeto = "https://json-schema.org/draft/2020-12/schema";
 
     private const string Problema = "application/problem+json";
@@ -27,8 +21,7 @@ public sealed class DocumentoDaApi
     {
         Raiz = raiz;
 
-        // os componentes viram $defs: assim o schema de cada resposta vira um documento 2020-12
-        // que se basta, sem depender de registry global nem de URI de fora
+        // os componentes viram $defs, pra cada schema virar um documento 2020-12 que se basta
         _definições = (JsonObject)ParaDefs(raiz["components"]?["schemas"]?.DeepClone() ?? new JsonObject())!;
 
         HeaderDaChave = LêOHeaderDaChave(raiz);
@@ -39,27 +32,19 @@ public sealed class DocumentoDaApi
 
     public IReadOnlyList<OperaçãoPrometida> Operações { get; }
 
-    /// <summary>Em que header vai a chave, segundo o próprio documento.</summary>
+    // Em que header vai a chave, segundo o próprio documento.
     public string HeaderDaChave { get; }
 
-    /// <summary>
-    /// O formato com que a API conta um erro. Sai das respostas de erro das próprias operações
-    /// (as de <c>application/problem+json</c>), e não de um nome escrito aqui: se o documento
-    /// trocar de formato de erro, o teste acompanha.
-    /// </summary>
+    // O formato de erro sai das próprias respostas problem+json, não de um nome escrito aqui.
     public RespostaPrometida FormatoDeErro => Operações
         .SelectMany(operação => operação.Respostas)
         .First(resposta => resposta.TipoDeConteúdo == Problema);
 
-    /// <summary>Os nomes que o documento declara em <c>components/schemas</c>.</summary>
+    // Os nomes que o documento declara em components/schemas.
     public IReadOnlyCollection<string> SchemasDeclarados =>
         [.. Componentes?.Select(schema => schema.Key) ?? []];
 
-    /// <summary>
-    /// Os schemas que alguém alcança partindo das respostas das operações e seguindo os
-    /// <c>$ref</c>. O que sobra é peso morto: documento anunciando formato que não sai por
-    /// rota nenhuma.
-    /// </summary>
+    // Os schemas alcançáveis pelos $ref das respostas; o que sobra é peso morto no documento.
     public IReadOnlyCollection<string> SchemasAlcançáveis
     {
         get
@@ -94,10 +79,7 @@ public sealed class DocumentoDaApi
         return new DocumentoDaApi((JsonObject)JsonNode.Parse(corpo)!);
     }
 
-    /// <summary>
-    /// O corpo bate com o schema prometido? O <c>format</c> conta: data fora do formato é
-    /// quebra de contrato pra quem gerou um cliente a partir deste documento.
-    /// </summary>
+    // O corpo bate com o schema? O format conta: data torta quebra cliente gerado do documento.
     public EvaluationResults Confere(JsonNode schema, string corpo)
     {
         var completo = (JsonObject)ParaDefs(schema.DeepClone())!;
@@ -111,14 +93,11 @@ public sealed class DocumentoDaApi
             new EvaluationOptions { OutputFormat = OutputFormat.List, RequireFormatValidation = true });
     }
 
-    /// <summary>O que o validador achou de errado, pra mensagem de falha dizer o que quebrou.</summary>
+    // O que o validador achou de errado, pra mensagem de falha dizer o que quebrou.
     public static string Explica(EvaluationResults conferência) =>
         JsonSerializer.Serialize(conferência, new JsonSerializerOptions { WriteIndented = true });
 
-    /// <summary>
-    /// O esquema que o documento exige de quem chama diz em que header a chave vai. Ler daqui,
-    /// e não escrever "X-Api-Key" no teste, é o que faz a caixa preta ser caixa preta.
-    /// </summary>
+    // Em que header a chave vai, lido do documento — é o que faz a caixa preta ser caixa preta.
     private static string LêOHeaderDaChave(JsonObject raiz)
     {
         var esquema = raiz["security"]?.AsArray()
@@ -148,10 +127,7 @@ public sealed class DocumentoDaApi
         }
     }
 
-    /// <summary>
-    /// "security": [{}] é a rota dizendo que não pede nada. Herdar o do documento, que lista a
-    /// chave, é pedir.
-    /// </summary>
+    // "security": [{}] é a rota dizendo que não pede nada; herdar o do documento é pedir.
     private static bool Exige(JsonNode? security) =>
         security is JsonArray exigências
         && exigências.Any(exigência => exigência is JsonObject esquemas && esquemas.Count > 0);
@@ -171,7 +147,7 @@ public sealed class DocumentoDaApi
         }
     }
 
-    /// <summary>Os schemas que este pedaço do documento referencia, pelo nome.</summary>
+    // Os schemas que este pedaço do documento referencia, pelo nome.
     private static IEnumerable<string> Referências(JsonNode? nó)
     {
         const string prefixo = "#/components/schemas/";
@@ -205,10 +181,7 @@ public sealed class DocumentoDaApi
         }
     }
 
-    /// <summary>
-    /// "#/components/schemas/X" vira "#/$defs/X". O OpenAPI guarda os schemas onde o JSON
-    /// Schema não procura; movidos pra $defs, o schema de uma resposta se resolve sozinho.
-    /// </summary>
+    // "#/components/schemas/X" vira "#/$defs/X", que é onde o JSON Schema procura.
     private static JsonNode? ParaDefs(JsonNode? nó)
     {
         switch (nó)
@@ -236,18 +209,18 @@ public sealed class DocumentoDaApi
     }
 }
 
-/// <summary>Uma resposta que o documento promete: o status, o tipo do corpo, o schema e os headers.</summary>
+// Uma resposta que o documento promete: o status, o tipo do corpo, o schema e os headers.
 public sealed record RespostaPrometida(
     string Status,
     string? TipoDeConteúdo,
     JsonNode? Schema,
     IReadOnlyList<string> Headers)
 {
-    /// <summary>O HEAD do health é o caso de resposta sem corpo nenhum.</summary>
+    // O HEAD do health é o caso de resposta sem corpo nenhum.
     public bool TemCorpo => Schema is not null;
 }
 
-/// <summary>Uma operação do documento: o que chamar, se ela pede chave e o que promete devolver.</summary>
+// Uma operação do documento: o que chamar, se ela pede chave e o que promete devolver.
 public sealed record OperaçãoPrometida(
     string Id,
     string Método,

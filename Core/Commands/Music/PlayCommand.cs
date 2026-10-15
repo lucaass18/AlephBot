@@ -11,10 +11,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// /play — entra no canal de quem chamou, procura a faixa e toca (ou põe na fila).
-/// É o único comando de música que me arrasta pra dentro de um canal de voz.
-/// </summary>
+// /play — procura e toca. É o único comando que me arrasta pra dentro de um canal de voz.
 public sealed class PlayCommand : MusicSlashModule
 {
     public PlayCommand(IAudioService áudio) : base(áudio) { }
@@ -41,7 +38,7 @@ public sealed class PlayCommand : MusicSlashModule
 
         var resposta = await Play.ExecutarAsync(Áudio, player!, busca, Context.User.Username);
 
-        // fora do ExecutarAsync da base por causa do defer; a foto continua sendo minha responsabilidade
+        // fora do ExecutarAsync por causa do defer; a foto continua sendo minha
         player!.Fotografar();
 
         if (resposta.Erro is { } falha)
@@ -51,7 +48,7 @@ public sealed class PlayCommand : MusicSlashModule
     }
 }
 
-/// <summary>!play — mesma busca do /play, para quem prefere o prefixo.</summary>
+// !play — mesma busca do /play, para quem prefere o prefixo.
 public sealed class PlayTextCommand : MusicTextModule
 {
     public PlayTextCommand(IAudioService áudio) : base(áudio) { }
@@ -70,7 +67,7 @@ public sealed class PlayTextCommand : MusicTextModule
 
 internal static class Play
 {
-    /// <summary>Procura, enfileira e diz o que aconteceu. O /play e o !play caem os dois aqui.</summary>
+    // Procura, enfileira e diz o que aconteceu. O /play e o !play caem os dois aqui.
     internal static async Task<Music.Resposta> ExecutarAsync(
         IAudioService áudio,
         AlephPlayer player,
@@ -96,8 +93,7 @@ internal static class Play
     private static async Task<Music.Resposta> UmaFaixaAsync(
         AlephPlayer player, LavalinkTrack faixa, string quemPediu, CancellationToken cancellationToken)
     {
-        // marco antes do PlayAsync de propósito: o evento de início vem pelo websocket e
-        // pode ganhar a corrida da linha seguinte, e aí o canal levava o embed duas vezes
+        // marco antes do PlayAsync: o evento de início pode ganhar a corrida e dobrar o embed
         var item = player.Pedido(faixa, quemPediu, jáAnunciada: true);
 
         var posição = await player.PlayAsync(item, enqueue: true, cancellationToken: cancellationToken);
@@ -114,10 +110,7 @@ internal static class Play
         return Music.Resposta.Ok(Music.EmbedNaFila(faixa, posição, quemPediu));
     }
 
-    /// <summary>
-    /// Põe a playlist inteira na fila e anuncia ela de uma vez. Interna porque o /playlist
-    /// add chega no mesmo ponto por outro caminho.
-    /// </summary>
+    // Põe a playlist inteira na fila e anuncia de uma vez; o /playlist add chega aqui também.
     internal static async Task<Music.Resposta> PlaylistAsync(
         AlephPlayer player, TrackLoadResult resultado, string busca, string quemPediu, CancellationToken cancellationToken)
     {

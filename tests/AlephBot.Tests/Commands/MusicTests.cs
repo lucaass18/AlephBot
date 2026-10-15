@@ -7,7 +7,7 @@ using Lavalink4NET.Rest.Entities.Tracks;
 
 namespace AlephBot.Tests.Commands;
 
-/// <summary>O que o módulo de música faz sem precisar de Lavalink: ler a entrada e formatar a saída.</summary>
+// O que o módulo de música faz sem precisar de Lavalink: ler a entrada e formatar a saída.
 public class MusicTests
 {
     // ---- /seek ---------------------------------------------------------------

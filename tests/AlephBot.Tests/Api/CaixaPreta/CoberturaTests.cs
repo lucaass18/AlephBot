@@ -1,10 +1,6 @@
 namespace AlephBot.Tests.Api.CaixaPreta;
 
-/// <summary>
-/// O outro lado do contrato: o documento não pode prometer o que a API não faz, nem carregar
-/// peso morto. Rota anunciada que não responde, status que sai sem estar anunciado e schema
-/// que ninguém alcança são as três formas de a documentação deixar de bater com a realidade.
-/// </summary>
+// O outro lado: o documento não pode prometer o que a API não faz, nem carregar peso morto.
 public class CoberturaTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPretaFixture>
 {
     private readonly ApiDeTeste _api = fixture.Api;
@@ -72,9 +68,7 @@ public class CoberturaTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPret
     [Fact]
     public async Task O_HEAD_responde_o_mesmo_que_o_GET_da_mesma_rota()
     {
-        // é o que monitor de uptime chama, e o documento anuncia os mesmos códigos nos dois.
-        // Que o HEAD saia sem corpo não dá pra conferir aqui: quem corta o corpo é o Kestrel,
-        // e o TestServer não passa por ele
+        // é o que monitor chama; que o HEAD saia sem corpo quem garante é o Kestrel
         var pares = from head in _documento.Operações
                     where head.Método == "HEAD"
                     join get in _documento.Operações on (head.Caminho, "GET") equals (get.Caminho, get.Método)

@@ -7,10 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Core.Commands;
 
-/// <summary>
-/// Descobre, por reflection, todo mundo que implementa ICommand no assembly.
-/// Comando novo em qualquer pasta entra aqui sem precisar registrar nada à mão.
-/// </summary>
+// Descobre por reflection todo ICommand do assembly; comando novo entra sem registro.
 public sealed class CommandRegistry
 {
     private readonly Lazy<IReadOnlyList<CommandInfo>> _commands;

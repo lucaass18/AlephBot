@@ -8,10 +8,7 @@ public interface ICommand
 
     CommandCategory Category => CommandCategory.General;
 
-    /// <summary>
-    /// Como se chama o comando, sem o sinal na frente: "mute &lt;@usuário&gt; &lt;duração&gt;".
-    /// Quem exibe é que decide se vira "/mute" ou "!mute" — ver CommandInfo.Uso.
-    /// </summary>
+    // Como se chama, sem o sinal: "mute <@usuário> <duração>". Quem exibe decide / ou !.
     string? Usage => null;
     
     bool IsHidden => false;

@@ -3,11 +3,7 @@ using System.Text.Json;
 
 namespace AlephBot.Threnodian.MyAnimeList;
 
-/// <summary>
-/// A API oficial do MyAnimeList (api.myanimelist.net/v2). Pede um Client ID, criado de
-/// graça em myanimelist.net/apiconfig, e em troca não depende de ninguém raspar o site: é
-/// a fonte que atende quando MAL_CLIENT_ID está no .env.
-/// </summary>
+// A API oficial do MyAnimeList: pede Client ID, e atende quando MAL_CLIENT_ID está no .env.
 public sealed class MalApi : IMyAnimeList, IDisposable
 {
     private const string Endereço = "https://api.myanimelist.net/v2/";
@@ -53,7 +49,7 @@ public sealed class MalApi : IMyAnimeList, IDisposable
         await using var conteúdo = await resposta.Content.ReadAsStreamAsync(cancellationToken);
         using var json = await JsonDocument.ParseAsync(conteúdo, cancellationToken: cancellationToken);
 
-        // a lista vem embrulhada: data[].node é a obra, e ao lado dela viria o status na minha lista
+        // a lista vem embrulhada: data[].node é a obra, e ao lado viria o meu status
         return json.RootElement
             .Lista("data")
             .Select(item => item.Campo("node"))
@@ -104,7 +100,7 @@ public sealed class MalApi : IMyAnimeList, IDisposable
         };
     }
 
-    /// <summary>Cada autor vem como { node: { first_name, last_name }, role }; junto os dois nomes.</summary>
+    // Cada autor vem como { node: { first_name, last_name }, role }; junto os dois nomes.
     private static string? NomeDeAutor(JsonElement autor)
     {
         if (autor.Campo("node") is not { } pessoa)

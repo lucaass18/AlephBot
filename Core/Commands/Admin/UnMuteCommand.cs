@@ -10,10 +10,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Admin;
 
-/// <summary>
-/// /unmute — tira o timeout antes da hora. O silêncio do /mute expira sozinho,
-/// então isto serve para encurtar um castigo, não para consertar um vazamento.
-/// </summary>
+// /unmute — tira o timeout antes da hora; serve pra encurtar castigo, não pra consertar nada.
 public sealed class UnMuteCommand : AlephSlashModule
 {
     private const AçãoModeração Ação = AçãoModeração.Unmute;
@@ -71,7 +68,7 @@ public sealed class UnMuteCommand : AlephSlashModule
         await RespondAsync(Moderation.BuildEmbed(Ação, alvo, moderador, motivo, extra));
     }
 
-    /// <summary>Devolve a mensagem de erro, ou null se o silêncio foi levantado.</summary>
+    // Devolve a mensagem de erro, ou null se o silêncio foi levantado.
     internal static async Task<string?> TryUnMuteAsync(GuildUser alvo, GuildUser moderador, string motivo)
     {
         try
@@ -89,10 +86,7 @@ public sealed class UnMuteCommand : AlephSlashModule
         }
     }
 
-    /// <summary>
-    /// Quanto faltava do castigo, ou null se ele não está calado. O Discord deixa a data lá
-    /// mesmo depois de expirar, então comparo com o agora — senão todo mundo parece mudo.
-    /// </summary>
+    // Quanto faltava, ou null. O Discord deixa a data lá após expirar, então comparo com agora.
     internal static TimeSpan? RestoAtéSoltar(GuildUser alvo)
     {
         if (alvo.TimeOutUntil is not { } até)
@@ -104,7 +98,7 @@ public sealed class UnMuteCommand : AlephSlashModule
     }
 }
 
-/// <summary>!unmute — mesmo alívio do /unmute, para quem prefere o prefixo.</summary>
+// !unmute — mesmo alívio do /unmute, para quem prefere o prefixo.
 public sealed class UnMuteTextCommand : AlephTextModule
 {
     private const AçãoModeração Ação = AçãoModeração.Unmute;

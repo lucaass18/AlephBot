@@ -3,11 +3,7 @@ using NetCord.Gateway;
 
 namespace AlephBot.Threnodian.Activity;
 
-/// <summary>
-/// Quem eu enxergo agora, contado do cache do gateway. A presença mostra o
-/// <see cref="Online"/> e a API mostra o resto; os outros campos existem pra explicar o
-/// Online quando ele parecer errado — é o que sai no log de debug.
-/// </summary>
+// Quem eu enxergo agora, do cache do gateway; os outros campos explicam o Online no debug.
 public struct UserCount
 {
     public int Guilds;
@@ -44,8 +40,7 @@ public struct UserCount
                     continue;
                 }
 
-                // dedupe antes de classificar, senão um bot escapa por não estar em cache
-                // numa das guilds e acaba entrando na conta
+                // dedupe antes de classificar, senão um bot fora de cache numa guild entra na conta
                 if (!seen.Add(userId))
                 {
                     count.Duplicates++;

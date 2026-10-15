@@ -10,10 +10,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Admin;
 
-/// <summary>
-/// /mute — coloca o timeout do Discord no usuário: ele para de falar no texto e na voz
-/// até a hora marcada. Diferente do kick e do ban, isto expira sozinho.
-/// </summary>
+// /mute — o timeout do Discord: ele para de falar até a hora marcada, e isto expira sozinho.
 public sealed class MuteCommand : AlephSlashModule
 {
     private const AçãoModeração Ação = AçãoModeração.Mute;
@@ -83,7 +80,7 @@ public sealed class MuteCommand : AlephSlashModule
         await RespondAsync(Moderation.BuildEmbed(Ação, alvo, moderador, motivo, extra));
     }
 
-    /// <summary>Devolve a mensagem de erro, ou null se o silêncio foi aplicado.</summary>
+    // Devolve a mensagem de erro, ou null se o silêncio foi aplicado.
     internal static async Task<string?> TryMuteAsync(
         GuildUser alvo, GuildUser moderador, string motivo, DateTimeOffset até)
     {
@@ -99,18 +96,15 @@ public sealed class MuteCommand : AlephSlashModule
         }
     }
 
-    /// <summary>A duração pedida, ou null se não dá pra usar (inválida ou acima do limite).</summary>
+    // A duração pedida, ou null se não dá pra usar (inválida ou acima do limite).
     internal static TimeSpan? ValidateDuração(string texto) =>
         ParseDuração(texto) is { } tempo && tempo <= TimeSpan.FromDays(MaxDias) ? tempo : null;
 
-    /// <summary>Qual das duas reclamações cabe: texto que não entendi ou tempo longo demais.</summary>
+    // Qual das duas reclamações cabe: texto que não entendi ou tempo longo demais.
     internal static string ErroDaDuração(string texto) =>
         ParseDuração(texto) is null ? Denia.DuraçãoInválida(Exemplo) : Denia.DuraçãoLongaDemais(MaxDias);
 
-    /// <summary>
-    /// Lê "30s", "10m", "2h", "7d" e as misturas ("1h30m"). Número solto vira minutos, que é
-    /// o que se quer dizer com "!mute fulano 10". Null quando não vira um tempo positivo.
-    /// </summary>
+    // Lê "30s", "10m", "2h", "7d" e misturas. Número solto vira minutos; null quando não vira.
     internal static TimeSpan? ParseDuração(string texto)
     {
         var total = TimeSpan.Zero;
@@ -165,14 +159,11 @@ public sealed class MuteCommand : AlephSlashModule
         return total > TimeSpan.Zero ? total : null;
     }
 
-    /// <summary>O campo extra do embed: quanto tempo, e o relógio do Discord contando pro alvo.</summary>
+    // O campo extra do embed: quanto tempo, e o relógio do Discord contando pro alvo.
     internal static string DescreveSilêncio(TimeSpan duração, DateTimeOffset até) =>
         $"{Humanize(duração)} • <t:{até.ToUnixTimeSeconds()}:R>";
 
-    /// <summary>
-    /// TimeSpan em português: "2 dias e 3 horas". Só as duas maiores unidades —
-    /// ninguém precisa dos segundos quando o castigo é de uma semana.
-    /// </summary>
+    // TimeSpan em português, só as duas maiores unidades: "2 dias e 3 horas".
     internal static string Humanize(TimeSpan duração)
     {
         List<string> partes = [];
@@ -197,7 +188,7 @@ public sealed class MuteCommand : AlephSlashModule
     }
 }
 
-/// <summary>!mute — mesmo silêncio do /mute, para quem prefere o prefixo.</summary>
+// !mute — mesmo silêncio do /mute, para quem prefere o prefixo.
 public sealed class MuteTextCommand : AlephTextModule
 {
     private const AçãoModeração Ação = AçãoModeração.Mute;

@@ -13,22 +13,8 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Youtube;
 
-/// <summary>
-/// O login do YouTube, do começo ao fim: pedir o código no meu console, guardar o refresh
-/// token e entregar ele ao Lavalink toda vez que ele aparece.
-///
-/// De IP de datacenter o YouTube responde "This video requires login" em vídeo público: a
-/// busca passa e o áudio não. Quem usa o token é o Lavalink, mas o fluxo de dispositivo é
-/// só HTTP contra o Google — então eu peço o código e espero você autorizar.
-///
-/// O token não vence sozinho, mas o Google invalida quando cisma com a conta. Quando isso
-/// acontece o Lavalink recusa a entrega, e eu peço um login novo na hora, em vez de deixar
-/// a música morta até alguém notar. Nada aqui roda por timer: só quando o Lavalink conecta,
-/// ou quando uma faixa falha pedindo login.
-///
-/// O token vale para um client específico: estas constantes são as do youtube-source, e
-/// mudar qualquer uma delas produz um token que o Lavalink não consegue renovar.
-/// </summary>
+// O login do YouTube: código no console, token guardado, entregue ao Lavalink a cada conexão.
+// Mudar as constantes do youtube-source gera um token que o Lavalink não renova.
 public sealed class YoutubeLoginService : BackgroundService
 {
     private const string ClientId = "861556708454-d6dlm3lh05idd8npek18k6be8ba3oc68.apps.googleusercontent.com";
@@ -90,8 +76,7 @@ public sealed class YoutubeLoginService : BackgroundService
         if (_tokens.Token is null && !_config.YoutubeLogin)
             return;
 
-        // toda vez que o Lavalink (re)aparece — boot, queda de rede, restart dele sozinho —
-        // ele acorda sem token, porque o application.yml não carrega nenhum. Eu entrego
+        // toda vez que o Lavalink (re)aparece ele acorda sem token, porque o yml não traz nenhum
         _áudio.ConnectionReady += AoConectarAsync;
 
         // e se o token morrer com tudo de pé, quem me conta é a faixa que falha pedindo login
@@ -116,9 +101,7 @@ public sealed class YoutubeLoginService : BackgroundService
 
         await base.StopAsync(cancellationToken);
 
-        // o Google pode ter trocado o refresh token numa renovação. O plugin aceita o novo
-        // em silêncio e ele só existe na memória do Lavalink — última chance de guardar,
-        // senão o próximo boot entrega o antigo e leva invalid_grant
+        // o Google pode ter trocado o token na renovação; o novo só existe na memória do Lavalink
         if (_tokens.Token is null)
             return;
 
@@ -136,18 +119,13 @@ public sealed class YoutubeLoginService : BackgroundService
 
     private Task AoConectarAsync(object sender, ConnectionReadyEventArgs eventArgs)
     {
-        // não seguro o loop do node: a entrega fala com o Lavalink e, se o token morreu,
-        // fica esperando alguém digitar um código — isso leva minutos
+        // não seguro o loop do node: se o token morreu, a entrega espera alguém digitar um código
         _ = Task.Run(() => EntregarAsync(conferir: false, _parando), _parando);
 
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Faixa que morreu pedindo login é o jeito do YouTube dizer que meu token não vale
-    /// mais. Confiro na hora — entregar de novo faz o Lavalink testar o token no Google —
-    /// em vez de deixar a música morta até ele reconectar.
-    /// </summary>
+    // Faixa que morre pedindo login diz que meu token não vale mais; confiro na hora.
     private Task AoFalharFaixaAsync(object sender, TrackExceptionEventArgs eventArgs)
     {
         if (_tokens.Token is null || !PedeLogin(eventArgs.Exception.Message))
@@ -164,19 +142,13 @@ public sealed class YoutubeLoginService : BackgroundService
         return Task.CompletedTask;
     }
 
-    /// <summary>"This video requires login" e "Sign in to confirm you're not a bot".</summary>
+    // "This video requires login" e "Sign in to confirm you're not a bot".
     private static bool PedeLogin(string? motivo) =>
         motivo is not null
         && (motivo.Contains("login", StringComparison.OrdinalIgnoreCase)
             || motivo.Contains("sign in", StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>
-    /// Põe o token no Lavalink se ele ainda não está lá. Recusa do Google vira login novo;
-    /// Lavalink fora fica pra próxima conexão, que é quem me chama de novo.
-    ///
-    /// Com <paramref name="conferir"/> entrego mesmo que ele já tenha o token: é o jeito de
-    /// fazer o Google dizer se o token ainda vale.
-    /// </summary>
+    // Põe o token no Lavalink se ainda não está lá. Com conferir, o Google diz se ele vale.
     private async Task EntregarAsync(bool conferir, CancellationToken cancellationToken)
     {
         // uma em andamento já cuida disso — inclusive se ela está esperando o código
@@ -237,7 +209,7 @@ public sealed class YoutubeLoginService : BackgroundService
         }
     }
 
-    /// <summary>O fluxo de dispositivo inteiro: código no console, espera, guarda e entrega.</summary>
+    // O fluxo de dispositivo inteiro: código no console, espera, guarda e entrega.
     private async Task LoginAsync(CancellationToken cancellationToken)
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
@@ -289,10 +261,7 @@ public sealed class YoutubeLoginService : BackgroundService
         return código;
     }
 
-    /// <summary>
-    /// Fica perguntando ao Google se você já autorizou. Enquanto ninguém digita o código a
-    /// resposta é <c>authorization_pending</c>, que não é erro — é só "ainda não".
-    /// </summary>
+    // Fica perguntando se você já autorizou; authorization_pending não é erro, é "ainda não".
     private async Task<string?> EsperarAutorizaçãoAsync(
         HttpClient http,
         CódigoDeDispositivo pedido,
@@ -349,9 +318,8 @@ public sealed class YoutubeLoginService : BackgroundService
     }
 
     // ---- console -------------------------------------------------------------
-    //
-    // sai direto no Console, como o banner e a despedida: com timestamp e nome de logger
-    // na frente de cada linha, um código de seis dígitos vira caça ao tesouro
+
+    // sai direto no Console, como o banner: timestamp na frente faz do código uma caça ao tesouro
 
     private static void Convite(CódigoDeDispositivo pedido)
     {

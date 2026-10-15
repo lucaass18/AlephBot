@@ -10,7 +10,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Admin;
 
-/// <summary>/ban — bane um usuário e, opcionalmente, apaga as mensagens recentes dele.</summary>
+// /ban — bane um usuário e, opcionalmente, apaga as mensagens recentes dele.
 public sealed class BanCommand : AlephSlashModule
 {
     private const AçãoModeração Ação = AçãoModeração.Ban;
@@ -71,7 +71,7 @@ public sealed class BanCommand : AlephSlashModule
         await RespondAsync(Moderation.BuildEmbed(Ação, alvo, moderador, motivo, extra));
     }
 
-    /// <summary>Devolve a mensagem de erro, ou null se o ban foi aplicado.</summary>
+    // Devolve a mensagem de erro, ou null se o ban foi aplicado.
     internal static async Task<string?> TryBanAsync(
         GuildUser alvo, GuildUser moderador, string motivo, int apagarDias)
     {
@@ -98,7 +98,7 @@ public sealed class BanCommand : AlephSlashModule
     };
 }
 
-/// <summary>!ban — mesmo banimento do /ban, para quem prefere o prefixo.</summary>
+// !ban — mesmo banimento do /ban, para quem prefere o prefixo.
 public sealed class BanTextCommand : AlephTextModule
 {
     private const AçãoModeração Ação = AçãoModeração.Ban;

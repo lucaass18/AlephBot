@@ -10,7 +10,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Admin;
 
-/// <summary>/kick — expulsa um usuário do servidor e registra quem expulsou e o motivo.</summary>
+// /kick — expulsa um usuário do servidor e registra quem expulsou e o motivo.
 public sealed class KickCommand : AlephSlashModule
 {
     private const AçãoModeração Ação = AçãoModeração.Kick;
@@ -60,7 +60,7 @@ public sealed class KickCommand : AlephSlashModule
         await RespondAsync(Moderation.BuildEmbed(Ação, alvo, moderador, motivo));
     }
 
-    /// <summary>Devolve a mensagem de erro, ou null se o kick foi em frente.</summary>
+    // Devolve a mensagem de erro, ou null se o kick foi em frente.
     internal static async Task<string?> TryKickAsync(GuildUser alvo, GuildUser moderador, string motivo)
     {
         try
@@ -76,7 +76,7 @@ public sealed class KickCommand : AlephSlashModule
     }
 }
 
-/// <summary>!kick — mesma expulsão do /kick, para quem prefere o prefixo.</summary>
+// !kick — mesma expulsão do /kick, para quem prefere o prefixo.
 public sealed class KickTextCommand : AlephTextModule
 {
     private const AçãoModeração Ação = AçãoModeração.Kick;

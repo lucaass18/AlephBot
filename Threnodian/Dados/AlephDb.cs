@@ -2,28 +2,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AlephBot.Threnodian.Dados;
 
-/// <summary>
-/// O banco do bot, dividido por assunto: cada parte dele mora num schema seu, e o n8n tem
-/// o dele, onde o bot só lê. Dois serviços escrevendo na mesma linha é briga que ninguém
-/// ganha, e separar deixa claro de quem é cada tabela sem precisar combinar nada.
-///
-/// A divisão por assunto é pelo mesmo motivo: o cache de anime e mangá não tem nada a ver
-/// com a configuração do servidor, e misturar os dois só dificulta olhar o banco, dar
-/// permissão a um pedaço ou levar um deles embora um dia. Música fica no <c>aleph</c>: ela
-/// é do bot como a configuração é, e não um acervo à parte como as obras.
-/// </summary>
+// O banco do bot, um schema por assunto, e o do n8n só de leitura: cada tabela tem dono.
 public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(options)
 {
-    /// <summary>O bot em si: o que cada servidor escolheu.</summary>
+    // O bot em si: o que cada servidor escolheu.
     public const string Schema = "aleph";
 
-    /// <summary>A telemetria que o painel lê — cresce sozinha e não se mistura ao resto.</summary>
+    // A telemetria que o painel lê — cresce sozinha e não se mistura ao resto.
     public const string SchemaDeStats = "stats";
 
-    /// <summary>O cache do /ma: fichas de anime e mangá, personagens e buscas.</summary>
+    // O cache do /ma: fichas de anime e mangá, personagens e buscas.
     public const string SchemaDeObras = "obras";
 
-    /// <summary>Onde o n8n guarda o que é dele. O bot não cria nem mexe em nada aqui.</summary>
+    // Onde o n8n guarda o que é dele. O bot não cria nem mexe em nada aqui.
     public const string SchemaDoN8n = "n8n";
 
     public DbSet<ConfigDoServidor> ConfigsDosServidores => Set<ConfigDoServidor>();
@@ -137,8 +128,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
             playlist.Property(p => p.CriadaPor).HasColumnName("criada_por").HasConversion<long>();
             playlist.Property(p => p.CriadaEm).HasColumnName("criada_em");
 
-            // dois nomes iguais no mesmo servidor fariam "/playlist tocar fulano" virar
-            // sorteio; o banco é quem garante, não a conferência antes de gravar
+            // dois nomes iguais fariam "/playlist tocar fulano" virar sorteio; garante o banco
             playlist.HasIndex(p => new { p.GuildId, p.Nome })
                 .IsUnique()
                 .HasDatabaseName("ix_playlist_guild_nome");
@@ -184,8 +174,7 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
             coleta.Property(c => c.MemoriaMb).HasColumnName("memoria_mb");
             coleta.Property(c => c.HeapMb).HasColumnName("heap_mb");
 
-            // toda leitura do painel é "o que houve entre tal e tal hora", e sem índice
-            // isso vira varredura da tabela inteira assim que o histórico encorpar
+            // toda leitura do painel é por intervalo, e sem índice isso vira varredura da tabela
             coleta.HasIndex(c => c.ColetadoEm).HasDatabaseName("ix_stats_historico_coletado_em");
         });
 
@@ -194,14 +183,12 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
             config.ToTable("config_do_servidor");
             config.HasKey(c => c.GuildId);
 
-            // o id do Discord é um ulong de 64 bits sem sinal, e o Postgres não tem isso:
-            // vai como bigint e volta igual, que é o que o Npgsql faz com a conversão abaixo
+            // o id do Discord é ulong de 64 bits, que o Postgres não tem: vai como bigint
             config.Property(c => c.GuildId)
                 .HasColumnName("guild_id")
                 .HasConversion<long>();
 
-            // o maior prefixo que faz sentido ainda cabe numa palavra; sem limite, um
-            // prefixo de mil letras entraria e nenhum comando mais seria reconhecido
+            // o maior prefixo que faz sentido cabe numa palavra; sem limite, nada passaria
             config.Property(c => c.Prefixo).HasColumnName("prefixo").HasMaxLength(16);
 
             config.Property(c => c.CanalDeLog).HasColumnName("canal_de_log").HasConversion<long?>();

@@ -1,9 +1,6 @@
 namespace AlephBot.Core.Personality;
 
-/// <summary>
-/// O cartão de visita que aparece no boot, antes do primeiro log.
-/// Vai direto no console (não pelo NLog) pra não sair picado com timestamp em cada linha.
-/// </summary>
+// O cartão de visita do boot. Vai direto no console, pra não sair picado com timestamp.
 public static class Banner
 {
     private const string Arte =
@@ -12,9 +9,7 @@ public static class Banner
         █▀█ █▄▄ ██▄ █▀▀ █▀█   █▄█ █▄█ ░█░
         """;
 
-    // a paleta do console: os mesmos códigos do nlog.config, pra banner, log, despedida e o
-    // relatório dos testes falarem na mesma cor. Roxo é o Info (deu certo), laranja o Warn,
-    // vermelho o Error; cinza e apagado são o que acompanha
+    // a paleta é a do nlog.config: roxo é Info, laranja Warn, vermelho Error, cinza acompanha
     public const string Roxo = "\e[38;5;141m";
     public const string Cinza = "\e[38;5;245m";
     public const string Apagado = "\e[38;5;240m";
@@ -43,10 +38,7 @@ public static class Banner
         saida.WriteLine();
     }
 
-    /// <summary>
-    /// Sem cor quando a saída é redirecionada (arquivo, `docker logs`, pipe) ou quando
-    /// o ambiente pede NO_COLOR — senão o log vira sopa de escape.
-    /// </summary>
+    // Sem cor quando a saída é redirecionada ou com NO_COLOR: senão o log vira sopa de escape.
     public static bool UsaCor() =>
         !Console.IsOutputRedirected
         && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NO_COLOR"));

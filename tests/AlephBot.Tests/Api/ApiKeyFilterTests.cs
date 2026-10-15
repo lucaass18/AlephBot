@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AlephBot.Tests.Api;
 
-/// <summary>O filtro sozinho, sem servidor: o que passa, o que volta com 401 e com qual frase.</summary>
+// O filtro sozinho, sem servidor: o que passa, o que volta com 401 e com qual frase.
 public class ApiKeyFilterTests
 {
     private const string ChaveCerta = "chave-certa-1234567890";

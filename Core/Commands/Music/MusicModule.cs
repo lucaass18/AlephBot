@@ -5,11 +5,7 @@ using Lavalink4NET;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>
-/// Base dos comandos de música em barra. Toda ação de música faz a mesma dança — pega o
-/// player, desiste com uma frase se não deu, executa e responde — e é ela que mora aqui.
-/// Classe abstrata não vira comando: nem o AddModules nem o CommandRegistry pegam ela.
-/// </summary>
+// Base dos comandos de música em barra: pega o player, desiste com uma frase, executa, responde.
 public abstract class MusicSlashModule : AlephSlashModule
 {
     protected MusicSlashModule(IAudioService áudio)
@@ -21,10 +17,7 @@ public abstract class MusicSlashModule : AlephSlashModule
 
     public override CommandCategory Category => CommandCategory.Music;
 
-    /// <summary>
-    /// <paramref name="conectar"/> fica em falso de propósito: só o /play me arrasta pra
-    /// dentro de um canal. Mandar pausar o que não existe não devia me fazer aparecer.
-    /// </summary>
+    // conectar fica em falso: só o /play me arrasta pra dentro de um canal de voz
     private protected async Task ExecutarAsync(
         Func<AlephPlayer, Task<Music.Resposta>> ação,
         bool conectar = false,
@@ -53,8 +46,7 @@ public abstract class MusicSlashModule : AlephSlashModule
         {
             await RespondAsync(resposta.Embed!);
 
-            // o que ficou pro depois roda com a resposta já publicada: é assim que o "Pulei"
-            // chega antes do "tocando agora" da faixa que o próprio pulo começou
+            // o que ficou pro depois roda com a resposta publicada: o "Pulei" vem antes
             if (resposta.Depois is { } depois)
                 await depois();
         }
@@ -64,7 +56,7 @@ public abstract class MusicSlashModule : AlephSlashModule
     }
 }
 
-/// <summary>Base dos gêmeos com prefixo. Mesma dança, resposta por mensagem em vez de interação.</summary>
+// Base dos gêmeos com prefixo. Mesma dança, resposta por mensagem em vez de interação.
 public abstract class MusicTextModule : AlephTextModule
 {
     protected MusicTextModule(IAudioService áudio)

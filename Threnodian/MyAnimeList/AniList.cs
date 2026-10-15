@@ -5,23 +5,15 @@ using System.Text.RegularExpressions;
 
 namespace AlephBot.Threnodian.MyAnimeList;
 
-/// <summary>
-/// O AniList (graphql.anilist.co): outro catálogo de anime e mangá, aberto e sem chave. É a
-/// reserva do /ma desde que o Jikan foi descontinuado — e dá pra ser reserva honesta porque
-/// guarda o id da obra no MAL, então o link do embed continua indo pro MyAnimeList.
-/// </summary>
+// O AniList: catálogo aberto, reserva do /ma desde o fim do Jikan. Guarda o id da obra no MAL.
 public sealed class AniList : IMyAnimeList, IDisposable
 {
     private const string Endereço = "https://graphql.anilist.co";
 
-    /// <summary>Quantos resultados eu peço: o primeiro quase sempre serve, os outros são pra achar o título exato.</summary>
+    // Quantos resultados eu peço: o primeiro quase sempre serve, os outros são pro título exato.
     private const int Limite = 5;
 
-    /// <summary>
-    /// Uma consulta só, com o tipo e a busca como variáveis. isAdult: false porque isto
-    /// responde dentro de servidor de Discord; SEARCH_MATCH porque é a ordem que o AniList
-    /// usa na busca do site, e é a que põe o título certo na frente.
-    /// </summary>
+    // Uma consulta só. isAdult: false porque isto é Discord; SEARCH_MATCH é a ordem do site deles.
     private const string Consulta =
         """
         query ($busca: String, $tipo: MediaType, $limite: Int) {
@@ -62,12 +54,12 @@ public sealed class AniList : IMyAnimeList, IDisposable
         }
         """;
 
-    /// <summary>O AniList escreve a sinopse com HTML dentro: &lt;br&gt; é parágrafo, &lt;i&gt; é ênfase.</summary>
+    // O AniList escreve a sinopse com HTML dentro: <br> é parágrafo, <i> é ênfase.
     private static readonly Regex Quebra = new(@"<br\s*/?>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex Etiqueta = new(@"<[^>]+>", RegexOptions.Compiled);
 
-    /// <summary>"(Source: MAL Rewrite)" no fim da sinopse é crédito, não é a história.</summary>
+    // "(Source: MAL Rewrite)" no fim da sinopse é crédito, não é a história.
     private static readonly Regex Crédito = new(@"\s*\((?:Source|Fonte):[^)]*\)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex ParágrafoDemais = new(@"\n{3,}", RegexOptions.Compiled);
@@ -112,7 +104,7 @@ public sealed class AniList : IMyAnimeList, IDisposable
             .ToList();
     }
 
-    /// <summary>Um "media" do AniList virando a mesma Obra que o MAL dá; null se não der pra mostrar.</summary>
+    // Um "media" do AniList virando a mesma Obra que o MAL dá; null se não der pra mostrar.
     internal static Obra? Ler(TipoDeObra tipo, JsonElement media)
     {
         var títulos = media.Campo("title");
@@ -168,10 +160,7 @@ public sealed class AniList : IMyAnimeList, IDisposable
         };
     }
 
-    /// <summary>
-    /// O elenco na ordem que veio (o sort: ROLE põe protagonista na frente). O nome que o
-    /// AniList marca como spoiler fica de fora: numa ficha de busca ele não informa, estraga.
-    /// </summary>
+    // O elenco na ordem que veio; nome marcado como spoiler fica de fora.
     private static List<Personagem> Elenco(JsonElement media)
     {
         var elenco = new List<Personagem>();
@@ -197,7 +186,7 @@ public sealed class AniList : IMyAnimeList, IDisposable
     private static string? Título(JsonElement? títulos) =>
         títulos?.Texto("romaji") ?? títulos?.Texto("english") ?? títulos?.Texto("native");
 
-    /// <summary>"FINISHED", "RELEASING", "NOT_YET_RELEASED": o vocabulário é do AniList, a enum é minha.</summary>
+    // "FINISHED", "RELEASING", "NOT_YET_RELEASED": o vocabulário é do AniList, a enum é minha.
     private static Situação LerSituação(string? texto) => Obra.Normaliza(texto) switch
     {
         "finished" => Situação.Concluída,
@@ -208,14 +197,11 @@ public sealed class AniList : IMyAnimeList, IDisposable
         _ => Situação.Desconhecida,
     };
 
-    /// <summary>A data vem em pedaços, e cada um pode ser null: é o mesmo "não se sabe" do MAL.</summary>
+    // A data vem em pedaços, e cada um pode ser null: é o mesmo "não se sabe" do MAL.
     private static DataParcial Data(JsonElement? data) =>
         data is { } d ? new DataParcial(d.Contagem("year"), d.Contagem("month"), d.Contagem("day")) : DataParcial.Vazia;
 
-    /// <summary>
-    /// "popularity" no AniList é quanta gente tem a obra na lista, não a posição dela. A
-    /// posição está em "rankings", e só a de todos os tempos quer dizer o mesmo que no MAL.
-    /// </summary>
+    // "popularity" é quanta gente tem a obra na lista; a posição está em "rankings".
     private static int? Ranking(JsonElement media, string tipo)
     {
         foreach (var ranking in media.Lista("rankings"))
@@ -230,10 +216,7 @@ public sealed class AniList : IMyAnimeList, IDisposable
         return null;
     }
 
-    /// <summary>
-    /// Mangá não tem estúdio: quem assina é quem escreveu e desenhou. O staff do AniList
-    /// traz a equipe inteira, inclusive assistente e designer, e só o papel separa.
-    /// </summary>
+    // Mangá não tem estúdio: quem assina é quem escreveu e desenhou, e só o papel separa.
     private static List<string> Autores(JsonElement media)
     {
         var autores = new List<string>();
@@ -250,10 +233,7 @@ public sealed class AniList : IMyAnimeList, IDisposable
         return autores;
     }
 
-    /// <summary>
-    /// Os papéis que são autoria, e nada além. Procurar "art" solto pegaria o "Touch-Up Art
-    /// & Lettering" de edição estrangeira, que não escreveu nem desenhou nada.
-    /// </summary>
+    // Os papéis que são autoria: "art" solto pegaria o "Touch-Up Art & Lettering" da edição.
     private static readonly string[] PapéisDeAutoria =
     [
         "story & art",
@@ -275,7 +255,7 @@ public sealed class AniList : IMyAnimeList, IDisposable
         return PapéisDeAutoria.Contains(limpo, StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>A sinopse sem o HTML que o AniList guarda junto, e sem o crédito no fim.</summary>
+    // A sinopse sem o HTML que o AniList guarda junto, e sem o crédito no fim.
     internal static string? SemHtml(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto))

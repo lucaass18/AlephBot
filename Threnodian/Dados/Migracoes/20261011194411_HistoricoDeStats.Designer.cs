@@ -15,7 +15,6 @@ namespace AlephBot.Threnodian.Dados.Migracoes
     [Migration("20261011194411_HistoricoDeStats")]
     partial class HistoricoDeStats
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

@@ -4,10 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Tests.Config;
 
-/// <summary>
-/// A config lida de um dicionário, não do ambiente: o teste não depende do .env de quem roda
-/// e não pisa nas variáveis dos outros testes.
-/// </summary>
+// A config lida de um dicionário: o teste não depende do .env de quem roda.
 public class AlephConfigTests
 {
     private const string Chave16 = "0123456789abcdef";

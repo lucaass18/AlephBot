@@ -8,7 +8,7 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Music;
 
-/// <summary>/seek — anda pra um ponto da faixa atual.</summary>
+// /seek — anda pra um ponto da faixa atual.
 public sealed class SeekCommand : MusicSlashModule
 {
     public SeekCommand(IAudioService áudio) : base(áudio) { }
@@ -24,7 +24,7 @@ public sealed class SeekCommand : MusicSlashModule
         ExecutarAsync(player => Seek.IrParaAsync(player, posição));
 }
 
-/// <summary>!seek</summary>
+// !seek
 public sealed class SeekTextCommand : MusicTextModule
 {
     public SeekTextCommand(IAudioService áudio) : base(áudio) { }

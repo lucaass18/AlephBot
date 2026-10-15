@@ -3,22 +3,12 @@ using System.Text.Json;
 
 namespace AlephBot.Threnodian.Youtube;
 
-/// <summary>
-/// Busca de playlist do YouTube pelo nome.
-///
-/// O plugin do Lavalink só procura vídeo: <c>ytsearch:</c> devolve faixas, e playlist só
-/// entra por link. Pra "nightcore rock" virar uma playlist eu pergunto ao YouTube pela
-/// mesma API interna que a página de resultados usa, com o filtro "só playlists", e fico
-/// com o ID da primeira. Quem carrega as faixas depois é o Lavalink, pelo link normal.
-/// </summary>
+// Busca de playlist pelo nome: o plugin só procura vídeo, então pergunto à API da página.
 public sealed class YoutubeSearch : IDisposable
 {
     private const string UrlBusca = "https://www.youtube.com/youtubei/v1/search?prettyPrint=false";
 
-    /// <summary>
-    /// O "Tipo: Playlist" do filtro da página de resultados — é o que vai no <c>sp=</c> da
-    /// URL quando você marca ele no site.
-    /// </summary>
+    // O "Tipo: Playlist" do filtro da página — é o que vai no sp= quando você marca ele.
     private const string FiltroPlaylist = "EgIQAw%3D%3D";
 
     private const string TipoPlaylist = "LOCKUP_CONTENT_TYPE_PLAYLIST";
@@ -45,14 +35,10 @@ public sealed class YoutubeSearch : IDisposable
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
     }
 
-    /// <summary>O link que o Lavalink entende pra uma playlist achada aqui.</summary>
+    // O link que o Lavalink entende pra uma playlist achada aqui.
     public static string LinkDaPlaylist(string id) => $"https://www.youtube.com/playlist?list={id}";
 
-    /// <summary>
-    /// O ID da primeira playlist que o YouTube devolve pra <paramref name="busca"/>, ou null
-    /// quando não vem nenhuma. Problema de rede sobe como exceção: é o chamador quem sabe
-    /// dizer isso do jeito certo.
-    /// </summary>
+    // O ID da primeira playlist, ou null. Erro de rede sobe como exceção, pro chamador falar.
     public async Task<string?> PlaylistAsync(string busca, CancellationToken cancellationToken = default)
     {
         var corpo = new { context = Contexto, query = busca, @params = FiltroPlaylist };
@@ -67,10 +53,7 @@ public sealed class YoutubeSearch : IDisposable
         return PrimeiraPlaylist(json.RootElement);
     }
 
-    /// <summary>
-    /// Anda pela resposta inteira atrás do primeiro cartão de playlist. A ordem do JSON é a
-    /// ordem da página, então o primeiro que aparece é o primeiro resultado.
-    /// </summary>
+    // Procura o primeiro cartão de playlist: a ordem do JSON é a ordem da página.
     private static string? PrimeiraPlaylist(JsonElement elemento)
     {
         switch (elemento.ValueKind)

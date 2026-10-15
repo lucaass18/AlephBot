@@ -1,27 +1,19 @@
 namespace AlephBot.Tests.Api.CaixaPreta;
 
-/// <summary>
-/// O contrato: pra cada operação que o documento anuncia, a resposta de verdade é conferida
-/// contra o que ele promete — o schema do corpo, o tipo do conteúdo e os headers. Nada aqui
-/// sabe o nome de um record do bot; tudo sai do /api/v1/openapi.json.
-///
-/// É o cruzamento que faltava. O <see cref="ApiDocsTests"/> confere o que o documento diz, e o
-/// <see cref="ApiRoutesTests"/> confere o que as rotas respondem — mas os dois em separado:
-/// documento e resposta podiam divergir sem quebrar nada.
-/// </summary>
+// O contrato: cada operação do documento conferida contra a resposta de verdade, sem saber nomes.
 public class ContratoTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPretaFixture>
 {
     private readonly ApiDeTeste _api = fixture.Api;
     private readonly DocumentoDaApi _documento = fixture.Documento;
 
-    /// <summary>Chama a operação do jeito que o documento manda: com a chave, se ela pedir.</summary>
+    // Chama a operação do jeito que o documento manda: com a chave, se ela pedir.
     private Task<RespostaCrua> ChamaAsync(OperaçãoPrometida operação) =>
         _api.FazAsync(
             operação.Método,
             operação.Caminho,
             headers: operação.PedeChave ? [(_documento.HeaderDaChave, ApiDeTeste.ChaveDaApi)] : []);
 
-    /// <summary>A resposta que o documento promete pro código que saiu — e ela tem que existir.</summary>
+    // A resposta que o documento promete pro código que saiu — e ela tem que existir.
     private static RespostaPrometida Prometida(OperaçãoPrometida operação, RespostaCrua resposta)
     {
         var prometida = operação.Resposta(resposta.Status);
@@ -74,8 +66,7 @@ public class ContratoTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPreta
             var resposta = await ChamaAsync(operação);
             var prometida = Prometida(operação, resposta);
 
-            // resposta sem corpo não tem tipo a conferir: o HEAD repete os headers do GET, e
-            // ter Content-Type ali é o HTTP mandando, não o documento sendo desobedecido
+            // resposta sem corpo não tem tipo: Content-Type no HEAD é o HTTP, não o documento
             if (prometida.TipoDeConteúdo is null)
                 continue;
 
@@ -86,8 +77,7 @@ public class ContratoTests(CaixaPretaFixture fixture) : IClassFixture<CaixaPreta
     [Fact]
     public async Task Toda_resposta_traz_os_headers_que_o_documento_promete()
     {
-        // o documento promete a cota e a sobra em toda resposta; até aqui ninguém conferia se
-        // elas chegam de verdade
+        // o documento promete a cota e a sobra em toda resposta, e ninguém conferia se chegam
         foreach (var operação in _documento.Operações)
         {
             var resposta = await ChamaAsync(operação);
