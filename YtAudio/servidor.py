@@ -36,9 +36,12 @@ PORTA = int(os.environ.get('PORTA', '8080'))
 PROXY = os.environ.get('PROXY', 'socks5://warp:9091')
 GERADOR = os.environ.get('GERADOR_DE_TOKEN', 'http://pot:4416')
 
-# o client do YouTube que o yt-dlp usa. O mweb foi o que entregou a música inteira sem conta
-# no teste da VPS (08/10/2026); se o YouTube fechar ele, é aqui que muda
-CLIENTS = [c.strip() for c in os.environ.get('CLIENTS', 'mweb').split(',') if c.strip()]
+# os clients do YouTube que o yt-dlp tenta. O mweb foi o que entregou a música inteira sem
+# conta no teste da VPS (08/10/2026) e segue na frente; o tv_simply entrou atrás dele porque
+# em 15/10/2026 o mweb começou a cair, de vez em quando, no experimento "SABR-only" do
+# YouTube: os formatos voltam sem link e a música não toca. Com os dois na lista, o que
+# sobrar atende, e custa um pedido a mais (~0,2 s). Se fecharem os dois, é aqui que muda
+CLIENTS = [c.strip() for c in os.environ.get('CLIENTS', 'mweb,tv_simply').split(',') if c.strip()]
 
 # o pedaço que eu peço por vez ao YouTube
 PEDAÇO = 10 * 1024 * 1024
