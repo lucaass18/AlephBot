@@ -47,6 +47,8 @@ public sealed class PlayCommand : MusicSlashModule
 
         if (resposta.Erro is { } falha)
             await EditarComErroAsync(falha);
+        else if (resposta.Cartão is { } cartão)
+            await EditarRespostaAsync(cartão.Container, cartão.Anexo);
         else
             await EditarRespostaAsync(resposta.Embed!);
     }
