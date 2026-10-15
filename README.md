@@ -68,13 +68,14 @@ canal e continua de onde parou — desde que ainda tenha alguém lá e faça men
 
 | | Comando | O que faz |
 |:--:|:--|:--|
-| 📺 | **`/ma anime <nome>`** <sub>· `mal` · `myanimelist`</sub> | Ficha do anime no MyAnimeList |
-| 📖 | **`/ma manga <nome>`** <sub>· `mal` · `myanimelist`</sub> | Ficha do mangá no MyAnimeList |
+| 📺 | **`/ma <nome>`** <sub>· `mal` · `myanimelist`</sub> | Ficha do anime no MyAnimeList |
+| 📖 | **`/mg <nome>`** <sub>· `manga` · `mangá`</sub> | Ficha do mangá, com a sinopse em português quando tem |
 
 A ficha vem em embed com a capa, a nota do MAL e quantos votos ela tem, ranking, formato,
 situação, período, estúdio (ou autor), gêneros e a sinopse inteira — traduzida pro português
 na hora (via Google), com aviso quando o tradutor não respondeu e ela ficou em inglês. No modo
-texto o tipo é a primeira palavra: `!ma anime Naruto`, `!ma mangá Berserk`.
+texto são `!ma Naruto` e `!mg Berserk` — quem escrever `!ma mangá Berserk`, como era antes, é
+mandado pro `!mg`.
 
 Sem configurar nada os dados vêm do [AniList](https://anilist.co), que é aberto e não pede
 chave — o link do embed continua indo pro MyAnimeList. Com um `MAL_CLIENT_ID` no `.env` quem
@@ -338,7 +339,7 @@ Depois preencha o `TOKEN`:
 | `MUSIC_IDLE_MINUTES` | | `2` | Minutos parado (canal vazio ou nada tocando) antes de sair da voz |
 | `YOUTUBE_LOGIN` | | `false` | Pede o login do YouTube no console quando não há token guardado.<br>Plano B pra servidor: com o `yt-audio` do compose o YouTube toca sem conta — veja [YouTube num servidor](#youtube-num-servidor) |
 | `YOUTUBE_AUDIO_URI` | | *vazio* | Endereço do `yt-audio`, o serviço que toca o YouTube sem conta. O compose preenche (`http://yt-audio:8080/`).<br>Vazio = o YouTube toca só pelo plugin do Lavalink — veja [YouTube num servidor](#youtube-num-servidor) |
-| `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma`.<br>Vazio = usa só o AniList, sem chave. Com a chave, o MAL atende primeiro e o AniList vira reserva. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
+| `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma` e o `/mg`.<br>Vazio = usa só o AniList, sem chave. Com a chave, o MAL atende primeiro e o AniList vira reserva. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
 | `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/v1/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/v1/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |

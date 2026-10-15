@@ -647,8 +647,8 @@ public static class Denia
     public static string MalCredencialRecusada() =>
         "O MyAnimeList recusou meu Client ID. Confere o `MAL_CLIENT_ID` no `.env` — ou apaga ele, que eu me viro pelo AniList.";
 
-    public static string MalTipoDesconhecido(string tipo, string uso) =>
-        $"Não sei o que é `{tipo}`. É `anime` ou `mangá` — uso: `{uso}`";
+    public static string MalMangáÉOutroComando(string prefixo, string busca) =>
+        $"Mangá agora tem comando próprio: `{prefixo}mg {busca}` — ou `/mg`, se preferir a barra.";
 
     public static string MalBuscaCurta(int mínimo) =>
         $"O MAL não procura por menos de {mínimo} letras. Escreve mais um pouco.";
