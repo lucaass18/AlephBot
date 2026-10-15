@@ -270,18 +270,41 @@ internal static class MyAnimelist
         return começo.Length >= BuscaMínima && começo.Length < busca.Length ? começo : null;
     }
 
-    // O primeiro resultado costuma ser o certo; título que bate exato com a busca ganha.
-    private static Obra? Escolhe(IReadOnlyList<Obra> resultados, string busca)
-    {
-        foreach (var obra in resultados)
-        {
-            if (Títulos(obra).Any(título => string.Equals(título, busca, StringComparison.OrdinalIgnoreCase)))
-                return obra;
-        }
+    // Título igual ganha de sinônimo igual: obra secundária traz o nome da principal e vem antes.
+    private static Obra? Escolhe(IReadOnlyList<Obra> resultados, string busca) =>
+        Igual(resultados, busca, Títulos)
+        ?? Igual(resultados, busca, obra => obra.Sinônimos)
+        ?? MaisConhecida(resultados, busca)
+        ?? resultados.FirstOrDefault();
 
-        return resultados.Count > 0 ? resultados[0] : null;
+    // Busca pela metade ("nanatsu"): entre quem tem as palavras no título, a mais acompanhada.
+    private static Obra? MaisConhecida(IReadOnlyList<Obra> resultados, string busca)
+    {
+        var palavras = SemAcentos(busca).ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (palavras.Length == 0)
+            return null;
+
+        // sem posição no ranking a obra vai pro fim, e entre iguais fica a ordem da fonte
+        return resultados
+            .Where(obra => Títulos(obra).Any(título => TemTodas(título, palavras)))
+            .OrderBy(obra => obra.Popularidade ?? int.MaxValue)
+            .FirstOrDefault();
     }
 
+    private static bool TemTodas(string título, string[] palavras)
+    {
+        var limpo = SemAcentos(título).ToLowerInvariant();
+
+        return palavras.All(palavra => limpo.Contains(palavra, StringComparison.Ordinal));
+    }
+
+    private static Obra? Igual(
+        IReadOnlyList<Obra> resultados, string busca, Func<Obra, IEnumerable<string>> nomes) =>
+        resultados.FirstOrDefault(
+            obra => nomes(obra).Any(nome => string.Equals(nome, busca, StringComparison.OrdinalIgnoreCase)));
+
+    // Os nomes da obra em si; os sinônimos ficam de fora de propósito, ver o Escolhe.
     private static IEnumerable<string> Títulos(Obra obra)
     {
         yield return obra.Título;
@@ -291,9 +314,6 @@ internal static class MyAnimelist
 
         if (obra.TítuloEmJaponês is { Length: > 0 } japonês)
             yield return japonês;
-
-        foreach (var sinônimo in obra.Sinônimos)
-            yield return sinônimo;
     }
 
     // A sinopse pronta pra mostrar e se ela chegou a ser traduzida. Sem sinopse, null.
