@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
+using AlephBot.Config;
 using AlephBot.Core.Commands.Abstractions;
 using AlephBot.Core.Commands.Interface;
 using AlephBot.Core.Personality;
@@ -16,46 +17,34 @@ using NetCord.Services.Commands;
 
 namespace AlephBot.Core.Commands.Anime;
 
-// /ma anime, /ma manga — a ficha do MyAnimeList, com a sinopse traduzida.
-[SlashCommand("ma", "Procura um anime ou mangá no MyAnimeList.")]
+// /ma — a ficha do anime, com a sinopse traduzida. Mangá é no /mg.
 public sealed class MyAnimelistCommand : AlephSlashModule
 {
     private readonly IMyAnimeList _mal;
     private readonly GoogleTranslator _tradutor;
     private readonly IFichasGuardadas _guarda;
-    private readonly ISinopseEmPortuguês _mangadex;
 
-    public MyAnimelistCommand(
-        IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda, ISinopseEmPortuguês mangadex)
+    public MyAnimelistCommand(IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda)
     {
         _mal = mal;
         _tradutor = tradutor;
         _guarda = guarda;
-        _mangadex = mangadex;
     }
 
     public override string Name => "ma";
-    public override string Description => "Procura um anime ou mangá no MyAnimeList.";
+    public override string Description => "Procura um anime no MyAnimeList.";
     public override CommandCategory Category => CommandCategory.Anime;
     public override string? Usage => MyAnimelist.Uso;
 
-    [SubSlashCommand("anime", "Procura um anime no MyAnimeList.")]
-    public Task AnimeAsync(
-        [SlashCommandParameter(Name = "nome", Description = "O nome do anime.")] string nome) =>
-        ExecutarAsync(TipoDeObra.Anime, nome);
-
-    [SubSlashCommand("manga", "Procura um mangá no MyAnimeList.")]
-    public Task MangaAsync(
-        [SlashCommandParameter(Name = "nome", Description = "O nome do mangá.")] string nome) =>
-        ExecutarAsync(TipoDeObra.Manga, nome);
-
-    private async Task ExecutarAsync(TipoDeObra tipo, string nome)
+    [SlashCommand("ma", "Procura um anime no MyAnimeList.")]
+    public async Task AnimeAsync(
+        [SlashCommandParameter(Name = "nome", Description = "O nome do anime.")] string nome)
     {
         // perguntar ao MAL e ao tradutor passa dos 3 segundos do Discord; peço tempo
         await DeferAsync();
 
         var (embed, erro) = await MyAnimelist.ProcurarAsync(
-            _mal, _tradutor, _guarda, _mangadex, tipo, nome, Context.User.Username);
+            _mal, _tradutor, _guarda, mangadex: null, TipoDeObra.Anime, nome, Context.User.Username);
 
         if (erro is not null)
             await EditarComErroAsync(erro);
@@ -64,25 +53,25 @@ public sealed class MyAnimelistCommand : AlephSlashModule
     }
 }
 
-// !ma anime/mangá — a mesma ficha do /ma, para quem prefere o prefixo.
+// !ma — a mesma ficha do /ma, para quem prefere o prefixo.
 public sealed class MyAnimelistTextCommand : AlephTextModule
 {
     private readonly IMyAnimeList _mal;
     private readonly GoogleTranslator _tradutor;
     private readonly IFichasGuardadas _guarda;
-    private readonly ISinopseEmPortuguês _mangadex;
+    private readonly AlephConfig _config;
 
     public MyAnimelistTextCommand(
-        IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda, ISinopseEmPortuguês mangadex)
+        IMyAnimeList mal, GoogleTranslator tradutor, IFichasGuardadas guarda, AlephConfig config)
     {
         _mal = mal;
         _tradutor = tradutor;
         _guarda = guarda;
-        _mangadex = mangadex;
+        _config = config;
     }
 
     public override string Name => "ma";
-    public override string Description => "Procura um anime ou mangá no MyAnimeList.";
+    public override string Description => "Procura um anime no MyAnimeList.";
     public override CommandCategory Category => CommandCategory.Anime;
     public override string? Usage => MyAnimelist.Uso;
 
@@ -90,12 +79,14 @@ public sealed class MyAnimelistTextCommand : AlephTextModule
     public override bool IsHidden => true;
 
     [Command("ma", "mal", "myanimelist")]
-    public async Task MaAsync(string tipo, [CommandParameter(Remainder = true)] string nome)
+    public async Task MaAsync([CommandParameter(Remainder = true)] string nome)
     {
-        // o comando de texto não tem subcomando de verdade: a primeira palavra faz o papel
-        if (MyAnimelist.LerTipo(tipo) is not { } tipoDeObra)
+        var (busca, éMangá) = MyAnimelist.LerPedido(nome);
+
+        // mangá era aqui e agora é no !mg; quem pedir do jeito antigo leva o endereço novo
+        if (éMangá)
         {
-            await ErrorAsync(Denia.MalTipoDesconhecido(tipo, MyAnimelist.Uso));
+            await ErrorAsync(Denia.MalMangáÉOutroComando(_config.Prefix, busca));
             return;
         }
 
@@ -103,7 +94,7 @@ public sealed class MyAnimelistTextCommand : AlephTextModule
         await Context.Client.Rest.TriggerTypingAsync(Context.Message.ChannelId);
 
         var (embed, erro) = await MyAnimelist.ProcurarAsync(
-            _mal, _tradutor, _guarda, _mangadex, tipoDeObra, nome, Context.User.Username);
+            _mal, _tradutor, _guarda, mangadex: null, TipoDeObra.Anime, busca, Context.User.Username);
 
         if (erro is not null)
             await ErrorAsync(erro);
@@ -114,7 +105,9 @@ public sealed class MyAnimelistTextCommand : AlephTextModule
 
 internal static class MyAnimelist
 {
-    internal const string Uso = "ma <anime|mangá> <nome>";
+    internal const string Uso = "ma <nome>";
+
+    internal const string UsoDeMangá = "mg <nome>";
 
     // O MAL não procura por menos que isso: devolve 400 "invalid q".
     internal const int BuscaMínima = 3;
@@ -138,26 +131,35 @@ internal static class MyAnimelist
         @"\s*\[Written by MAL Rewrite\]\s*",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    // "anime", "mangá", "manga", "Animes"... o que a pessoa digitou no lugar do subcomando.
-    internal static TipoDeObra? LerTipo(string texto)
+    // O !ma pedia o tipo na primeira palavra; o /mg existe agora, mas o hábito continua.
+    internal static (string Busca, bool ÉMangá) LerPedido(string texto)
     {
-        var limpo = SemAcentos(texto.Trim()).ToLowerInvariant();
+        texto = texto.Trim();
 
-        if (limpo.StartsWith("anime", StringComparison.Ordinal))
-            return TipoDeObra.Anime;
+        var espaço = texto.IndexOf(' ');
 
-        if (limpo.StartsWith("manga", StringComparison.Ordinal))
-            return TipoDeObra.Manga;
+        if (espaço < 0)
+            return (texto, false);
 
-        return null;
+        var primeira = SemAcentos(texto[..espaço]).ToLowerInvariant();
+        var resto = texto[(espaço + 1)..].Trim();
+
+        if (resto.Length == 0)
+            return (texto, false);
+
+        if (primeira.StartsWith("manga", StringComparison.Ordinal))
+            return (resto, true);
+
+        // "!ma anime Naruto" continua valendo: a palavra sai e o resto é a busca
+        return primeira.StartsWith("anime", StringComparison.Ordinal) ? (resto, false) : (texto, false);
     }
 
-    // Procura, escolhe, traduz e monta a ficha. O /ma e o !ma caem os dois aqui.
+    // Procura, escolhe, traduz e monta a ficha. O /ma e o /mg caem os dois aqui.
     internal static async Task<(EmbedProperties? Embed, string? Erro)> ProcurarAsync(
         IMyAnimeList mal,
         GoogleTranslator tradutor,
         IFichasGuardadas guarda,
-        ISinopseEmPortuguês mangadex,
+        ISinopseEmPortuguês? mangadex,
         TipoDeObra tipo,
         string busca,
         string quemPediu,
@@ -219,9 +221,10 @@ internal static class MyAnimelist
 
     // A obra com a sinopse em português, quando o MangaDex confirma que é a mesma obra.
     private static async Task<Obra> EmPortuguêsAsync(
-        ISinopseEmPortuguês mangadex, Obra obra, CancellationToken cancellationToken)
+        ISinopseEmPortuguês? mangadex, Obra obra, CancellationToken cancellationToken)
     {
-        if (obra.Tipo != TipoDeObra.Manga || obra.SinopseEmPortuguês)
+        // o /ma passa null: anime não tem sinopse em português pra pedir
+        if (mangadex is null || obra.Tipo != TipoDeObra.Manga || obra.SinopseEmPortuguês)
             return obra;
 
         var português = await mangadex.ParaAsync(obra, cancellationToken);
