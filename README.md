@@ -41,6 +41,7 @@ prefixo do `.env`). Os apelidos entre parênteses valem só no modo texto.
 
 A faxina respeita o que não é dela: mensagem fixada fica, e o que passou de 14 dias o Discord
 não deixa apagar em lote — o embed de resposta diz quantas saíram e quantas ficaram, e por quê.
+O aviso some sozinho alguns segundos depois, pra não virar bagunça nova no canal recém-limpo.
 
 <br>
 

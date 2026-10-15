@@ -38,9 +38,15 @@ public sealed class ClearCommand : AlephSlashModule
         var (saldo, falha) = await Limpeza.ApagarAsync(Context.Client.Rest, Context.Channel.Id, quantidade);
 
         if (falha is not null)
+        {
             await EditarComErroAsync(falha);
-        else
-            await EditarRespostaAsync(Limpeza.Embed(saldo, Context.User.Username));
+            return;
+        }
+
+        await EditarRespostaAsync(Limpeza.Embed(saldo, Context.User.Username));
+
+        // o aviso da faxina também é bagunça: ele mesmo some daqui a pouco
+        Limpeza.SomeDepois(() => Context.Interaction.DeleteResponseAsync());
     }
 }
 
@@ -78,9 +84,12 @@ public sealed class ClearTextCommand : AlephTextModule
         }
 
         // responder não dá: a mensagem que eu responderia acabou de sair junto
-        await Context.Client.Rest.SendMessageAsync(
+        var aviso = await Context.Client.Rest.SendMessageAsync(
             Context.Message.ChannelId,
             new MessageProperties { Embeds = [Limpeza.Embed(saldo, Context.User.Username)] });
+
+        // o aviso da faxina também é bagunça: ele mesmo some daqui a pouco
+        Limpeza.SomeDepois(() => Context.Client.Rest.DeleteMessageAsync(aviso.ChannelId, aviso.Id));
     }
 }
 
@@ -102,6 +111,29 @@ internal static class Limpeza
 
     internal static string? Recusa(int quantidade) =>
         quantidade is >= Mínimo and <= Máximo ? null : Denia.ClearQuantidadeInválida(Mínimo, Máximo);
+
+    // Quanto tempo o aviso fica na tela: o suficiente pra ser lido, e não mais que isso.
+    internal static readonly TimeSpan NaTela = TimeSpan.FromSeconds(8);
+
+    // Apaga o aviso depois do tempo, sem segurar quem chamou: o comando acaba na hora.
+    internal static void SomeDepois(Func<Task> apagar, TimeSpan? depois = null)
+    {
+        var espera = depois ?? NaTela;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(espera);
+
+            try
+            {
+                await apagar();
+            }
+            catch (RestException)
+            {
+                // apagaram antes de mim, ou perdi a permissão no meio: deixa quieto
+            }
+        });
+    }
 
     // O que saiu, e o que ficou porque eu não podia tirar.
     internal readonly record struct Saldo(int Apagadas, int Fixadas, int Velhas);
