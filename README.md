@@ -37,6 +37,10 @@ prefixo do `.env`). Os apelidos entre parênteses valem só no modo texto.
 | 👢 | **`/kick`** <sub>· `expulsar`</sub> | Expulsa um usuário |
 | 🔇 | **`/mute`** <sub>· `mutar` · `silenciar` · `calar`</sub> | Silencia no texto e na voz |
 | 🔉 | **`/unmute`** <sub>· `desmutar` · `dessilenciar`</sub> | Devolve a voz |
+| 🧹 | **`/clear <quantidade>`** <sub>· `limpar`</sub> | Apaga as últimas mensagens do canal |
+
+A faxina respeita o que não é dela: mensagem fixada fica, e o que passou de 14 dias o Discord
+não deixa apagar em lote — o embed de resposta diz quantas saíram e quantas ficaram, e por quê.
 
 <br>
 
