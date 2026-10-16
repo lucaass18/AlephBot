@@ -1,0 +1,64 @@
+namespace AlephBot.Threnodian.Api;
+
+// A moldura das telas da casa, a porta da frente e a entrada do dono: a cara é a mesma linha
+// do Scalar, e o claro e o escuro saem do sistema de quem abre.
+internal static class Moldura
+{
+    public const string Tipo = "text/html; charset=utf-8";
+
+    public static string De(string miolo) =>
+        $$"""
+        <!doctype html>
+        <html lang="pt-BR">
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noindex">
+        <title>AlephBot API</title>
+        <style>
+          :root { color-scheme: light dark; --fundo: #fff; --letra: #1a1a1a; --fraco: #6b7280; --borda: #d4d4d8; --campo: #fff; }
+          @media (prefers-color-scheme: dark) {
+            :root { --fundo: #0f0f11; --letra: #ededef; --fraco: #8b8b94; --borda: #2e2e35; --campo: #17171a; }
+          }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+            background: var(--fundo); color: var(--letra);
+            font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+          }
+          main { width: 100%; max-width: 320px; }
+          h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+          p { margin: 0 0 24px; color: var(--fraco); font-size: 14px; }
+          label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; }
+          input, button, .botão { width: 100%; padding: 9px 12px; border-radius: 6px; font: inherit; }
+          input {
+            border: 1px solid var(--borda); background: var(--campo); color: var(--letra);
+          }
+          input:focus { outline: 2px solid var(--letra); outline-offset: -1px; }
+          button, .botão {
+            margin-top: 12px; border: 0; cursor: pointer; display: block; text-align: center;
+            background: var(--letra); color: var(--fundo); font-weight: 500; text-decoration: none;
+          }
+          button:hover, .botão:hover { opacity: 0.85; }
+          /* a segunda porta: o mesmo botão, sem o preenchimento, pra uma escolha não pesar mais */
+          .botão.vazio {
+            padding: 8px 12px; border: 1px solid var(--borda);
+            background: transparent; color: var(--letra);
+          }
+          .erro { margin: 12px 0 0; color: #dc2626; font-size: 13px; }
+          @media (prefers-color-scheme: dark) { .erro { color: #f87171; } }
+          .selo {
+            margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+            text-transform: uppercase; color: #16a34a;
+          }
+          @media (prefers-color-scheme: dark) { .selo { color: #4ade80; } }
+        </style>
+        </head>
+        <body>
+        <main>
+        {{miolo}}
+        </main>
+        </body>
+        </html>
+        """;
+}

@@ -60,16 +60,6 @@ public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     [Fact]
-    public async Task A_raiz_leva_pra_documentação()
-    {
-        // a porta da frente: o Funnel entrega a raiz, e ela cai nos docs da versão atual
-        var (status, _, headers) = await _api.GetComHeadersAsync("/");
-
-        Assert.Equal(302, status);
-        Assert.Equal("/api/v1/docs/", headers.Location.ToString());
-    }
-
-    [Fact]
     public async Task Versão_que_não_existe_é_endereço_que_não_existe()
     {
         // com a versão no caminho, /api/v2/status é só um endereço que não existe

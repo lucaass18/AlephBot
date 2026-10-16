@@ -221,9 +221,7 @@ public static partial class ApiDocs
 
         MapEndereçosDeAntes(app, versão);
 
-        // a raiz é a porta da frente: quem chega sem caminho nenhum cai na documentação
-        app.MapGet("/", () => Results.Redirect($"{Página}/"))
-            .ExcludeFromDescription();
+        PortaDaFrente.Map(app, api);
 
         // a IA do Scalar só usa a chave guardada no navegador, e este módulo preenche ela
         if (api.ScalarAgentKey is not null)
