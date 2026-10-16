@@ -221,14 +221,15 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 >
 > O que chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
 >
-> - a página abre com a IA do Scalar, mas **sem a `API_KEY`**: de fora a IA chama só o que é
->   aberto (`/api/v1/health` e `/api/v1/status`), e nada fica guardado no navegador de quem abriu;
+> - a documentação abre sem senha: quem tem o link lê a página inteira e testa o que é aberto
+>   (`/api/v1/health` e `/api/v1/status`), e nada fica guardado no navegador de quem abriu;
 > - 60 pedidos por minuto por IP ([limite de pedidos](#limite-de-pedidos)) — passou disso,
 >   **429** até o minuto virar;
 > - a página não pode ser embutida em outro site (`X-Frame-Options: DENY`);
-> - com `API_DOCS_PASSWORD` no `Config/.env` a página dos docs pede senha antes de abrir. É a camada
->   que guarda a chave da IA: ela vai no HTML da página, e sem senha quem tiver o link usa as suas
->   mensagens.
+> - a IA do Scalar não vem junto, e a **`API_KEY` nunca chega ao navegador de quem vem de fora**.
+>   Com a `API_DOCS_ADMIN_PASSWORD` no `Config/.env` você entra como dono em
+>   `/api/v1/docs/entrar` e a página abre com a IA: a chave dela é paga, e é isso que a senha
+>   guarda.
 >
 > De dentro (a sua rede, o Tailscale, o túnel SSH) nada disso pesa — fica só o limite de pedidos,
 > dez vezes maior.
@@ -348,7 +349,7 @@ Depois preencha o `TOKEN`:
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
 | `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/v1/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/v1/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |
-| `API_DOCS_PASSWORD` | | *vazio* | Senha dos docs (`/api/v1/docs`) pra quem vem de fora (Funnel ou IP público); o usuário pode ser qualquer um.<br>Vazio = docs abertos. De dentro ela nunca é pedida |
+| `API_DOCS_ADMIN_PASSWORD` | | *vazio* | Senha de dono do [`/api/v1/docs`](#api) pra quem vem de fora (Funnel ou IP público): a documentação é aberta, e é esta senha que traz a IA do Scalar na página.<br>Entra em `/api/v1/docs/entrar`, ou no header `Authorization: Basic` com usuário qualquer. Vazio = de fora ninguém é dono. De dentro você já é dono, sem senha |
 
 <sub>✅ = obrigatória</sub>
 

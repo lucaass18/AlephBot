@@ -61,7 +61,7 @@ public sealed class LimiteDePedidos : IDisposable
         });
     }
 
-    // Depois do X-Forwarded-For, que diz quem pediu, e antes da senha dos docs.
+    // Depois do X-Forwarded-For, que diz quem pediu, e antes do crachá dos docs.
     public static void Use(WebApplication app)
     {
         var limite = app.Services.GetRequiredService<LimiteDePedidos>();

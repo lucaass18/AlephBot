@@ -203,24 +203,24 @@ public class AlephConfigTests
     }
 
     [Fact]
-    public void API_PORT_SCALAR_AGENT_KEY_e_API_DOCS_PASSWORD_vão_pra_config_da_API()
+    public void API_PORT_SCALAR_AGENT_KEY_e_API_DOCS_ADMIN_PASSWORD_vão_pra_config_da_API()
     {
         var api = ComToken(
             ("API_KEY", Chave16),
             ("API_PORT", "9000"),
             ("SCALAR_AGENT_KEY", "agent"),
-            ("API_DOCS_PASSWORD", "senha")).Api;
+            ("API_DOCS_ADMIN_PASSWORD", "senha")).Api;
 
         Assert.NotNull(api);
         Assert.Equal(9000, api.Port);
         Assert.Equal("agent", api.ScalarAgentKey);
-        Assert.Equal("senha", api.DocsPassword);
+        Assert.Equal("senha", api.DocsAdminPassword);
     }
 
     [Fact]
-    public void Sem_API_DOCS_PASSWORD_os_docs_ficam_abertos()
+    public void Sem_API_DOCS_ADMIN_PASSWORD_ninguém_é_dono_de_fora()
     {
-        Assert.Null(ComToken(("API_KEY", Chave16)).Api!.DocsPassword);
+        Assert.Null(ComToken(("API_KEY", Chave16)).Api!.DocsAdminPassword);
     }
 
     [Theory]

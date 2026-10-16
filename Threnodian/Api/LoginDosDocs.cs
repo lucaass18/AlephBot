@@ -9,7 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AlephBot.Threnodian.Api;
 
-// A tela de entrada dos docs, no lugar da janelinha. O biscoito morre junto com o contêiner.
+// A entrada do dono dos docs: a página é aberta, quem pede senha é a IA. O biscoito morre
+// junto com o contêiner.
 internal static class LoginDosDocs
 {
     public static readonly string Entrar = $"{ApiDocs.Página}/entrar";
@@ -21,38 +22,31 @@ internal static class LoginDosDocs
 
     private static readonly TimeSpan Validade = TimeSpan.FromDays(30);
 
-    // Estas duas ficam fora da senha, senão quem chega pra entrar seria mandado pra cá de novo.
+    // Estas duas cuidam da própria senha: o crachá de quem chega nelas não muda nada.
     public static bool ÉTelaDeEntrada(PathString caminho) =>
         caminho.StartsWithSegments(Entrar) || caminho.StartsWithSegments(Sair);
 
-    // O que o biscoito diz, se ele existir, estiver inteiro e não tiver vencido.
-    public static ProteçãoDeFora.Acesso? Crachá(HttpContext http)
+    // Se o biscoito de dono está aí, inteiro e dentro da validade.
+    public static bool TemCrachá(HttpContext http)
     {
         if (http.Request.Cookies[Biscoito] is not { } guardado)
-            return null;
+            return false;
 
         try
         {
-            var partes = Protetor(http).Unprotect(guardado).Split('|');
-
-            if (partes.Length != 2 || !long.TryParse(partes[1], out var vence)
-                || DateTimeOffset.UtcNow > DateTimeOffset.FromUnixTimeSeconds(vence))
-            {
-                return null;
-            }
-
-            return Enum.TryParse<ProteçãoDeFora.Acesso>(partes[0], out var acesso) ? acesso : null;
+            return long.TryParse(Protetor(http).Unprotect(guardado), out var vence)
+                && DateTimeOffset.UtcNow <= DateTimeOffset.FromUnixTimeSeconds(vence);
         }
         catch (System.Security.Cryptography.CryptographicException)
         {
             // biscoito de uma chave antiga (o contêiner subiu de novo) ou mexido na mão
-            return null;
+            return false;
         }
     }
 
     public static void Map(WebApplication app, ApiConfig api)
     {
-        if (api.DocsPassword is null && api.DocsAdminPassword is null)
+        if (api.DocsAdminPassword is null)
             return;
 
         app.MapGet(Entrar, (HttpContext http) =>
@@ -68,7 +62,7 @@ internal static class LoginDosDocs
                 ? (await http.Request.ReadFormAsync())[Campo].ToString()
                 : "";
 
-            if (ProteçãoDeFora.AcessoDaSenha(tentada, api) is not { } acesso)
+            if (!ProteçãoDeFora.ÉSenhaDeDono(tentada, api))
             {
                 Errou(http);
                 return Castigo(http) is { } agora ? DeCastigo(agora) : Mostra(http, errou: true);
@@ -76,7 +70,7 @@ internal static class LoginDosDocs
 
             Acertou(http);
 
-            http.Response.Cookies.Append(Biscoito, Assina(http, acesso), new CookieOptions
+            http.Response.Cookies.Append(Biscoito, Assina(http), new CookieOptions
             {
                 HttpOnly = true,
                 // só volta por HTTPS quando chegou por HTTPS: na tailnet o http:// é o normal
@@ -86,7 +80,7 @@ internal static class LoginDosDocs
                 Path = ApiDocs.Página,
             });
 
-            return Results.Content(HtmlDoSucesso(acesso), Tipo);
+            return Results.Content(HtmlDoSucesso(), Tipo);
         })
         .ExcludeFromDescription();
 
@@ -142,8 +136,9 @@ internal static class LoginDosDocs
     private static IDataProtector Protetor(HttpContext http) =>
         http.RequestServices.GetRequiredService<IDataProtectionProvider>().CreateProtector(Propósito);
 
-    private static string Assina(HttpContext http, ProteçãoDeFora.Acesso acesso) =>
-        Protetor(http).Protect($"{acesso}|{DateTimeOffset.UtcNow.Add(Validade).ToUnixTimeSeconds()}");
+    // O biscoito só guarda até quando vale: existir, assinado por este processo, já diz dono.
+    private static string Assina(HttpContext http) =>
+        Protetor(http).Protect($"{DateTimeOffset.UtcNow.Add(Validade).ToUnixTimeSeconds()}");
 
     // Senha errada: 401 com a mesma tela, e sem WWW-Authenticate, que reabriria a janelinha.
     private const string Tipo = "text/html; charset=utf-8";
@@ -154,25 +149,24 @@ internal static class LoginDosDocs
             Tipo,
             statusCode: errou ? StatusCodes.Status401Unauthorized : StatusCodes.Status200OK);
 
-    // A tela diz com que crachá entrou, porque é isso que explica o que ela vai achar lá.
-    private static string HtmlDoSucesso(ProteçãoDeFora.Acesso acesso) => Moldura($$"""
+    // A tela diz que entrou como dono, porque é isso que explica o que ela vai achar lá.
+    private static string HtmlDoSucesso() => Moldura($$"""
           <p class="selo">Tudo certo</p>
-          <h1>Você entrou{{(acesso == ProteçãoDeFora.Acesso.Dono ? " como dono" : " como visitante")}}</h1>
-          <p>{{(acesso == ProteçãoDeFora.Acesso.Dono
-              ? "A documentação abre inteira, com a IA do Scalar."
-              : "A documentação abre inteira. A IA do Scalar fica de fora, e as rotas que pedem chave seguem pedindo.")}}</p>
+          <h1>Você entrou como dono</h1>
+          <p>A documentação abre com a IA do Scalar. As rotas que pedem chave seguem pedindo.</p>
           <a class="botão" href="{{ApiDocs.Página}}/">Abrir a documentação</a>
         """);
 
     // A cara é a mesma linha do Scalar; o claro e o escuro saem do sistema da pessoa.
     private static string HtmlDaEntrada(bool errou) => Moldura($$"""
           <h1>AlephBot API</h1>
-          <p>A documentação desta API pede senha.</p>
+          <p>A documentação é aberta, sem senha. Esta tela é pra entrar como dono: é o que
+          traz a IA do Scalar.</p>
           <form method="post">
             <label for="{{Campo}}">Senha</label>
             <input id="{{Campo}}" name="{{Campo}}" type="password" autocomplete="current-password" autofocus required>
             <button type="submit">Entrar</button>
-            {{(errou ? """<p class="erro">Essa senha não abre nada aqui.</p>""" : "")}}
+            {{(errou ? """<p class="erro">Essa senha não é a de dono.</p>""" : "")}}
           </form>
         """);
 

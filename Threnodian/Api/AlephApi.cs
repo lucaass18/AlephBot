@@ -134,14 +134,14 @@ public static class AlephApi
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
-        // a ordem conta: o limite vem antes da senha dos docs, pra chutar senha também gastar cota
+        // a ordem conta: o limite vem antes do crachá dos docs, pra chutar senha também gastar cota
         ProteçãoDeFora.UseCabeçalhos(app);
 
         // antes do limite: o OPTIONS não leva dado, e cobrar por ele é cobrar duas vezes
         app.UseCors(Cors);
 
         LimiteDePedidos.Use(app);
-        ProteçãoDeFora.UseSenhaDosDocs(app, app.Services.GetRequiredService<ApiConfig>());
+        ProteçãoDeFora.UseCracháDosDocs(app, app.Services.GetRequiredService<ApiConfig>());
 
         // o 429 vale pra toda rota, e o documento conta isso em cada uma
         var v1 = app.NewVersionedApi("AlephBot")
