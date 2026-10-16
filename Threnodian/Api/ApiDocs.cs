@@ -1,8 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-using AlephBot.Config;
-
 using Asp.Versioning;
 
 using Microsoft.AspNetCore.Builder;
@@ -12,22 +10,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 
-using Scalar.AspNetCore;
-
 namespace AlephBot.Threnodian.Api;
 
-// Os docs: a API no navegador pelo Scalar. O documento sai das rotas; a página fica fora da chave.
+// O documento OpenAPI, montado das próprias rotas: dele saem a coleção do Postman e as
+// asserções da caixa preta.
 public static partial class ApiDocs
 {
-    // A página da versão atual; o /api/docs de antes leva pra ela.
-    public static readonly string Página = $"/api/v{AlephApi.VersãoAtual}/docs";
-
     // /api/v1/openapi.json: um documento por versão, cada um dentro da sua
     private const string Documento = "/api/{documentName}/openapi.json";
-    private static readonly string Módulo = $"{Página}/aleph.js";
     private const string Título = "AlephBot API";
 
-    // o nome com que o documento e o Scalar se referem à chave
+    // o nome com que o documento se refere à chave
     private const string Esquema = "ApiKey";
 
     // os grupos da barra lateral: o que é aberto e o que pede chave
@@ -98,7 +91,7 @@ public static partial class ApiDocs
                     },
                 };
 
-                // "http://aleph/" vira "http://aleph": servidor com barra no fim o Scalar recusa
+                // "http://aleph/" vira "http://aleph": com a barra, o endereço sairia dobrado
                 foreach (var servidor in documento.Servers ?? [])
                     servidor.Url = servidor.Url?.TrimEnd('/');
 
@@ -112,7 +105,7 @@ public static partial class ApiDocs
                     Description = "A API_KEY do Config/.env.",
                 };
 
-                // a chave vale pro documento inteiro: a IA do Scalar lê o primeiro item daqui
+                // a chave vale pro documento inteiro; as rotas abertas desdizem isso, uma a uma
                 documento.Security =
                 [
                     new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference(Esquema, documento)] = [] },
@@ -139,7 +132,8 @@ public static partial class ApiDocs
         ["503"] = "O bot está fora do Discord (`down`).",
     };
 
-    // Cada resposta com o que quer dizer e os headers do limite; sem eles, o Scalar não os vê.
+    // Cada resposta com o que quer dizer e os headers do limite; sem eles, quem lê o documento
+    // não sabe que eles existem.
     private static void ArrumaAsRespostas(OpenApiOperation operação)
     {
         if (operação.Responses is null)
@@ -211,106 +205,17 @@ public static partial class ApiDocs
 
     public static void Map(WebApplication app)
     {
-        var api = app.Services.GetRequiredService<ApiConfig>();
-        var versão = $"v{AlephApi.VersãoAtual}";
+        var atual = Documento.Replace("{documentName}", $"v{AlephApi.VersãoAtual}");
 
         // /api/v1/openapi.json, e um arquivo novo pra cada versão que nascer
         app.MapOpenApi(Documento).WithDocumentPerVersion();
 
-        LoginDosDocs.Map(app, api);
-
-        MapEndereçosDeAntes(app, versão);
-
-        PortaDaFrente.Map(app, api);
-
-        // a IA do Scalar só usa a chave guardada no navegador, e este módulo preenche ela
-        if (api.ScalarAgentKey is not null)
-        {
-            app.MapGet(Módulo, (HttpContext http) =>
-            {
-                http.Response.Headers.CacheControl = "no-store";
-
-                return Results.Text(
-                    RedeDeDentro.ÉDeDentro(http) ? MóduloDaChave(api.Key) : "export default {};",
-                    "text/javascript");
-            })
-            .ExcludeFromDescription();
-        }
-
-        app.MapScalarApiReference(Página, (scalar, http) =>
-        {
-            var deDentro = RedeDeDentro.ÉDeDentro(http);
-            var dono = ProteçãoDeFora.ÉDono(http);
-
-            // a chave da IA vai no HTML de quem abre: só pra casa ou pra quem tem a senha de dono
-            if (api.ScalarAgentKey is { } chave && dono)
-            {
-                scalar.WithAgentKey(chave);
-
-                if (deDentro)
-                    scalar.JavaScriptConfiguration = Módulo;
-            }
-
-            // a página de uma versão mostra o documento dela, e só ele
-            scalar.Title = $"{Título} {versão}";
-            scalar.OpenApiRoutePattern = Documento;
-            scalar.AddDocument(versão, $"{Título} {versão}", isDefault: true);
-
-            // em casa a chave fica guardada; em máquina dos outros ela some quando a aba fecha
-            scalar.PersistentAuthentication = deDentro;
-            scalar.AddPreferredSecuritySchemes([Esquema]);
-
-            // a página é pra uso da casa: sem telemetria do Scalar e sem fonte vinda de CDN
-            scalar.Telemetry = false;
-            scalar.DefaultFonts = false;
-
-            // a cara é a padrão do Scalar; só sai o que é propaganda dele, não da API
-            scalar.HideDeveloperTools();
-            scalar.DisableMcp();
-
-            // os exemplos nas linguagens de quem usa este bot: curl, PowerShell, C#, JS e Python
-            scalar.EnabledTargets =
-                [ScalarTarget.Shell, ScalarTarget.PowerShell, ScalarTarget.CSharp, ScalarTarget.JavaScript, ScalarTarget.Python];
-            scalar.WithDefaultHttpClient(ScalarTarget.Shell, ScalarClient.Curl);
-        });
-    }
-
-    // Os endereços de antes da versão: o documento muda com 301, a página com 302.
-    private static void MapEndereçosDeAntes(WebApplication app, string versão)
-    {
-        app.MapGet("/api/openapi.json", () => Results.Redirect(
-                Documento.Replace("{documentName}", versão), permanent: true))
+        // o endereço de antes da versão; 301 porque o documento de cada versão não muda de lugar
+        app.MapGet("/api/openapi.json", () => Results.Redirect(atual, permanent: true))
             .ExcludeFromDescription();
 
-        // com o {**resto} vale /api/docs, /api/docs/ e o que mais tiver ficado salvo nos favoritos
-        app.MapGet("/api/docs/{**resto}", () => Results.Redirect($"{Página}/"))
+        // a raiz é a porta da frente: não há página pra abrir, então ela entrega o documento
+        app.MapGet("/", () => Results.Redirect(atual))
             .ExcludeFromDescription();
     }
-
-    // O Scalar guarda a autenticação no localStorage; o módulo lê na frente e põe a do bot.
-    private static string MóduloDaChave(string chave) =>
-        $$"""
-        // AlephBot: põe a API_KEY na autenticação que o Scalar guarda no navegador
-        const chave = {{JsonSerializer.Serialize(chave)}};
-        const esquema = {{JsonSerializer.Serialize(Esquema)}};
-        const prefixo = "scalar-reference-auth-";
-        const ler = Storage.prototype.getItem;
-
-        Storage.prototype.getItem = function (nome) {
-          const valor = ler.call(this, nome);
-
-          if (this !== window.localStorage || typeof nome !== "string" || !nome.startsWith(prefixo))
-            return valor;
-
-          let auth;
-          try { auth = JSON.parse(valor ?? "{}") ?? {}; } catch { return valor; }
-
-          auth.secrets ??= {};
-          auth.secrets[esquema] = { type: "apiKey", "x-scalar-secret-token": chave };
-          auth.selected ??= {};
-          return JSON.stringify(auth);
-        };
-
-        export default {};
-        """;
 }

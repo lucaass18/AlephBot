@@ -46,17 +46,14 @@ public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         Assert.Equal("/api/v1/openapi.json", headers.Location.ToString());
     }
 
-    [Theory]
-    [InlineData("/api/docs")]
-    [InlineData("/api/docs/")]
-    [InlineData("/api/docs/aleph.js")]
-    public async Task Página_de_antes_leva_pra_da_versão_atual(string caminho)
+    [Fact]
+    public async Task A_raiz_entrega_o_documento_da_versão_atual()
     {
-        // 302 e não 301: quando nascer a v2, o /api/docs passa a levar pra ela
-        var (status, _, headers) = await _api.GetComHeadersAsync(caminho);
+        // a porta da frente: 302 porque, quando nascer a v2, é pra ela que a raiz vai levar
+        var (status, _, headers) = await _api.GetComHeadersAsync("/");
 
         Assert.Equal(302, status);
-        Assert.Equal("/api/v1/docs/", headers.Location.ToString());
+        Assert.Equal("/api/v1/openapi.json", headers.Location.ToString());
     }
 
     [Fact]
@@ -84,20 +81,5 @@ public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var (status, _) = await _api.GetAsync("/api/v2/openapi.json");
 
         Assert.Equal(404, status);
-    }
-
-    [Fact]
-    public async Task A_página_mora_dentro_da_v1_e_mostra_o_documento_dela()
-    {
-        // sem a barra no fim o Scalar manda pra com barra, senão os arquivos dele não carregam
-        var (redireciona, _, headers) = await _api.GetComHeadersAsync("/api/v1/docs");
-        var destino = new Uri(new Uri("https://aleph.tailc38add.ts.net/api/v1/docs"), headers.Location.ToString());
-        var (status, html) = await _api.GetAsync("/api/v1/docs/");
-
-        Assert.Equal("/api/v1/docs/", destino.AbsolutePath);
-        Assert.InRange(redireciona, 301, 308);
-        Assert.Equal(200, status);
-        Assert.Contains("api/v1/openapi.json", html);
-        Assert.Contains("<title>AlephBot API v1</title>", html);
     }
 }

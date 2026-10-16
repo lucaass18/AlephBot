@@ -23,7 +23,6 @@ namespace AlephBot.Tests.Api;
 public sealed class ApiDeTeste : IAsyncDisposable
 {
     public const string ChaveDaApi = "chave-da-api-de-teste-123";
-    public const string ChaveDoAgent = "agent-key-de-teste";
 
     // montado na hora porque, escrito inteiro, o scanner de segredos do GitHub barra o push
     private static readonly string TokenDeMentira =
@@ -40,8 +39,6 @@ public sealed class ApiDeTeste : IAsyncDisposable
     public TestServer Servidor { get; }
 
     public static async Task<ApiDeTeste> SubirAsync(
-        string? chaveDoAgent = ChaveDoAgent,
-        string? senhaDoDono = null,
         IReadOnlyDictionary<string, string>? variáveis = null)
     {
         var builder = WebApplication.CreateSlimBuilder();
@@ -52,8 +49,6 @@ public sealed class ApiDeTeste : IAsyncDisposable
         {
             "TOKEN" => TokenDeMentira,
             "API_KEY" => ChaveDaApi,
-            "SCALAR_AGENT_KEY" => chaveDoAgent,
-            "API_DOCS_ADMIN_PASSWORD" => senhaDoDono,
             _ => variáveis?.GetValueOrDefault(nome),
         });
 

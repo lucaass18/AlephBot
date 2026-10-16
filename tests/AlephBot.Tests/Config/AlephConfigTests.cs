@@ -199,28 +199,19 @@ public class AlephConfigTests
         Assert.NotNull(api);
         Assert.Equal(Chave16, api.Key);
         Assert.Equal(8080, api.Port);
-        Assert.Null(api.ScalarAgentKey);
     }
 
     [Fact]
-    public void API_PORT_SCALAR_AGENT_KEY_e_API_DOCS_ADMIN_PASSWORD_vão_pra_config_da_API()
+    public void API_PORT_e_API_CORS_ORIGINS_vão_pra_config_da_API()
     {
         var api = ComToken(
             ("API_KEY", Chave16),
             ("API_PORT", "9000"),
-            ("SCALAR_AGENT_KEY", "agent"),
-            ("API_DOCS_ADMIN_PASSWORD", "senha")).Api;
+            ("API_CORS_ORIGINS", "https://painel.exemplo.com, https://outra.com")).Api;
 
         Assert.NotNull(api);
         Assert.Equal(9000, api.Port);
-        Assert.Equal("agent", api.ScalarAgentKey);
-        Assert.Equal("senha", api.DocsAdminPassword);
-    }
-
-    [Fact]
-    public void Sem_API_DOCS_ADMIN_PASSWORD_ninguém_é_dono_de_fora()
-    {
-        Assert.Null(ComToken(("API_KEY", Chave16)).Api!.DocsAdminPassword);
+        Assert.Equal(["https://painel.exemplo.com", "https://outra.com"], api.CorsOrigins);
     }
 
     [Theory]

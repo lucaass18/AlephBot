@@ -8,7 +8,8 @@ namespace AlephBot.Tests.Api;
 // Sem CORS, a chave em header próprio faz o navegador pedir permissão antes, e o GET nem sai.
 public class CorsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
-    private const string DeOutroSite = "https://scalar.com";
+    // o painel do n8n é quem chama esta API do navegador, de outra origem que não a dela
+    private const string DeOutroSite = "http://localhost:5678";
 
     private readonly ApiDeTeste _api = fixture.Api;
 
@@ -83,7 +84,7 @@ public class CorsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 
     [Theory]
     [InlineData("https://site-qualquer.com")]
-    [InlineData("https://scalar.com.de-mentira.net")]
+    [InlineData("http://localhost.de-mentira.com")]
     [InlineData("http://aleph.ts.net.de-mentira.com")]
     public async Task Página_de_fora_da_lista_não_ganha_licença(string origem)
     {
@@ -107,8 +108,7 @@ public class CorsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     [InlineData("http://localhost:5173")]
     [InlineData("https://aleph.tailc38add.ts.net")]
     [InlineData("http://aleph")]
-    [InlineData("https://scalar.com")]
-    public async Task As_páginas_de_casa_e_a_do_Scalar_ganham_licença(string origem)
+    public async Task As_páginas_de_casa_ganham_licença(string origem)
     {
         var resposta = await _api.FazAsync(
             HttpMethods.Get,

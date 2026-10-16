@@ -114,7 +114,8 @@ Pra ligar:
 3. Confira com o `/api/v1/health`, que não pede chave: `curl http://localhost:8080/api/v1/health`
    devolve `{"status":"ok","discord":"connected","lavalink":"connected"}`.
 
-Daí em diante, **http://localhost:8080/api/v1/docs** mostra tudo no navegador.
+Daí em diante, o **`/api/v1/openapi.json`** descreve a API inteira, e a [coleção do Postman](#postman)
+já traz as rotas montadas.
 
 | | Rota | O que devolve |
 |:--:|:--|:--|
@@ -122,7 +123,7 @@ Daí em diante, **http://localhost:8080/api/v1/docs** mostra tudo no navegador.
 | 🪪 | **`GET /api/v1/status`** | Quem o bot é, versão, uptime, latência do gateway e o estado do Lavalink.<br>Não pede chave |
 | 📊 | **`GET /api/v1/stats`** | Servidores, membros, pessoas online, players de música e memória |
 | 📜 | **`GET /api/v1/commands`** | Os comandos do `/help`, com a forma em barra, a de prefixo e os atalhos |
-| 📖 | **`GET /api/v1/docs`** | Esta API no navegador ([Scalar](https://scalar.com)): as rotas em dois grupos (`Status` e `Bot`), o formato de cada resposta com um exemplo de verdade, um botão pra testar e uma IA pra perguntar (fora do `localhost`, só com `SCALAR_AGENT_KEY`).<br>Abre sem chave; ela você cola uma vez na página, que guarda no navegador. O OpenAPI cru sai em `/api/v1/openapi.json` |
+| 📖 | **`GET /api/v1/openapi.json`** | O documento OpenAPI 3.1 da versão, montado das próprias rotas: os dois grupos (`Status` e `Bot`), o formato de cada resposta e um exemplo de verdade em cada uma.<br>Não pede chave. É dele que sai a [coleção do Postman](#postman), e a raiz do endereço (`/`) leva pra ele |
 
 O `/api/v1/status`, como o `/api/v1/health`, não pede chave:
 
@@ -207,7 +208,8 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 > [!TIP]
 > Pra ver de casa a API de um VPS não precisa abrir porta nenhuma: um túnel SSH traz ela até
 > você. `ssh -N -L 8080:127.0.0.1:8080 usuário@vps` — no PuTTY, *Connection → SSH → Tunnels*,
-> porta `8080` para `127.0.0.1:8080` — e o `http://localhost:8080/api/v1/docs` abre no seu navegador.
+> porta `8080` para `127.0.0.1:8080` — e o `http://localhost:8080/api/v1/openapi.json` abre no
+> seu navegador, que é o endereço que o Postman importa.
 
 > [!NOTE]
 > Pra abrir de qualquer máquina sem instalar nada, o [Tailscale Funnel](https://tailscale.com/kb/1223/funnel)
@@ -217,21 +219,53 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 > sudo tailscale funnel --bg http://127.0.0.1:8080
 > ```
 >
-> A raiz do endereço cai na documentação, e o resto da API responde nos caminhos dela. O que
+> A raiz do endereço leva pro documento da API, e o resto responde nos caminhos dele. O que
 > chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
 >
-> - a documentação abre sem senha: quem tem o link lê a página inteira e testa o que é aberto
->   (`/api/v1/health` e `/api/v1/status`), e nada fica guardado no navegador de quem abriu;
+> - `health` e `status` são abertos — é o que monitor de uptime e página de status chamam —,
+>   e o documento também: ele descreve a API, não entrega dado nenhum do bot;
+> - `stats` e `commands` pedem a `API_KEY` no header `X-Api-Key`; sem ela, ou com ela errada,
+>   **401**, e a tentativa fica no log com o IP de quem tentou;
 > - 60 pedidos por minuto por IP ([limite de pedidos](#limite-de-pedidos)) — passou disso,
 >   **429** até o minuto virar;
-> - a página não pode ser embutida em outro site (`X-Frame-Options: DENY`);
-> - a IA do Scalar não vem junto, e a **`API_KEY` nunca chega ao navegador de quem vem de fora**.
->   Com a `API_DOCS_ADMIN_PASSWORD` no `Config/.env` você entra como dono em
->   `/api/v1/docs/entrar` e a página abre com a IA: a chave dela é paga, e é isso que a senha
->   guarda.
+> - nada daqui pode ser embutido em outro site (`X-Frame-Options: DENY`).
 >
 > De dentro (a sua rede, o Tailscale, o túnel SSH) nada disso pesa — fica só o limite de pedidos,
 > dez vezes maior.
+
+### Postman
+
+A pasta `Postman/` tem a coleção e o environment desta API, prontos pro *Import* do Postman:
+
+| Arquivo | O que é |
+|:--|:--|
+| `AlephBot.postman_collection.json` | As cinco rotas em dois grupos (`Status` e `Bot`), cada uma com um teste do que a resposta tem que trazer, mais uma chamada de propósito sem chave, que espera **401** |
+| `AlephBot.postman_environment.json` | `baseUrl`, o endereço, e `apiKey`, a sua `API_KEY`. Ela fica vazia aqui, e um teste da suíte existe só pra ela nunca sair cheia |
+
+Importe os dois, escolha o environment **AlephBot** e preencha a `apiKey`. O `baseUrl` já vem
+em `http://127.0.0.1:8080`, que é o que o túnel SSH entrega; pra falar com a VPS pelo Funnel,
+troque pelo endereço `.ts.net`. Se preferir montar a coleção você mesmo, o Postman importa o
+`/api/v1/openapi.json` direto.
+
+A coleção não envelhece sozinha: um teste da suíte confere, a cada `dotnet test`, que toda rota
+do documento tem pedido nela e que ela não inventa rota que a API não tem.
+
+#### Teste de fumaça depois do deploy
+
+Na VPS, o [Newman](https://github.com/postmanlabs/newman) — o Postman de linha de comando —
+roda a mesma coleção contra a API no ar. Ele mora no compose atrás de um profile, então não
+sobe junto no `up`:
+
+```bash
+docker compose --profile testes run --rm newman
+```
+
+Ele chama o bot pelo nome na rede do compose e usa a `ALEPH_API_KEY` do `.env` da raiz, a mesma
+do n8n. Teste vermelho sai com código diferente de zero, então dá pra encadear no deploy:
+
+```bash
+docker compose up -d && docker compose --profile testes run --rm newman
+```
 
 ### Versões
 
@@ -240,13 +274,12 @@ A versão mora no caminho: **`/api/v1/...`**. Toda resposta da v1 conta no heade
 endereço que não existe — **404**. Mudança que quebra quem já usa nasce como `/api/v2`, do lado
 da v1, que continua de pé.
 
-Os docs moram dentro da versão, ao lado das rotas dela: a página em `/api/v1/docs` e o OpenAPI
-em `/api/v1/openapi.json`. Assim um mount só no Funnel, o `/api/v1`, leva a versão inteira.
+O documento mora dentro da versão, ao lado das rotas dela, em `/api/v1/openapi.json`: assim um
+mount só no Funnel, o `/api/v1`, leva a versão inteira.
 
 Os endereços de antes da versão não quebram: o `/api/health` segue respondendo onde estava (é
 ele que monitor de uptime chama), `/api/status`, `/api/stats` e `/api/commands` mandam pra v1
-com **308** — mesmo método, endereço novo —, o `/api/openapi.json` manda pro documento da v1 e
-o `/api/docs` leva pra página da versão atual.
+com **308** — mesmo método, endereço novo — e o `/api/openapi.json` manda pro documento da v1.
 
 ### Limite de pedidos
 
@@ -268,8 +301,8 @@ X-RateLimit-Remaining: 599
 ```
 
 Passou da cota, **429** com `Retry-After` dizendo em quantos segundos voltar — a cota inteira
-volta quando o minuto vira. Conta todo pedido, docs inclusive (a página gasta uns cinco pra
-abrir), e chave errada também gasta. A cota de dentro é maior só pra segurar script em loop: a
+volta quando o minuto vira. Conta todo pedido, o documento inclusive, e chave errada também
+gasta. A cota de dentro é maior só pra segurar script em loop: a
 API mora no mesmo processo que atende o Discord. No log, quem passa da cota aparece uma vez por
 minuto, e não a cada pedido recusado.
 
@@ -347,8 +380,6 @@ Depois preencha o `TOKEN`:
 | `MAL_CLIENT_ID` | | *vazio* | Client ID da [API oficial do MyAnimeList](https://myanimelist.net/apiconfig) para o `/ma` e o `/mg`.<br>Vazio = usa só o AniList, sem chave. Com a chave, o MAL atende primeiro e o AniList vira reserva. Para criar um: *Create ID*, App Type *other*, e copie o Client ID |
 | `API_KEY` | | *vazio* | Chave da [API](#api). Vazio = API desligada, nenhuma porta aberta.<br>Mínimo de 16 caracteres — `openssl rand -hex 32` gera uma boa |
 | `API_PORT` | | `8080` | Porta da API. Fora do Docker ela só escuta em `localhost`; no compose quem manda é o `.env` da raiz |
-| `SCALAR_AGENT_KEY` | | *vazio* | Chave da IA do Scalar no [`/api/v1/docs`](#api). Vazio = a IA só aparece abrindo pelo `localhost` (grátis, 10 mensagens por sessão).<br>A chave é do plano pago do Scalar (Pro ou Business): importe o `/api/v1/openapi.json` em [dashboard.scalar.com](https://dashboard.scalar.com) e gere a *Agent key* nas configurações do documento.<br>Com ela, a página também entrega a `API_KEY` pro navegador — só pra quem abre de dentro (IP local ou privado, nunca pelo Funnel) —, que é de onde a IA tira a chave pra chamar as rotas |
-| `API_DOCS_ADMIN_PASSWORD` | | *vazio* | Senha de dono do [`/api/v1/docs`](#api) pra quem vem de fora (Funnel ou IP público): a documentação é aberta, e é esta senha que traz a IA do Scalar na página.<br>Entra em `/api/v1/docs/entrar`, ou no header `Authorization: Basic` com usuário qualquer. Vazio = de fora ninguém é dono. De dentro você já é dono, sem senha |
 
 <sub>✅ = obrigatória</sub>
 
@@ -568,7 +599,7 @@ Cobrem o que quebra calado: o `.env` e a config, a duração do `/mute` e a posi
 link de rádio do YouTube, o áudio do YouTube pelo `yt-audio` (e a volta pro plugin quando ele
 falha), a leitura do MyAnimeList, a auditoria dos comandos de verdade (gatilho faltando, nome
 ou atalho repetido) e a API — que sobe inteira num servidor em memória pra conferir quem passa
-sem chave, o documento OpenAPI e o módulo que só entrega a chave pra quem está dentro.
+sem chave, o documento OpenAPI e a coleção do Postman, conferida contra ele.
 
 Os do `yt-audio`, em Python, rodam no build da imagem dele, com o yt-dlp e o YouTube de
 mentira: o pedaço que o Lavalink pede no `/seek`, o link renovado e as recusas. Se algum
@@ -591,13 +622,14 @@ Core/
   Personality/    Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
 Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
   Inicialização/  O Main e a montagem do host: quem acende tudo
-  Api/            A API HTTP: rotas, a chave, os docs e o que ela lê do bot
+  Api/            A API HTTP: rotas, a chave, o documento OpenAPI e o que ela lê do bot
   Youtube/        Login (o token guardado e entregue ao Lavalink), a busca de playlist e o
                   áudio pelo yt-audio
   Players/        A foto de cada player e a volta depois de um restart
 Lavalink/         application.yml do servidor de áudio
 YtAudio/          O yt-audio: o áudio do YouTube sem conta, pelo yt-dlp (Python)
 n8n/              A automação com a API: os fluxos, o script que instala e a pasta onde eles gravam
+Postman/          A coleção e o environment da API, pro Postman e pro Newman do compose
 tests/            Testes de unidade (xUnit): a config, os parsers, os comandos e a API em memória
 ```
 

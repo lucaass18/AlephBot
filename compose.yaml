@@ -368,6 +368,35 @@ services:
         limits:
           memory: 384M
 
+  # O teste de fumaça do pós-deploy: o Newman roda a coleção do Postman contra a API no ar.
+  # Fora do `up` pelo profile — roda com `docker compose --profile testes run --rm newman`
+  newman:
+    image: postman/newman:6.1.3-alpine
+
+    profiles:
+      - testes
+
+    networks:
+      - interna
+
+    environment:
+      TZ: America/Sao_Paulo
+
+    # a imagem trabalha dentro de /etc/newman: é de lá que ela lê a coleção e o environment
+    volumes:
+      - ./Postman:/etc/newman:ro
+
+    # na rede do compose o bot atende pelo nome; a chave é a mesma do n8n, do .env da raiz
+    command:
+      - run
+      - AlephBot.postman_collection.json
+      - --environment
+      - AlephBot.postman_environment.json
+      - --env-var
+      - baseUrl=http://alephbot:8080
+      - --env-var
+      - apiKey=${ALEPH_API_KEY:-}
+
 # Duas redes: a "interna" pra cadeia do YouTube, e a "dados" pra quem precisa do banco
 # declarar rede num serviço o tira da padrão, por isso todos dizem a sua
 networks:
