@@ -211,15 +211,14 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 
 > [!NOTE]
 > Pra abrir de qualquer máquina sem instalar nada, o [Tailscale Funnel](https://tailscale.com/kb/1223/funnel)
-> publica com HTTPS só as rotas que você escolher, sem abrir porta no firewall:
+> publica a API com HTTPS, sem abrir porta no firewall:
 >
 > ```bash
-> for rota in v1 health docs; do
->   sudo tailscale funnel --bg --set-path /api/$rota http://127.0.0.1:8080/api/$rota
-> done
+> sudo tailscale funnel --bg http://127.0.0.1:8080
 > ```
 >
-> O que chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
+> A raiz do endereço cai na documentação, e o resto da API responde nos caminhos dela. O que
+> chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
 >
 > - a documentação abre sem senha: quem tem o link lê a página inteira e testa o que é aberto
 >   (`/api/v1/health` e `/api/v1/status`), e nada fica guardado no navegador de quem abriu;
