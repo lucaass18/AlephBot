@@ -1,0 +1,232 @@
+{
+  "info": {
+    "_postman_id": "a1e9b07c-0001-4001-8001-0a1e9b07c001",
+    "name": "AlephBot API v1",
+    "description": "O estado do AlephBot, os números dele e os comandos que ele sabe. Só leitura: nada daqui muda o bot.\n\n`health` e `status` são abertos. `stats` e `commands` pedem a `API_KEY` do `Config/.env` no header `X-Api-Key` — sem ela, ou com ela errada, **401**.\n\nO endereço mora em `{{baseUrl}}` e a chave em `{{apiKey}}`: as duas saem do environment `AlephBot`. De fora são 60 pedidos por minuto por IP; na rede do bot, 600. Toda resposta conta a cota em `X-RateLimit-Limit` e o que sobra em `X-RateLimit-Remaining`.\n\nEsta coleção é conferida contra o `/api/v1/openapi.json` a cada `dotnet test`: rota que nascer na API sem entrar aqui quebra a suíte.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "X-Api-Key", "type": "string" },
+      { "key": "value", "value": "{{apiKey}}", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8080", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Status",
+      "description": "Se o bot está de pé e quem ele é. Abertas, sem chave: é o que monitor de uptime e página de status chamam.",
+      "item": [
+        {
+          "name": "Se o bot está de pé",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "`ok`, `degraded` (responde comando, mas sem música) ou `down` (sem Discord, com 503). Não pede chave."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, e não o 503 de bot fora do Discord', () => pm.response.to.have.status(200));",
+                  "",
+                  "const saude = pm.response.json();",
+                  "",
+                  "pm.test('o bot está de pé', () => pm.expect(saude.status).to.be.oneOf(['ok', 'degraded']));",
+                  "",
+                  "pm.test('diz do Discord e do Lavalink', () => {",
+                  "  pm.expect(saude).to.have.property('discord');",
+                  "  pm.expect(saude).to.have.property('lavalink');",
+                  "});",
+                  "",
+                  "pm.test('conta a cota do minuto', () => {",
+                  "  pm.response.to.have.header('X-RateLimit-Limit');",
+                  "  pm.response.to.have.header('X-RateLimit-Remaining');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Se o bot está de pé, sem corpo",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "HEAD",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "O mesmo do GET, só com o código: 200 de pé, 503 sem Discord. É o que monitor de uptime costuma chamar."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 e nada de corpo', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quem o bot é e como estão as conexões",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "status"]
+            },
+            "description": "Versão, uptime, latência do gateway e o estado do Lavalink. Não pede chave."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "const estado = pm.response.json();",
+                  "",
+                  "pm.test('diz a versão e há quanto tempo está de pé', () => {",
+                  "  pm.expect(estado.version).to.be.a('string').and.not.empty;",
+                  "  pm.expect(estado.uptimeSeconds).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.test('conta do Discord e do Lavalink', () => {",
+                  "  pm.expect(estado.discord.status).to.be.a('string');",
+                  "  pm.expect(estado.lavalink.status).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bot",
+      "description": "Os números e os comandos do bot. Pedem a `API_KEY` no header `X-Api-Key`.",
+      "item": [
+        {
+          "name": "Os números do bot",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stats"]
+            },
+            "description": "Servidores, membros, pessoas online, players de música e memória."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 com a chave', () => pm.response.to.have.status(200));",
+                  "",
+                  "const numeros = pm.response.json();",
+                  "",
+                  "pm.test('traz os números do bot', () => {",
+                  "  pm.expect(numeros.guilds).to.be.a('number');",
+                  "  pm.expect(numeros.members).to.be.a('number');",
+                  "  pm.expect(numeros.music.players).to.be.a('number');",
+                  "  pm.expect(numeros.memory.workingSetMb).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Os comandos do /help",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/commands",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "commands"]
+            },
+            "description": "Um item por comando, com a forma em barra, a de prefixo e os atalhos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 com a chave', () => pm.response.to.have.status(200));",
+                  "",
+                  "const comandos = pm.response.json();",
+                  "",
+                  "pm.test('um item por comando, com nome e descrição', () => {",
+                  "  pm.expect(comandos).to.be.an('array').that.is.not.empty;",
+                  "  pm.expect(comandos[0]).to.have.property('name');",
+                  "  pm.expect(comandos[0]).to.have.property('description');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Os números, sem a chave (401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stats"]
+            },
+            "description": "A mesma rota de cima, de propósito sem a chave: tem que levar 401 em `application/problem+json`. É o teste de que a porta está fechada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 sem a chave', () => pm.response.to.have.status(401));",
+                  "",
+                  "pm.test('o erro vem em problem+json, com o motivo', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
+                  "  pm.expect(pm.response.json()).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

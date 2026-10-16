@@ -148,9 +148,7 @@ public sealed class AlephConfig
             return new ApiConfig(
                 chave,
                 OptionalPort("API_PORT", PortaDaApiPadrão),
-                OptionalOuNulo("SCALAR_AGENT_KEY"),
-                Lista("API_CORS_ORIGINS"),
-                OptionalOuNulo("API_DOCS_ADMIN_PASSWORD"));
+                Lista("API_CORS_ORIGINS"));
         }
 
         // Uma variável com vários valores, separados por vírgula.
@@ -244,15 +242,11 @@ public sealed class ApiConfig
     public ApiConfig(
         string key,
         int port,
-        string? scalarAgentKey = null,
-        IReadOnlyList<string>? corsOrigins = null,
-        string? docsAdminPassword = null)
+        IReadOnlyList<string>? corsOrigins = null)
     {
         Key = key;
         Port = port;
-        ScalarAgentKey = scalarAgentKey;
         CorsOrigins = corsOrigins ?? [];
-        DocsAdminPassword = docsAdminPassword;
     }
 
     // O que todo pedido tem que trazer no header X-Api-Key.
@@ -260,12 +254,6 @@ public sealed class ApiConfig
 
     public int Port { get; }
 
-    // A chave da IA do Scalar nos docs. Sem ela a IA só aparece pelo localhost.
-    public string? ScalarAgentKey { get; }
-
     // Páginas a mais que podem chamar a API (API_CORS_ORIGINS); um "*" libera qualquer uma.
     public IReadOnlyList<string> CorsOrigins { get; }
-
-    // A senha de dono dos docs: de fora, é ela que traz a IA do Scalar. Null = ninguém como dono.
-    public string? DocsAdminPassword { get; }
 }

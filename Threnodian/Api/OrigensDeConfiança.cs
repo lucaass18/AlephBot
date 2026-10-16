@@ -6,11 +6,11 @@ internal static class OrigensDeConfiança
     // Em API_CORS_ORIGINS, volta a liberar qualquer página.
     public const string Qualquer = "*";
 
-    // ts.net é a tailnet e o Funnel; scalar.com é a IA dos docs, que chama de fora da página.
-    private static readonly string[] Domínios = [".ts.net", ".scalar.com"];
+    // ts.net é a tailnet e o Funnel.
+    private static readonly string[] Domínios = [".ts.net"];
 
-    // A máquina de quem desenvolve, o nome curto do bot na tailnet e o Scalar.
-    private static readonly string[] Nomes = ["localhost", "127.0.0.1", "::1", "aleph", "scalar.com"];
+    // A máquina de quem desenvolve e o nome curto do bot na tailnet.
+    private static readonly string[] Nomes = ["localhost", "127.0.0.1", "::1", "aleph"];
 
     public static bool Confia(string origem, IReadOnlyList<string> extras)
     {

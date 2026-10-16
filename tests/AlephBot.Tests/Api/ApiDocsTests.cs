@@ -1,11 +1,10 @@
-using System.Net;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 
 namespace AlephBot.Tests.Api;
 
-// Os docs e o que eles carregam. A regra: de fora ninguém leva chave, nem da API nem da IA.
-public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
+// O documento OpenAPI: o que ele promete é o contrato que a coleção do Postman e a caixa
+// preta cobram.
+public class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
 {
     private readonly ApiDeTeste _api = fixture.Api;
 
@@ -159,105 +158,5 @@ public partial class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture
             headers: [PeloFunnel, ("X-Forwarded-Proto", "https"), ("X-Forwarded-For", "203.0.113.9")]);
 
         Assert.Equal("https://aleph.tailc38add.ts.net", (string?)JsonNode.Parse(corpo)!["servers"]![0]!["url"]);
-    }
-
-    // ---- página --------------------------------------------------------------
-
-    // a configuração do Scalar é o objeto JSON que ocupa uma linha inteira do initialize(...)
-    [GeneratedRegex("""(?<=^\s*)\{".*\}(?=,\s*$)""", RegexOptions.Multiline)]
-    private static partial Regex ConfigDaPágina();
-
-    private async Task<string> PáginaAsync(params (string, string)[] headers)
-    {
-        var (status, html) = await _api.GetAsync("/api/v1/docs/", headers: headers);
-
-        Assert.Equal(200, status);
-        return html;
-    }
-
-    [Fact]
-    public async Task Na_rede_de_casa_a_página_tem_a_IA_e_a_chave_automática()
-    {
-        var html = await PáginaAsync();
-        var config = ConfigDaPágina().Match(html).Value;
-
-        Assert.Contains(ApiDeTeste.ChaveDoAgent, config);
-        Assert.Contains("/api/v1/docs/aleph.js", html);
-        Assert.Contains("\"persistAuth\":true", config);
-    }
-
-    [Fact]
-    public async Task A_página_é_a_padrão_do_Scalar_sem_a_propaganda_dele()
-    {
-        var config = JsonNode.Parse(ConfigDaPágina().Match(await PáginaAsync()).Value)!;
-
-        // a cara fica a do Scalar: tema próprio já foi tentado duas vezes e desfeito
-        Assert.Null(config["customCss"]);
-
-        Assert.Equal("never", (string?)config["showDeveloperTools"]);
-        Assert.True((bool?)config["mcp"]!["disabled"]);
-    }
-
-    [Fact]
-    public async Task Pelo_Funnel_não_vai_chave_nenhuma()
-    {
-        var html = await PáginaAsync(PeloFunnel);
-        var config = ConfigDaPágina().Match(html).Value;
-
-        // a IA é paga e a chave dela viaja no HTML: de fora ela fica de fora, e a da API também
-        Assert.DoesNotContain(ApiDeTeste.ChaveDoAgent, html);
-        Assert.DoesNotContain(ApiDeTeste.ChaveDaApi, html);
-        Assert.DoesNotContain("aleph.js", html);
-        Assert.Contains("\"persistAuth\":false", config);
-    }
-
-    [Fact]
-    public async Task IP_público_direto_também_é_tratado_como_de_fora()
-    {
-        var (_, html) = await _api.GetAsync("/api/v1/docs/", IPAddress.Parse("203.0.113.9"));
-
-        Assert.DoesNotContain("aleph.js", html);
-        Assert.Contains("\"persistAuth\":false", ConfigDaPágina().Match(html).Value);
-    }
-
-    [Fact]
-    public async Task Sem_a_chave_do_Agent_a_página_nem_carrega_o_módulo()
-    {
-        await using var semAgent = await ApiDeTeste.SubirAsync(chaveDoAgent: null);
-
-        var (_, html) = await semAgent.GetAsync("/api/v1/docs/");
-
-        Assert.DoesNotContain("aleph.js", html);
-        Assert.DoesNotContain(ApiDeTeste.ChaveDaApi, html);
-    }
-
-    // ---- módulo que entrega a chave -------------------------------------------
-
-    // origem é só rótulo; o que conta são o IP, o X-Forwarded-For e a marca do Funnel
-    [Theory]
-    [InlineData("loopback", "127.0.0.1", null, false, true)]
-    [InlineData("rede do Docker", "172.18.0.1", null, false, true)]
-    [InlineData("Tailscale (X-Forwarded-For da tailnet)", "127.0.0.1", "100.94.84.30", false, true)]
-    [InlineData("Funnel", "127.0.0.1", "203.0.113.9", true, false)]
-    [InlineData("IP público atrás do proxy", "127.0.0.1", "203.0.113.9", false, false)]
-    [InlineData("IP público direto", "203.0.113.9", null, false, false)]
-    [InlineData("IP público forjando X-Forwarded-For", "203.0.113.9", "10.0.0.1", false, false)]
-    public async Task Módulo_só_leva_a_chave_pra_quem_está_dentro(
-        string origem, string ip, string? encaminhadoPor, bool peloFunnel, bool levaAChave)
-    {
-        List<(string, string)> headers = [];
-
-        if (encaminhadoPor is not null)
-            headers.Add(("X-Forwarded-For", encaminhadoPor));
-
-        if (peloFunnel)
-            headers.Add(PeloFunnel);
-
-        var (status, corpo) = await _api.GetAsync("/api/v1/docs/aleph.js", IPAddress.Parse(ip), headers: [.. headers]);
-
-        Assert.Equal(200, status);
-        Assert.True(
-            corpo.Contains(ApiDeTeste.ChaveDaApi) == levaAChave,
-            $"pedido vindo de {origem}: {(levaAChave ? "devia" : "não devia")} levar a chave");
     }
 }

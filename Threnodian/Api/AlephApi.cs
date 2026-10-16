@@ -70,12 +70,8 @@ public static class AlephApi
 
         ConfiguraOCors(builder.Services, api);
 
-        // assina o biscoito dos docs; a chave fica no processo, e contêiner novo pede entrada
-        builder.Services.AddDataProtection();
-
         builder.Services.AddSingleton(api);
         builder.Services.AddSingleton<ApiKeyFilter>();
-        builder.Services.AddSingleton<TentativasDeSenha>();
         builder.Services.AddSingleton<BotStatus>();
 
         builder.Services.AddSingleton<LavalinkMonitor>();
@@ -134,14 +130,13 @@ public static class AlephApi
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
-        // a ordem conta: o limite vem antes do crachá dos docs, pra chutar senha também gastar cota
+        // os headers valem até no 429, por isso entram antes do limite de pedidos
         ProteçãoDeFora.UseCabeçalhos(app);
 
         // antes do limite: o OPTIONS não leva dado, e cobrar por ele é cobrar duas vezes
         app.UseCors(Cors);
 
         LimiteDePedidos.Use(app);
-        ProteçãoDeFora.UseCracháDosDocs(app, app.Services.GetRequiredService<ApiConfig>());
 
         // o 429 vale pra toda rota, e o documento conta isso em cada uma
         var v1 = app.NewVersionedApi("AlephBot")
