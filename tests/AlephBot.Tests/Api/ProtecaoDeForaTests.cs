@@ -182,6 +182,34 @@ public class ProtecaoDeForaTests
     }
 
     [Fact]
+    public async Task Quem_já_tem_crachá_não_passa_pela_tela_de_novo()
+    {
+        await using var api = await ApiDeTeste.SubirAsync(senhaDoDono: SenhaDoDono);
+
+        var (_, _, biscoito) = await MandaASenhaAsync(api, SenhaDoDono);
+
+        var (status, _, headers) = await api.GetComHeadersAsync(
+            "/api/v1/docs/entrar",
+            headers: [PeloFunnel, ("Cookie", biscoito!)]);
+
+        // a porta de dono, na raiz, não pode pedir de novo a senha de quem já entrou
+        Assert.Equal(302, status);
+        Assert.Equal($"{ApiDocs.Página}/", headers.Location.ToString());
+    }
+
+    [Fact]
+    public async Task De_dentro_a_tela_de_entrada_nem_aparece()
+    {
+        // em casa o crachá vem de graça: pedir senha aqui seria pedir por nada
+        await using var api = await ApiDeTeste.SubirAsync(senhaDoDono: SenhaDoDono);
+
+        var (status, _, headers) = await api.GetComHeadersAsync("/api/v1/docs/entrar");
+
+        Assert.Equal(302, status);
+        Assert.Equal($"{ApiDocs.Página}/", headers.Location.ToString());
+    }
+
+    [Fact]
     public async Task Senha_errada_na_tela_não_dá_biscoito()
     {
         await using var api = await ApiDeTeste.SubirAsync(senhaDoDono: SenhaDoDono);
