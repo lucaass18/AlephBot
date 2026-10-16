@@ -149,7 +149,6 @@ public sealed class AlephConfig
                 chave,
                 OptionalPort("API_PORT", PortaDaApiPadrão),
                 OptionalOuNulo("SCALAR_AGENT_KEY"),
-                OptionalOuNulo("API_DOCS_PASSWORD"),
                 Lista("API_CORS_ORIGINS"),
                 OptionalOuNulo("API_DOCS_ADMIN_PASSWORD"));
         }
@@ -246,14 +245,12 @@ public sealed class ApiConfig
         string key,
         int port,
         string? scalarAgentKey = null,
-        string? docsPassword = null,
         IReadOnlyList<string>? corsOrigins = null,
         string? docsAdminPassword = null)
     {
         Key = key;
         Port = port;
         ScalarAgentKey = scalarAgentKey;
-        DocsPassword = docsPassword;
         CorsOrigins = corsOrigins ?? [];
         DocsAdminPassword = docsAdminPassword;
     }
@@ -266,12 +263,9 @@ public sealed class ApiConfig
     // A chave da IA do Scalar nos docs. Sem ela a IA só aparece pelo localhost.
     public string? ScalarAgentKey { get; }
 
-    // Senha dos docs pra quem vem de fora: a página leva a chave da IA no HTML. Null = aberta.
-    public string? DocsPassword { get; }
-
     // Páginas a mais que podem chamar a API (API_CORS_ORIGINS); um "*" libera qualquer uma.
     public IReadOnlyList<string> CorsOrigins { get; }
 
-    // A senha de dono dos docs: de fora, abre a página inteira, com a IA. Null = ninguém como dono.
+    // A senha de dono dos docs: de fora, é ela que traz a IA do Scalar. Null = ninguém como dono.
     public string? DocsAdminPassword { get; }
 }

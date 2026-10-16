@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Api;
 
-// Quem erra a senha dos docs quatro vezes fica de castigo. Conta por erro, por IP, na memória.
+// Quem erra a senha de dono dos docs quatro vezes fica de castigo. Conta por erro, por IP, na memória.
 public sealed class TentativasDeSenha(ILogger<TentativasDeSenha> logger)
 {
     // Quantos erros até o castigo.
@@ -50,7 +50,7 @@ public sealed class TentativasDeSenha(ILogger<TentativasDeSenha> logger)
         if (conta.Erros == Limite)
         {
             logger.LogWarning(
-                "Senha dos docs errada {Erros} vezes vindo de {Cliente}: sem novas tentativas por {Minutos} min",
+                "Senha de dono dos docs errada {Erros} vezes vindo de {Cliente}: sem novas tentativas por {Minutos} min",
                 conta.Erros,
                 cliente,
                 (int)Castigo.TotalMinutes);

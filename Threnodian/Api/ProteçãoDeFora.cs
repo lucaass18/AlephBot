@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace AlephBot.Threnodian.Api;
 
-// As camadas pra quem vem de fora, por cima da chave: sem embutir a página, e docs com senha.
+// As camadas pra quem vem de fora, por cima da chave: sem embutir a página, e a IA só pro dono.
 public static class ProteçãoDeFora
 {
     // Ninguém põe a página dentro de outro site. Entra antes do limite, pra valer até no 429.
@@ -26,30 +26,21 @@ public static class ProteçãoDeFora
             return next(http);
         });
 
-    // Quanto a página entrega a quem abriu ela.
-    public enum Acesso
-    {
-        // A documentação inteira, sem a IA — que é paga e tem dono.
-        Visitante,
-
-        // A página como em casa, IA inclusa.
-        Dono,
-    }
-
-    private const string Crachá = "aleph.acesso";
+    private const string Crachá = "aleph.dono";
 
     // Quem está em casa, ou quem entrou de fora com a senha de dono — é quem vê a IA.
     public static bool ÉDono(HttpContext http) =>
-        RedeDeDentro.ÉDeDentro(http) || (http.Items[Crachá] as Acesso?) == Acesso.Dono;
+        RedeDeDentro.ÉDeDentro(http) || http.Items[Crachá] is true;
 
-    // A senha guarda a página: a de dono abre tudo, a de visitante abre sem a IA.
-    public static void UseSenhaDosDocs(WebApplication app, ApiConfig api)
+    // A documentação é aberta a todo mundo: a senha não tranca a página, só diz quem é dono.
+    public static void UseCracháDosDocs(WebApplication app, ApiConfig api)
     {
-        if (api.DocsPassword is null && api.DocsAdminPassword is null)
+        if (api.DocsAdminPassword is null)
             return;
 
         app.Use((http, next) =>
         {
+            // a tela de entrada cuida da própria senha, e de dentro o crachá já vem de graça
             if (!http.Request.Path.StartsWithSegments(ApiDocs.Página)
                 || LoginDosDocs.ÉTelaDeEntrada(http.Request.Path)
                 || RedeDeDentro.ÉDeDentro(http))
@@ -58,46 +49,35 @@ public static class ProteçãoDeFora
             }
 
             // o biscoito vale mesmo de castigo: quem já entrou não está chutando senha
-            if (LoginDosDocs.Crachá(http) is { } doBiscoito)
+            if (LoginDosDocs.TemCrachá(http))
             {
-                http.Items[Crachá] = doBiscoito;
+                http.Items[Crachá] = true;
                 return next(http);
             }
 
             // quem manda a senha no header entra na hora, e errar ali conta igual
-            if (SenhaDoBasic(http) is { } senha)
+            if (SenhaDoBasic(http) is { } senha && LoginDosDocs.Castigo(http) is null)
             {
-                var castigo = LoginDosDocs.Castigo(http);
-
-                if (castigo is null && AcessoDaSenha(senha, api) is { } doHeader)
+                if (ÉSenhaDeDono(senha, api))
                 {
                     LoginDosDocs.Acertou(http);
-                    http.Items[Crachá] = doHeader;
-                    return next(http);
+                    http.Items[Crachá] = true;
                 }
-
-                if (castigo is null)
+                else
+                {
                     LoginDosDocs.Errou(http);
+                }
             }
 
-            http.Response.Redirect(LoginDosDocs.Entrar);
-            return Task.CompletedTask;
+            // sem senha, ou com ela errada, a documentação abre do mesmo jeito: só sem a IA
+            return next(http);
         });
     }
 
-    // Que porta esta senha abre. A de dono é conferida primeiro, se as duas forem iguais.
-    public static Acesso? AcessoDaSenha(string senha, ApiConfig api)
-    {
-        var tentada = Hash(senha);
-
-        if (api.DocsAdminPassword is { } dono && CryptographicOperations.FixedTimeEquals(tentada, Hash(dono)))
-            return Acesso.Dono;
-
-        if (api.DocsPassword is { } visitante && CryptographicOperations.FixedTimeEquals(tentada, Hash(visitante)))
-            return Acesso.Visitante;
-
-        return null;
-    }
+    // Se a senha é a de dono. Comparada em tempo fixo: errar não pode responder mais rápido.
+    public static bool ÉSenhaDeDono(string senha, ApiConfig api) =>
+        api.DocsAdminPassword is { } dono
+            && CryptographicOperations.FixedTimeEquals(Hash(senha), Hash(dono));
 
     // A senha do header, pra quem não é navegador; o usuário tanto faz.
     private static string? SenhaDoBasic(HttpContext http)
