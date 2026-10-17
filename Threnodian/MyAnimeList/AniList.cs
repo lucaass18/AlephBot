@@ -67,7 +67,8 @@ public sealed class AniList : IMyAnimeList, IDisposable
     private readonly HttpClient _http = new()
     {
         BaseAddress = new Uri(Endereço),
-        Timeout = TimeSpan.FromSeconds(15),
+        // a cadeia tenta as fontes em fila num prazo só: fonte muda tem que sair logo do caminho
+        Timeout = TimeSpan.FromSeconds(8),
     };
 
     public string Nome => "AniList";

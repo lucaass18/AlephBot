@@ -261,7 +261,7 @@ public sealed class ObrasEmCache(
         return string.Join(" | ", nomes.Select(Normaliza).Distinct());
     }
 
-    // Sem acento, minúsculo e sem espaço sobrando: "NARUTO " e "naruto" são a mesma pergunta.
+    // O termo virou padrão de Like: o "%" e o "_" de quem digitou são texto, e não curinga.
     internal static string ParaLike(string termo) => termo
         .Replace("\\", "\\\\")
         .Replace("%", "\\%")
