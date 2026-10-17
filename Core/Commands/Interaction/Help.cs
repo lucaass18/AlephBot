@@ -129,6 +129,22 @@ internal static class Help
         return new StringMenuProperties(id, opções) { Placeholder = Denia.HelpMenuRótulo };
     }
 
+    // A página que o valor escolhido no menu pede, com a categoria que fica marcada nele.
+    // Valor desconhecido - menu de uma versão antiga, categoria que saiu do bot - cai na capa,
+    // porque quem clicou não tem culpa de o bot ter mudado embaixo dele.
+    internal static (EmbedProperties Embed, CommandCategory? Selecionada) Página(
+        IEnumerable<CommandInfo> visíveis, string prefixo, string? escolha)
+    {
+        if (escolha is not null and not ValorDaCapa
+            && Categoria(visíveis, escolha) is { } embed
+            && Enum.TryParse<CommandCategory>(escolha, ignoreCase: true, out var categoria))
+        {
+            return (embed, categoria);
+        }
+
+        return (Capa(visíveis, prefixo), null);
+    }
+
     // ---- o detalhe de um comando ---------------------------------------------
 
     // O que já existia, intocado no conteúdo: só mudou de casa.

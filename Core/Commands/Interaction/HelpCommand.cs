@@ -87,7 +87,11 @@ public sealed class HelpTextCommand : AlephTextModule
 
 // O menu do /help. Sem estado: a categoria viaja no valor escolhido, então o menu de ontem
 // continua funcionando depois de um restart.
-public sealed class HelpNavegaçãoModule : ComponentInteractionModule<StringMenuInteractionContext>
+
+// O contexto é o genérico de propósito: o AddComponentInteractions() da inicialização registra
+// um serviço só, o de ComponentInteractionContext, e módulo de contexto sem serviço nunca é
+// consultado - o clique chegava e o NetCord respondia "Component interaction not found".
+public sealed class HelpNavegaçãoModule : ComponentInteractionModule<ComponentInteractionContext>
 {
     private readonly CommandRegistry _registry;
     private readonly AlephConfig _config;
@@ -127,17 +131,12 @@ public sealed class HelpNavegaçãoModule : ComponentInteractionModule<StringMen
             }));
     }
 
-    // Valor que não existe mais cai na capa: o menu antigo não deve explodir na mão de ninguém.
+    // O contexto genérico entrega a interação crua: só a de menu traz valor escolhido, e o que
+    // não for menu (ou vier vazio) cai na capa, que é o destino de todo valor que não entendo.
     private (EmbedProperties Embed, CommandCategory? Selecionada) Página()
     {
-        var escolha = Context.SelectedValues.FirstOrDefault();
+        var escolha = (Context.Interaction as StringMenuInteraction)?.Data.SelectedValues.FirstOrDefault();
 
-        if (escolha is null or Help.ValorDaCapa)
-            return (Help.Capa(_registry.Visible, _config.Prefix), null);
-
-        return Help.Categoria(_registry.Visible, escolha) is { } embed
-               && Enum.TryParse<CommandCategory>(escolha, ignoreCase: true, out var categoria)
-            ? (embed, categoria)
-            : (Help.Capa(_registry.Visible, _config.Prefix), null);
+        return Help.Página(_registry.Visible, _config.Prefix, escolha);
     }
 }
