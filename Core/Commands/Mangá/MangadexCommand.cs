@@ -38,13 +38,13 @@ public sealed class MangadexCommand : AlephSlashModule
         // perguntar à fonte, ao MangaDex e ao tradutor passa dos 3 segundos do Discord; peço tempo
         await DeferAsync();
 
-        var ficha = await MyAnimelist.ProcurarAsync(
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
             _fonte, _tradutor, _guarda, _mangadex, TipoDeObra.Manga, nome, Context.User.Username);
 
-        if (ficha.Erro is not null)
-            await EditarComErroAsync(ficha.Erro);
+        if (erro is not null)
+            await EditarComErroAsync(erro);
         else
-            await EditarRespostaAsync(ficha.Embed!, ficha.Anexo);
+            await EditarRespostaAsync(embed!);
     }
 }
 
@@ -79,12 +79,12 @@ public sealed class MangadexTextCommand : AlephTextModule
         // a resposta demora uns segundos; o "digitando..." é o jeito de dizer que eu ouvi
         await Context.Client.Rest.TriggerTypingAsync(Context.Message.ChannelId);
 
-        var ficha = await MyAnimelist.ProcurarAsync(
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
             _fonte, _tradutor, _guarda, _mangadex, TipoDeObra.Manga, nome, Context.User.Username);
 
-        if (ficha.Erro is not null)
-            await ErrorAsync(ficha.Erro);
+        if (erro is not null)
+            await ErrorAsync(erro);
         else
-            await ReplyAsync(ficha.Embed!, ficha.Anexo);
+            await ReplyAsync(embed!);
     }
 }

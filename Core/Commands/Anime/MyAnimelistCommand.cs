@@ -43,13 +43,13 @@ public sealed class MyAnimelistCommand : AlephSlashModule
         // perguntar ao MAL e ao tradutor passa dos 3 segundos do Discord; peço tempo
         await DeferAsync();
 
-        var ficha = await MyAnimelist.ProcurarAsync(
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
             _mal, _tradutor, _guarda, mangadex: null, TipoDeObra.Anime, nome, Context.User.Username);
 
-        if (ficha.Erro is not null)
-            await EditarComErroAsync(ficha.Erro);
+        if (erro is not null)
+            await EditarComErroAsync(erro);
         else
-            await EditarRespostaAsync(ficha.Embed!, ficha.Anexo);
+            await EditarRespostaAsync(embed!);
     }
 }
 
@@ -93,32 +93,14 @@ public sealed class MyAnimelistTextCommand : AlephTextModule
         // a resposta demora uns segundos; o "digitando..." é o jeito de dizer que eu ouvi
         await Context.Client.Rest.TriggerTypingAsync(Context.Message.ChannelId);
 
-        var ficha = await MyAnimelist.ProcurarAsync(
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
             _mal, _tradutor, _guarda, mangadex: null, TipoDeObra.Anime, busca, Context.User.Username);
 
-        if (ficha.Erro is not null)
-            await ErrorAsync(ficha.Erro);
+        if (erro is not null)
+            await ErrorAsync(erro);
         else
-            await ReplyAsync(ficha.Embed!, ficha.Anexo);
+            await ReplyAsync(embed!);
     }
-}
-
-// A ficha pronta pra enviar: o embed, o cartão desenhado quando saiu, e o erro quando não houve
-// ficha. Desestrutura em dois pra quem só quer o par, e aceita a tupla de volta pelo mesmo motivo.
-internal readonly record struct FichaPronta(
-    EmbedProperties? Embed,
-    string? Erro,
-    AttachmentProperties? Anexo = null,
-    string? Sinopse = null)
-{
-    public void Deconstruct(out EmbedProperties? embed, out string? erro)
-    {
-        embed = Embed;
-        erro = Erro;
-    }
-
-    public static implicit operator FichaPronta((EmbedProperties? Embed, string? Erro) par) =>
-        new(par.Embed, par.Erro);
 }
 
 internal static class MyAnimelist
@@ -178,7 +160,7 @@ internal static class MyAnimelist
     }
 
     // Procura, escolhe, traduz e monta a ficha. O /ma e o /mg caem os dois aqui.
-    internal static async Task<FichaPronta> ProcurarAsync(
+    internal static async Task<(EmbedProperties? Embed, string? Erro)> ProcurarAsync(
         IMyAnimeList mal,
         GoogleTranslator tradutor,
         IFichasGuardadas guarda,
@@ -202,7 +184,7 @@ internal static class MyAnimelist
     }
 
     // A busca em si, com o prazo já correndo. Estourado, cai no mesmo caminho de fonte fora.
-    private static async Task<FichaPronta> MontarAsync(
+    private static async Task<(EmbedProperties? Embed, string? Erro)> MontarAsync(
         IMyAnimeList mal,
         GoogleTranslator tradutor,
         IFichasGuardadas guarda,
@@ -214,7 +196,7 @@ internal static class MyAnimelist
     {
         // o que já se sabe e ainda vale poupa o limite da fonte, que é de todo mundo
         if (await Guardada(guarda, tipo, busca, Validade, cancellationToken) is { } fresca)
-            return await FichaAsync(fresca, tradutor, quemPediu, cancellationToken);
+            return (await FichaAsync(fresca, tradutor, quemPediu, cancellationToken), null);
 
         // a fonte disse agora há pouco que não conhece isto: perguntar de novo gasta o limite dela,
         // que é de todo mundo, e o erro de digitação sai mais rápido pra quem digitou
@@ -240,7 +222,7 @@ internal static class MyAnimelist
         {
             // a fonte caiu: ficha velha vale mais que embed vermelho, e o rodapé diz a idade
             if (await Guardada(guarda, tipo, busca, validade: null, cancellationToken) is { } velha)
-                return await FichaAsync(velha, tradutor, quemPediu, cancellationToken);
+                return (await FichaAsync(velha, tradutor, quemPediu, cancellationToken), null);
 
             return (null, Denia.MalFora());
         }
@@ -263,20 +245,17 @@ internal static class MyAnimelist
 
         await guardando;
 
-        return ficha;
+        return (ficha, null);
     }
 
-    // A ficha pronta: a sinopse traduzida, o cartão desenhado e o embed em volta deles.
-    private static async Task<FichaPronta> FichaAsync(
+    // A ficha pronta: a sinopse traduzida e o embed montado em volta dela.
+    private static async Task<EmbedProperties> FichaAsync(
         Obra obra, GoogleTranslator tradutor, string quemPediu, CancellationToken cancellationToken)
     {
         var (sinopse, origem) = await SinopseAsync(tradutor, obra, cancellationToken);
-        var anexo = await CartãoDaFicha.AnexoAsync(obra, sinopse, cancellationToken);
 
         // a fonte sai da obra, e não da cadeia: quem respondeu pode ter sido a reserva
-        var embed = Embed(obra, sinopse, origem, obra.Fonte, quemPediu, anexo is not null);
-
-        return new FichaPronta(embed, null, anexo, sinopse);
+        return Embed(obra, sinopse, origem, obra.Fonte, quemPediu);
     }
 
     // A obra com a sinopse em português, quando o MangaDex confirma que é a mesma obra.
@@ -406,30 +385,15 @@ internal static class MyAnimelist
 
     // ---- embed ---------------------------------------------------------------
 
-    private static EmbedProperties Embed(
-        Obra obra, string? sinopse, OrigemDaSinopse origem, string fonte, string quemPediu, bool comCartão)
+    private static EmbedProperties Embed(Obra obra, string? sinopse, OrigemDaSinopse origem, string fonte, string quemPediu)
     {
         var embed = new EmbedProperties
         {
             Title = Recorta(Denia.MalTítulo(obra.Tipo, obra.Título), MaxTítulo),
             Url = obra.Link,
+            Description = Descrição(obra, sinopse, origem),
             Color = new Color(Azul),
-            Footer = new EmbedFooterProperties { Text = Rodapé(obra, fonte, quemPediu, origem) },
-            Timestamp = DateTimeOffset.UtcNow,
-        };
-
-        // o cartão já carrega sinopse, números e gêneros: repetir em campo seria dizer duas vezes
-        if (comCartão)
-        {
-            embed.Image = new EmbedImageProperties($"attachment://{CartãoDaFicha.Arquivo}");
-
-            return embed;
-        }
-
-        // sem cartão, a ficha volta a ser o embed de campos de sempre
-        embed.Description = Descrição(obra, sinopse, origem);
-
-        embed.Fields =
+            Fields =
             [
                 Campo(Denia.MalCampoNota, Denia.MalNota(obra.Nota, obra.Votos)),
                 Campo(Denia.MalCampoRanking, Denia.MalRanking(obra.Posição, obra.Popularidade)),
@@ -438,7 +402,10 @@ internal static class MyAnimelist
                 Campo(Denia.MalCampoPeríodo(obra.Tipo), Denia.MalPeríodo(obra.Início, obra.Fim, obra.Situação)),
                 Campo(Denia.MalCampoAutoria(obra.Tipo), Lista(obra.Autoria)),
                 Campo(Denia.MalCampoGêneros, Lista(obra.Gêneros.Select(Denia.MalGênero)), inline: false),
-        ];
+            ],
+            Footer = new EmbedFooterProperties { Text = Rodapé(obra, fonte, quemPediu, origem) },
+            Timestamp = DateTimeOffset.UtcNow,
+        };
 
         // elenco só de obra que tem elenco: campo vazio é sujeira, não informação
         if (Elenco(obra) is { } elenco)

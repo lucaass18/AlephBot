@@ -80,17 +80,6 @@ public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCom
     protected Task<RestMessage> EditarRespostaAsync(EmbedProperties embed) =>
         Context.Interaction.ModifyResponseAsync(mensagem => mensagem.Embeds = [embed]);
 
-    // Embed com arquivo junto: é assim que o /ma manda a ficha desenhada, que o embed
-    // referencia por attachment://. Sem anexo, cai no fecho de sempre.
-    protected Task<RestMessage> EditarRespostaAsync(EmbedProperties embed, AttachmentProperties? anexo) =>
-        anexo is null
-            ? EditarRespostaAsync(embed)
-            : Context.Interaction.ModifyResponseAsync(mensagem =>
-            {
-                mensagem.Embeds = [embed];
-                mensagem.Attachments = [anexo];
-            });
-
     // O mesmo fecho, no formato novo. A flag vai aqui porque o "pensando..." nasceu sem ela,
     // e sem ela o Discord recusa o container.
     protected Task<RestMessage> EditarRespostaAsync(

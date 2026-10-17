@@ -26,7 +26,7 @@ public class SinopseDoMaTests
         Sinopse = sinopse,
     };
 
-    private static Task<FichaPronta> ProcurarAsync(
+    private static Task<(EmbedProperties? Embed, string? Erro)> ProcurarAsync(
         Obra obra, ISinopseEmPortuguês mangadex, GuardaFalsa? guarda = null) =>
         MyAnimelist.ProcurarAsync(
             new FonteFixa(obra), Tradutor, guarda ?? SemBanco, mangadex, obra.Tipo, "one piece", "alguém",
@@ -35,10 +35,10 @@ public class SinopseDoMaTests
     [Fact]
     public async Task Mangá_ganha_a_sinopse_em_português_do_MangaDex()
     {
-        var ficha = await ProcurarAsync(Mangá(), new MangaDexFalso(EmPortuguês));
+        var (embed, _) = await ProcurarAsync(Mangá(), new MangaDexFalso(EmPortuguês));
 
-        Assert.Contains("Grand Line", ficha.Sinopse);
-        Assert.DoesNotContain("Pirate King", ficha.Sinopse);
+        Assert.Contains("Grand Line", embed!.Description);
+        Assert.DoesNotContain("Pirate King", embed.Description);
     }
 
     // Dizer "traduzida por máquina" numa sinopse escrita por gente seria mentira.
