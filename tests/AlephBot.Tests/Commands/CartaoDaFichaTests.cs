@@ -117,6 +117,25 @@ public class CartaoDaFichaTests
         Assert.Empty(CartãoDaFicha.Dados(obra));
     }
 
+    // Título de duas linhas empurra tudo: quem cede é a sinopse, pra gênero e elenco sobreviverem.
+    [Fact]
+    public void Título_que_ocupa_duas_linhas_encurta_a_sinopse()
+    {
+        var umaLinha = CartãoDaFicha.LinhasQueCabem(258);
+        var duasLinhas = CartãoDaFicha.LinhasQueCabem(308);
+
+        Assert.Equal(CartãoDaFicha.LinhasDeSinopse, umaLinha);
+        Assert.True(duasLinhas < umaLinha, $"{duasLinhas} não é menos que {umaLinha}");
+        Assert.True(duasLinhas >= 1, "sempre sobra pelo menos uma linha");
+    }
+
+    // Mesmo espremido, o cartão não pede número negativo de linhas.
+    [Fact]
+    public void Sem_espaço_ainda_cabe_uma_linha()
+    {
+        Assert.Equal(1, CartãoDaFicha.LinhasQueCabem(CartãoDaFicha.Altura));
+    }
+
     [Fact]
     public void A_quebra_respeita_o_teto_de_linhas()
     {

@@ -33,8 +33,10 @@ internal static class CartãoDaFicha
     // Quanto o chanfro corta de cada canto. É o que dá a cara de HUD.
     private const int Chanfro = 22;
 
-    // Quantas linhas de sinopse cabem antes de a capa acabar.
+    // O teto de linhas de sinopse, quando o título ocupa uma linha só.
     internal const int LinhasDeSinopse = 4;
+
+    private const float AlturaDaLinha = 31;
 
     private static readonly SKColor Fundo = new(0x0B, 0x12, 0x18);
     private static readonly SKColor FundoClaro = new(0x11, 0x22, 0x2E);
@@ -325,16 +327,27 @@ internal static class CartãoDaFicha
             using var fonteSinopse = new SKFont(Corpo.Value, 21) { Edging = SKFontEdging.SubpixelAntialias };
             tinta.Color = TextoFraco;
 
-            foreach (var linha in Quebra(corpo, fonteSinopse, ColunaLargura, LinhasDeSinopse))
+            // título de duas linhas empurra tudo pra baixo; a sinopse cede, e não os gêneros
+            foreach (var linha in Quebra(corpo, fonteSinopse, ColunaLargura, LinhasQueCabem(y)))
             {
                 tela.DrawText(linha, ColunaX, y, SKTextAlign.Left, fonteSinopse, tinta);
-                y += 31;
+                y += AlturaDaLinha;
             }
         }
 
         var depoisDosGêneros = DesenhaGêneros(tela, obra, tinta, y + 16);
 
         DesenhaElenco(tela, obra, tinta, depoisDosGêneros);
+    }
+
+    // Quantas linhas de sinopse sobram, guardado o espaço dos gêneros e do elenco embaixo.
+    internal static int LinhasQueCabem(float y)
+    {
+        const int Reservado = 54;
+
+        var disponível = Altura - Margem - Reservado - y;
+
+        return Math.Clamp((int)(disponível / AlturaDaLinha), 1, LinhasDeSinopse);
     }
 
     // O elenco numa linha só, fechando o cartão. O embed de campos mostrava isto e sumiria sem.
