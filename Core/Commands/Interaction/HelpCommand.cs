@@ -7,18 +7,13 @@ using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.Commands;
+using NetCord.Services.ComponentInteractions;
 
 namespace AlephBot.Core.Commands.Interaction;
 
-// /help — a lista por categoria e o detalhe de um comando, lidos do CommandRegistry.
+// /help — a capa com o menu de categorias, ou o detalhe de um comando.
 public sealed class HelpCommand : AlephSlashModule
 {
-    // roxo da Denia, o mesmo do mute
-    private const int Roxo = 0x9B59B6;
-
-    // teto do Discord para o valor de um campo de embed
-    private const int MaxCampo = 1024;
-
     private readonly CommandRegistry _registry;
     private readonly AlephConfig _config;
 
@@ -38,138 +33,22 @@ public sealed class HelpCommand : AlephSlashModule
     public Task HelpAsync(
         [SlashCommandParameter(Name = "comando", Description = "Qual comando você quer entender.")] string? comando = null)
     {
+        // efêmero: lista de ajuda é ruído no canal, e assim o menu é só de quem pediu
         if (string.IsNullOrWhiteSpace(comando))
-            return RespondAsync(BuildList(_registry, _config.Prefix));
-
-        return BuildDetail(_registry, _config.Prefix, comando) is { } embed
-            ? RespondAsync(embed)
-            : ErrorAsync(Denia.HelpNãoAchei(comando.Trim()));
-    }
-
-    // A lista inteira: uma categoria por campo, um comando por linha.
-    internal static EmbedProperties BuildList(CommandRegistry registry, string prefixo)
-    {
-        var categorias = registry.ByCategory.ToList();
-        var total = registry.Visible.Count();
-
-        return new EmbedProperties
         {
-            Title = Denia.HelpTítulo,
-            Description = categorias.Count == 0
-                ? Denia.HelpVazio()
-                : $"{Denia.HelpIntro(total, prefixo)}\n{Denia.HelpDica()}",
-            Color = new Color(Roxo),
-            Fields = [.. categorias.Select(Campo)],
-            Footer = new EmbedFooterProperties { Text = Denia.HelpRodapé() },
-            Timestamp = DateTimeOffset.UtcNow,
-        };
-    }
-
-    // O detalhe de um comando, ou null quando não existe nenhum com esse nome.
-    internal static EmbedProperties? BuildDetail(CommandRegistry registry, string prefixo, string comando)
-    {
-        var busca = Normaliza(comando, prefixo);
-
-        // slash e prefixo são classes com o mesmo Name, e o "Como chamar" mostra as duas
-        var entradas = registry.All
-            .Where(c => string.Equals(c.Name, busca, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (entradas.Count == 0)
-            return null;
-
-        // a versão visível é a que descreve o comando; a escondida é só o gêmeo de prefixo
-        var principal = entradas.FirstOrDefault(c => !c.IsHidden) ?? entradas[0];
-
-        var usos = entradas
-            .Select(c => c.Uso(prefixo))
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-
-        var atalhos = entradas
-            .SelectMany(c => CommandAudit.AliasesDeTexto(c.Type))
-            .Where(a => !string.Equals(a, principal.Name, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        List<EmbedFieldProperties> campos =
-        [
-            new()
-            {
-                // Uso nunca vem vazio (no pior caso cai no nome), então não trato ausência
-                Name = Denia.HelpCampoUso,
-                Value = Recorta(string.Join('\n', usos.Select(u => $"`{u}`"))),
-            },
-            new()
-            {
-                Name = Denia.HelpCampoCategoria,
-                Value = Denia.HelpCategoria(principal.Category),
-                Inline = true,
-            },
-        ];
-
-        if (atalhos.Count > 0)
-        {
-            campos.Add(new EmbedFieldProperties
-            {
-                Name = Denia.HelpCampoAtalhos,
-                Value = Recorta(string.Join(" ", atalhos.Select(a => $"`{prefixo}{a}`"))),
-                Inline = true,
-            });
+            return RespondAsync(
+                Help.Capa(_registry.Visible, _config.Prefix),
+                [Help.Menu(_registry.Visible, Help.MenuId)],
+                ephemeral: true);
         }
 
-        return new EmbedProperties
-        {
-            Title = Denia.HelpDetalheTítulo($"/{principal.Name}"),
-            Description = principal.Description,
-            Color = new Color(Roxo),
-            Fields = campos,
-            Footer = new EmbedFooterProperties { Text = Denia.Assinatura },
-            Timestamp = DateTimeOffset.UtcNow,
-        };
-    }
-
-    private static EmbedFieldProperties Campo(IGrouping<CommandCategory, CommandInfo> categoria) =>
-        new()
-        {
-            Name = Denia.HelpCategoria(categoria.Key),
-            Value = Recorta(string.Join('\n', categoria.OrderBy(c => c.Name).Select(Linha))),
-        };
-
-    private static string Linha(CommandInfo comando) =>
-        $"`/{comando.Name}` — {comando.Description}";
-
-    // Aceita "mute", "/mute" e "!mute" — quem pede ajuda costuma colar o comando inteiro.
-    internal static string Normaliza(string comando, string prefixo)
-    {
-        var limpo = comando.Trim();
-
-        // prefixo configurado pode ser uma palavra ("bot "), então sai primeiro
-        if (limpo.StartsWith(prefixo, StringComparison.Ordinal))
-            limpo = limpo[prefixo.Length..];
-
-        // nome de comando não começa com sinal: o que vem antes da primeira letra é enfeite
-        var início = 0;
-
-        while (início < limpo.Length && !char.IsLetterOrDigit(limpo[início]))
-            início++;
-
-        return limpo[início..].Trim();
-    }
-
-    // Corta no fim da última linha inteira: campo estourado o Discord recusa.
-    private static string Recorta(string texto)
-    {
-        if (texto.Length <= MaxCampo)
-            return texto;
-
-        var corte = texto.LastIndexOf('\n', MaxCampo - 2);
-
-        return corte > 0 ? $"{texto[..corte]}\n…" : $"{texto[..(MaxCampo - 1)]}…";
+        return Help.Detalhe(_registry.All, _config.Prefix, comando) is { } embed
+            ? RespondAsync(embed, [Help.Menu(_registry.Visible, Help.MenuId)], ephemeral: true)
+            : ErrorAsync(Denia.HelpNãoAchei(comando.Trim()));
     }
 }
 
-// !help — mesma lista do /help, para quem prefere o prefixo.
+// !help — a mesma coisa, para quem prefere o prefixo.
 public sealed class HelpTextCommand : AlephTextModule
 {
     private readonly CommandRegistry _registry;
@@ -192,11 +71,73 @@ public sealed class HelpTextCommand : AlephTextModule
     [Command("help", "ajuda", "comandos")]
     public Task HelpAsync([CommandParameter(Remainder = true)] string? comando = null)
     {
+        // o menu daqui é o público: esta mensagem fica no canal, visível pra todo mundo
         if (string.IsNullOrWhiteSpace(comando))
-            return ReplyAsync(HelpCommand.BuildList(_registry, _config.Prefix));
+        {
+            return ReplyAsync(
+                Help.Capa(_registry.Visible, _config.Prefix),
+                [Help.Menu(_registry.Visible, Help.MenuIdPúblico)]);
+        }
 
-        return HelpCommand.BuildDetail(_registry, _config.Prefix, comando) is { } embed
-            ? ReplyAsync(embed)
+        return Help.Detalhe(_registry.All, _config.Prefix, comando) is { } embed
+            ? ReplyAsync(embed, [Help.Menu(_registry.Visible, Help.MenuIdPúblico)])
             : ErrorAsync(Denia.HelpNãoAchei(comando.Trim()));
+    }
+}
+
+// O menu do /help. Sem estado: a categoria viaja no valor escolhido, então o menu de ontem
+// continua funcionando depois de um restart.
+public sealed class HelpNavegaçãoModule : ComponentInteractionModule<StringMenuInteractionContext>
+{
+    private readonly CommandRegistry _registry;
+    private readonly AlephConfig _config;
+
+    public HelpNavegaçãoModule(CommandRegistry registry, AlephConfig config)
+    {
+        _registry = registry;
+        _config = config;
+    }
+
+    // A mensagem do /help é efêmera: só quem pediu enxerga, então troco a página no lugar.
+    [ComponentInteraction(Help.MenuId)]
+    public Task NavegarAsync()
+    {
+        var (embed, selecionada) = Página();
+
+        return Context.Interaction.SendResponseAsync(InteractionCallback.ModifyMessage(mensagem =>
+        {
+            mensagem.Embeds = [embed];
+            mensagem.Components = [Help.Menu(_registry.Visible, Help.MenuId, selecionada)];
+        }));
+    }
+
+    // A do !help é pública: editar seria reescrever a mensagem de outro na frente do canal,
+    // então quem clica recebe a página só pra si.
+    [ComponentInteraction(Help.MenuIdPúblico)]
+    public Task NavegarPúblicoAsync()
+    {
+        var (embed, selecionada) = Página();
+
+        return Context.Interaction.SendResponseAsync(InteractionCallback.Message(
+            new InteractionMessageProperties
+            {
+                Embeds = [embed],
+                Components = [Help.Menu(_registry.Visible, Help.MenuIdPúblico, selecionada)],
+                Flags = MessageFlags.Ephemeral,
+            }));
+    }
+
+    // Valor que não existe mais cai na capa: o menu antigo não deve explodir na mão de ninguém.
+    private (EmbedProperties Embed, CommandCategory? Selecionada) Página()
+    {
+        var escolha = Context.SelectedValues.FirstOrDefault();
+
+        if (escolha is null or Help.ValorDaCapa)
+            return (Help.Capa(_registry.Visible, _config.Prefix), null);
+
+        return Help.Categoria(_registry.Visible, escolha) is { } embed
+               && Enum.TryParse<CommandCategory>(escolha, ignoreCase: true, out var categoria)
+            ? (embed, categoria)
+            : (Help.Capa(_registry.Visible, _config.Prefix), null);
     }
 }

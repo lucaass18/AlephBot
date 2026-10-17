@@ -22,6 +22,15 @@ public abstract class AlephTextModule : CommandModule<CommandContext>, ICommand
     protected Task<RestMessage> ReplyAsync(EmbedProperties embed) =>
         Context.Message.ReplyAsync(new ReplyMessageProperties { Embeds = [embed] });
 
+    // O mesmo embed, com componentes. Ver o módulo de barra.
+    protected Task<RestMessage> ReplyAsync(
+        EmbedProperties embed, IEnumerable<IMessageComponentProperties> componentes) =>
+        Context.Message.ReplyAsync(new ReplyMessageProperties
+        {
+            Embeds = [embed],
+            Components = componentes,
+        });
+
     // A resposta no formato novo. Ver o módulo de barra.
     protected Task<RestMessage> ReplyAsync(ComponentContainerProperties cartão, AttachmentProperties? anexo = null) =>
         Context.Message.ReplyAsync(new ReplyMessageProperties
