@@ -80,6 +80,30 @@ public class FichaDoMaTests
         Assert.DoesNotContain("dados de", embed.Footer!.Text);
     }
 
+    // A capa vem em extraLarge; num selo de 80px no canto ela se perde.
+    [Fact]
+    public async Task A_capa_vai_no_corpo_e_não_no_canto()
+    {
+        var embed = await EmbedDe(Ficha([]) with { Imagem = "https://img/capa.jpg" });
+
+        Assert.Equal("https://img/capa.jpg", embed.Image?.Url);
+        Assert.Null(embed.Thumbnail);
+    }
+
+    // Sinopse inteira empurraria a capa pro fim do rolo; cortada, ela avisa que tem mais.
+    [Fact]
+    public async Task Sinopse_longa_é_cortada_e_o_corte_é_avisado()
+    {
+        var longa = string.Join(" ", Enumerable.Repeat("Era uma vez uma aventura bem comprida.", 60));
+
+        // já em português: sem isto a ficha passaria pelo tradutor, que é rede
+        var embed = await EmbedDe(Ficha([]) with { Sinopse = longa, SinopseEmPortuguês = true });
+
+        Assert.NotNull(embed.Description);
+        Assert.True(embed.Description!.Length < longa.Length);
+        Assert.Contains(Denia.MalSinopseCortada(), embed.Description);
+    }
+
     private sealed class FonteFixa(Obra obra) : IMyAnimeList
     {
         public string Nome => "Falsa";

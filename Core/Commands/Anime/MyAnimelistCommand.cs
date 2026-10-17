@@ -124,7 +124,8 @@ internal static class MyAnimelist
 
     // tetos do Discord: 256 no título, 4096 na descrição, 1024 no campo, 6000 no embed
     private const int MaxTítulo = 256;
-    private const int MaxSinopse = 3000;
+    // a capa grande é o que a ficha mostra primeiro; sinopse inteira empurraria ela pro fim do rolo
+    private const int MaxSinopse = 500;
     private const int MaxCampo = 1024;
 
     // Onde o título acaba e o subtítulo começa, do jeito que o MAL escreve.
@@ -410,8 +411,9 @@ internal static class MyAnimelist
         if (Elenco(obra) is { } elenco)
             embed.Fields = [.. embed.Fields!, Campo(Denia.MalCampoElenco, elenco, inline: false)];
 
+        // no corpo, e não no canto: a capa vem em extraLarge e num selo de 80px ela se perde
         if (obra.Imagem is { } capa)
-            embed.Thumbnail = new EmbedThumbnailProperties(capa);
+            embed.Image = new EmbedImageProperties(capa);
 
         return embed;
     }
