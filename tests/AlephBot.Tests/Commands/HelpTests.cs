@@ -74,6 +74,36 @@ public class HelpTests
         Assert.Single(menu.Options, o => o.Default && o.Value == nameof(CommandCategory.Music));
     }
 
+    [Fact]
+    public void Escolher_uma_categoria_no_menu_abre_a_página_dela()
+    {
+        var (embed, selecionada) = Help.Página(Comandos, "!", nameof(CommandCategory.Music));
+
+        Assert.Equal(CommandCategory.Music, selecionada);
+        Assert.Contains("som8", embed.Description);
+    }
+
+    [Fact]
+    public void Voltar_pro_índice_traz_a_capa_sem_nada_marcado()
+    {
+        var (embed, selecionada) = Help.Página(Comandos, "!", Help.ValorDaCapa);
+
+        Assert.Null(selecionada);
+        Assert.Equal(Help.Capa(Comandos, "!").Title, embed.Title);
+    }
+
+    // menu de uma versão antiga do bot ainda clica, e clique nenhum pode virar erro na cara
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Inventada")]
+    public void Valor_que_não_entendo_cai_na_capa(string? escolha)
+    {
+        var (embed, selecionada) = Help.Página(Comandos, "!", escolha);
+
+        Assert.Null(selecionada);
+        Assert.Equal(Help.Capa(Comandos, "!").Title, embed.Title);
+    }
+
     [Theory]
     [InlineData("mute")]
     [InlineData("/mute")]
