@@ -398,7 +398,7 @@ internal static class MyAnimelist
                 Campo(Denia.MalCampoNota, Denia.MalNota(obra.Nota, obra.Votos)),
                 Campo(Denia.MalCampoRanking, Denia.MalRanking(obra.Posição, obra.Popularidade)),
                 Campo(Denia.MalCampoSituação, Denia.MalSituação(obra.Tipo, obra.Situação)),
-                Campo(Denia.MalCampoFormato(obra.Tipo), Formato(obra)),
+                Campo(Denia.MalCampoFormato, Formato(obra)),
                 Campo(Denia.MalCampoPeríodo(obra.Tipo), Denia.MalPeríodo(obra.Início, obra.Fim, obra.Situação)),
                 Campo(Denia.MalCampoAutoria(obra.Tipo), Lista(obra.Autoria)),
                 Campo(Denia.MalCampoGêneros, Lista(obra.Gêneros.Select(Denia.MalGênero)), inline: false),

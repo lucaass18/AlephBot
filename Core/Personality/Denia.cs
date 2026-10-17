@@ -519,20 +519,22 @@ public static class Denia
     public static string MalTítulo(TipoDeObra tipo, string título) =>
         $"{(tipo == TipoDeObra.Anime ? "📺" : "📖")} {título}";
 
-    public const string MalCampoNota = "⭐ Nota";
-    public const string MalCampoRanking = "🏆 Ranking";
-    public const string MalCampoSituação = "📡 Situação";
-    public const string MalCampoGêneros = "🏷️ Gêneros";
-    public const string MalCampoElenco = "🎭 Elenco";
+    // Os rótulos vão sem emoji: oito pictogramas de oito famílias brigavam entre si, e o
+    // Discord já põe nome de campo em negrito. O do título fica, que ali ele diz o tipo da obra.
+    public const string MalCampoNota = "Nota";
+    public const string MalCampoRanking = "Ranking";
+    public const string MalCampoSituação = "Situação";
+    public const string MalCampoGêneros = "Gêneros";
+    public const string MalCampoElenco = "Elenco";
 
-    public static string MalCampoFormato(TipoDeObra tipo) =>
-        tipo == TipoDeObra.Anime ? "📺 Formato" : "📖 Formato";
+    // Sem o emoji, anime e mangá dizem a mesma palavra aqui; o tipo some da assinatura.
+    public const string MalCampoFormato = "Formato";
 
     public static string MalCampoPeríodo(TipoDeObra tipo) =>
-        tipo == TipoDeObra.Anime ? "📅 Exibição" : "📅 Publicação";
+        tipo == TipoDeObra.Anime ? "Exibição" : "Publicação";
 
     public static string MalCampoAutoria(TipoDeObra tipo) =>
-        tipo == TipoDeObra.Anime ? "🎬 Estúdio" : "✍️ Autoria";
+        tipo == TipoDeObra.Anime ? "Estúdio" : "Autoria";
 
     // Os outros nomes da obra, na linha de cima da sinopse. Eles já vêm em negrito.
     public static string MalTambémConhecida(string nomes) =>
