@@ -21,6 +21,9 @@ internal sealed class GuardaFalsa : IFichasGuardadas
         TipoDeObra tipo, string busca, TimeSpan? validade, CancellationToken cancellationToken = default) =>
         Task.FromResult(validade is null ? Velha : Recente);
 
+    // As buscas que o /ma deu por não achadas. A guarda de verdade lembra; aqui eu só anoto.
+    public List<string> DeramEmNada { get; } = [];
+
     public Task GuardarAsync(string busca, Obra obra, CancellationToken cancellationToken = default)
     {
         BuscaGuardada = busca;
@@ -28,6 +31,10 @@ internal sealed class GuardaFalsa : IFichasGuardadas
 
         return Task.CompletedTask;
     }
+
+    public bool JáDeuEmNada(TipoDeObra tipo, string busca) => false;
+
+    public void DeuEmNada(TipoDeObra tipo, string busca) => DeramEmNada.Add(busca);
 }
 
 // O MangaDex que nunca casa a obra, pros testes que não são sobre a sinopse.
