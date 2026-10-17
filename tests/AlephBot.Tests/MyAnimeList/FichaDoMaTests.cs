@@ -16,16 +16,18 @@ public class FichaDoMaTests
 
     private static readonly GuardaFalsa SemBanco = new() { Disponível = false };
 
-    private static async Task<EmbedProperties> EmbedDe(Obra obra)
+    private static async Task<FichaPronta> FichaDe(Obra obra)
     {
-        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+        var ficha = await MyAnimelist.ProcurarAsync(
             new FonteFixa(obra), Tradutor, SemBanco, new SemMangaDex(), obra.Tipo, "naruto", "alguém",
             TestContext.Current.CancellationToken);
 
-        Assert.Null(erro);
+        Assert.Null(ficha.Erro);
 
-        return embed!;
+        return ficha;
     }
+
+    private static async Task<EmbedProperties> EmbedDe(Obra obra) => (await FichaDe(obra)).Embed!;
 
     private static Obra Ficha(IReadOnlyList<Personagem> elenco, DateTimeOffset? vistoEm = null) => new()
     {
@@ -36,31 +38,37 @@ public class FichaDoMaTests
         VistoEm = vistoEm,
     };
 
-    private static string? Campo(EmbedProperties embed, string nome) =>
-        embed.Fields?.FirstOrDefault(campo => campo.Name == nome)?.Value;
-
+    // O elenco saiu do campo e foi pro cartão; sem isto ele teria sumido da ficha.
     [Fact]
-    public async Task O_embed_mostra_o_elenco_principal()
+    public void O_elenco_entra_no_cartão()
     {
-        var embed = await EmbedDe(Ficha([
+        var elenco = CartãoDaFicha.Elenco(Ficha([
             new Personagem { Nome = "Naruto Uzumaki", Principal = true },
             new Personagem { Nome = "Sasuke Uchiha", Principal = true },
         ]));
-
-        var elenco = Campo(embed, Denia.MalCampoElenco);
 
         Assert.NotNull(elenco);
         Assert.Contains("Naruto Uzumaki", elenco);
         Assert.Contains("Sasuke Uchiha", elenco);
     }
 
-    // Mangá velho não tem elenco cadastrado; campo vazio é sujeira no embed.
+    // Mangá velho não tem elenco cadastrado; linha vazia é sujeira no cartão.
     [Fact]
-    public async Task Sem_elenco_o_campo_nem_aparece()
+    public void Sem_elenco_o_cartão_não_inventa_linha()
     {
-        var embed = await EmbedDe(Ficha([]));
+        Assert.Null(CartãoDaFicha.Elenco(Ficha([])));
+    }
 
-        Assert.Null(Campo(embed, Denia.MalCampoElenco));
+    // O cartão carrega a ficha; o embed vira moldura, sem campo e sem descrição.
+    [Fact]
+    public async Task A_ficha_vem_com_o_cartão_e_o_embed_fica_de_moldura()
+    {
+        var ficha = await FichaDe(Ficha([]));
+
+        Assert.NotNull(ficha.Anexo);
+        Assert.Null(ficha.Embed!.Fields);
+        Assert.Null(ficha.Embed.Description);
+        Assert.NotNull(ficha.Embed.Title);
     }
 
     // Ficha do banco com a fonte fora: nota de uma semana atrás como de agora é mentira.
@@ -82,26 +90,28 @@ public class FichaDoMaTests
 
     // A capa vem em extraLarge; num selo de 80px no canto ela se perde.
     [Fact]
-    public async Task A_capa_vai_no_corpo_e_não_no_canto()
+    public async Task O_embed_aponta_pro_cartão_e_não_pra_capa()
     {
-        var embed = await EmbedDe(Ficha([]) with { Imagem = "https://img/capa.jpg" });
+        // porta fechada de propósito: a capa não baixa, e o cartão tem que sair assim mesmo
+        var ficha = await FichaDe(Ficha([]) with { Imagem = "https://localhost:1/capa.jpg" });
 
-        Assert.Equal("https://img/capa.jpg", embed.Image?.Url);
-        Assert.Null(embed.Thumbnail);
+        Assert.Equal($"attachment://{CartãoDaFicha.Arquivo}", ficha.Embed!.Image?.Url);
+        Assert.Null(ficha.Embed.Thumbnail);
+        Assert.NotNull(ficha.Anexo);
     }
 
     // Sinopse inteira empurraria a capa pro fim do rolo; cortada, ela avisa que tem mais.
     [Fact]
-    public async Task Sinopse_longa_é_cortada_e_o_corte_é_avisado()
+    public async Task A_sinopse_vai_inteira_pro_cartão()
     {
         var longa = string.Join(" ", Enumerable.Repeat("Era uma vez uma aventura bem comprida.", 60));
 
         // já em português: sem isto a ficha passaria pelo tradutor, que é rede
-        var embed = await EmbedDe(Ficha([]) with { Sinopse = longa, SinopseEmPortuguês = true });
+        var ficha = await FichaDe(Ficha([]) with { Sinopse = longa, SinopseEmPortuguês = true });
 
-        Assert.NotNull(embed.Description);
-        Assert.True(embed.Description!.Length < longa.Length);
-        Assert.Contains(Denia.MalSinopseCortada(), embed.Description);
+        // quem corta pra caber é o desenho, e não o texto que chega até ele
+        Assert.Equal(longa, ficha.Sinopse);
+        Assert.Null(ficha.Embed!.Description);
     }
 
     private sealed class FonteFixa(Obra obra) : IMyAnimeList

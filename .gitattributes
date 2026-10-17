@@ -17,5 +17,8 @@ Dockerfile text eol=lf
 *.jpg binary
 *.ico binary
 
+# fonte convertida pra LF vira lixo, e o erro so aparece na hora de desenhar
+*.ttf binary
+
 # schema do proprio NLog, nao e codigo do projeto: fora das estatisticas de linguagem
 NLog.xsd linguist-vendored

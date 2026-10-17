@@ -20,7 +20,7 @@ public class CacheDoMaTests
         VistoEm = vistoEm,
     };
 
-    private static Task<(NetCord.Rest.EmbedProperties? Embed, string? Erro)> ProcurarAsync(
+    private static Task<FichaPronta> ProcurarAsync(
         IMyAnimeList fonte, IFichasGuardadas guarda, string busca = "naruto") =>
         MyAnimelist.ProcurarAsync(
             fonte, Tradutor, guarda, new SemMangaDex(), TipoDeObra.Anime, busca, "alguém", TestContext.Current.CancellationToken);

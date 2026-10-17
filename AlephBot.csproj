@@ -44,6 +44,14 @@
       <PackageReference Include="NLog" Version="6.2.0" />
       <PackageReference Include="NLog.Extensions.Logging" Version="6.2.0" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+      <PackageReference Include="SkiaSharp" Version="4.153.1" />
+      <!-- NoDependencies embute o nativo: sem isto o container precisaria de apt-get e de root -->
+      <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.153.1" />
+    </ItemGroup>
+
+    <!-- as fontes do cartão do /ma vão dentro do dll: nada de caminho relativo no container -->
+    <ItemGroup>
+      <EmbeddedResource Include="Core\Commands\Anime\Fontes\*.ttf" />
     </ItemGroup>
 
     <ItemGroup>
