@@ -32,6 +32,9 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
         // o padrão é o do bot; quem é de outro assunto diz o seu logo abaixo
         modelo.HasDefaultSchema(Schema);
 
+        // o /ma acha a ficha por pedaço do nome, e só o trigram indexa curinga à esquerda
+        modelo.HasPostgresExtension("pg_trgm");
+
         modelo.Entity<ObraGuardada>(obra =>
         {
             obra.ToTable("obra", SchemaDeObras);
@@ -72,7 +75,11 @@ public sealed class AlephDb(DbContextOptions<AlephDb> options) : DbContext(optio
                 .HasDatabaseName("ix_obra_fonte_tipo_id");
 
             // com a fonte fora, achar a ficha é casar o que a pessoa digitou com os nomes
-            obra.HasIndex(o => o.Procura).HasDatabaseName("ix_obra_procura");
+            // B-tree não serve "%nome%" e ainda recusa linha acima de 2704 bytes; o gin serve.
+            obra.HasIndex(o => o.Procura)
+                .HasDatabaseName("ix_obra_procura")
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
 
             obra.HasMany(o => o.Personagens)
                 .WithOne()

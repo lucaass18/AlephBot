@@ -47,6 +47,17 @@ public class ObrasEmCacheTests
         Assert.Equal(esperado, ObrasEmCache.Normaliza(digitado));
     }
 
+    // O termo vira padrão de Like: o "%" e o "_" de quem digitou são texto, e não curinga.
+    [Theory]
+    [InlineData("naruto", "naruto")]
+    [InlineData("100%", @"100\%")]
+    [InlineData("re_zero", @"re\_zero")]
+    [InlineData(@"a\b", @"a\\b")]
+    public void O_termo_vira_padrão_de_like_sem_curinga(string termo, string esperado)
+    {
+        Assert.Equal(esperado, ObrasEmCache.ParaLike(termo));
+    }
+
     // A linha de procura junta todos os nomes, pra achar pelo inglês, pelo japonês ou sinônimo.
     [Fact]
     public void A_linha_de_procura_junta_todos_os_nomes()

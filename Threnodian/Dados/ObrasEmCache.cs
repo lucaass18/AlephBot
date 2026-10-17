@@ -68,8 +68,11 @@ public sealed class ObrasEmCache(
         if (validade is not null)
             return null;
 
+        // Contains viraria strpos, que índice nenhum serve; o trigram atende Like, e só ele
+        var padrão = $"%{ParaLike(termo)}%";
+
         return await db.Obras
-            .Where(o => o.Tipo == tipo && o.Procura.Contains(termo))
+            .Where(o => o.Tipo == tipo && EF.Functions.Like(o.Procura, padrão))
             .OrderByDescending(o => o.VistoEm)
             .Include(o => o.Personagens)
             .FirstOrDefaultAsync(cancellationToken);
@@ -257,6 +260,12 @@ public sealed class ObrasEmCache(
 
         return string.Join(" | ", nomes.Select(Normaliza).Distinct());
     }
+
+    // Sem acento, minúsculo e sem espaço sobrando: "NARUTO " e "naruto" são a mesma pergunta.
+    internal static string ParaLike(string termo) => termo
+        .Replace("\\", "\\\\")
+        .Replace("%", "\\%")
+        .Replace("_", "\\_");
 
     // Sem acento, minúsculo e sem espaço sobrando: "NARUTO " e "naruto" são a mesma pergunta.
     internal static string Normaliza(string texto)

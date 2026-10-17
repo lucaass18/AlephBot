@@ -22,6 +22,7 @@ namespace AlephBot.Threnodian.Dados.Migracoes
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("AlephBot.Threnodian.Dados.BuscaGuardada", b =>
@@ -324,6 +325,9 @@ namespace AlephBot.Threnodian.Dados.Migracoes
 
                     b.HasIndex("Procura")
                         .HasDatabaseName("ix_obra_procura");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Procura"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Procura"), new[] { "gin_trgm_ops" });
 
                     b.HasIndex("Fonte", "Tipo", "IdNaFonte")
                         .IsUnique()
