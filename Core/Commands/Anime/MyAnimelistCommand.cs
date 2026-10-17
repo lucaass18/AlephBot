@@ -115,6 +115,10 @@ internal static class MyAnimelist
     // Por quanto tempo a ficha guardada responde sozinha; nota e ranking mudam na terceira casa.
     internal static readonly TimeSpan Validade = TimeSpan.FromDays(7);
 
+    // O tempo que a busca inteira tem. As fontes vão em fila e o reteste sem subtítulo roda a
+    // fila de novo: sem prazo, somadas, elas deixam a pessoa esperando mais de um minuto.
+    internal static readonly TimeSpan Prazo = TimeSpan.FromSeconds(20);
+
     // O azul do MyAnimeList.
     private const int Azul = 0x2E51A2;
 
@@ -170,6 +174,25 @@ internal static class MyAnimelist
         if (busca.Length < BuscaMínima)
             return (null, Denia.MalBuscaCurta(BuscaMínima));
 
+        // o prazo é da busca toda, e não de cada fonte: quem espera é uma pessoa, não o código
+        using var prazo = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        prazo.CancelAfter(Prazo);
+
+        return await MontarAsync(mal, tradutor, guarda, mangadex, tipo, busca, quemPediu, prazo.Token);
+    }
+
+    // A busca em si, com o prazo já correndo. Estourado, cai no mesmo caminho de fonte fora.
+    private static async Task<(EmbedProperties? Embed, string? Erro)> MontarAsync(
+        IMyAnimeList mal,
+        GoogleTranslator tradutor,
+        IFichasGuardadas guarda,
+        ISinopseEmPortuguês? mangadex,
+        TipoDeObra tipo,
+        string busca,
+        string quemPediu,
+        CancellationToken cancellationToken)
+    {
         // o que já se sabe e ainda vale poupa o limite da fonte, que é de todo mundo
         if (await Guardada(guarda, tipo, busca, Validade, cancellationToken) is { } fresca)
             return (await FichaAsync(fresca, tradutor, quemPediu, cancellationToken), null);
@@ -204,9 +227,14 @@ internal static class MyAnimelist
         // a sinopse em português entra antes de guardar, pro MangaDex não ser incomodado de novo
         obra = await EmPortuguêsAsync(mangadex, obra, cancellationToken);
 
-        await Guardar(guarda, busca, obra, cancellationToken);
+        // guardar são quatro idas ao banco e a ficha já está na mão: corre junto com a tradução,
+        // em vez de a pessoa esperar uma depois da outra
+        var guardando = Guardar(guarda, busca, obra, cancellationToken);
+        var ficha = await FichaAsync(obra, tradutor, quemPediu, cancellationToken);
 
-        return (await FichaAsync(obra, tradutor, quemPediu, cancellationToken), null);
+        await guardando;
+
+        return (ficha, null);
     }
 
     // A ficha pronta: a sinopse traduzida e o embed montado em volta dela.

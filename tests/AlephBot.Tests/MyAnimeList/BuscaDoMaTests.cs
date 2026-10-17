@@ -199,6 +199,20 @@ public class BuscaDoMaTests
         Assert.DoesNotContain("Movie", embed!.Title!);
     }
 
+    // O prazo vale pela busca toda: fonte travada não segura a resposta até alguém desistir.
+    [Fact]
+    public async Task A_fonte_travada_é_cortada_pelo_prazo()
+    {
+        using var prazo = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+
+        var (embed, erro) = await MyAnimelist.ProcurarAsync(
+            new FonteQueTrava(), Tradutor, SemBanco, new SemMangaDex(), TipoDeObra.Manga, Inteiro,
+            "alguém", prazo.Token);
+
+        Assert.Null(embed);
+        Assert.NotNull(erro);
+    }
+
     // As obras na ordem em que a fonte devolveu, que é a ordem em que o AniList ranqueia.
     private sealed class FonteEmOrdem(params Obra[] obras) : IMyAnimeList
     {
@@ -251,6 +265,20 @@ public class BuscaDoMaTests
             IReadOnlyList<Obra> achados = [new Obra { Tipo = tipo, Id = 1, Título = busca }];
 
             return Task.FromResult(achados);
+        }
+    }
+
+    // A fonte que aceita o pedido e nunca responde: é assim que uma API fora do ar se parece.
+    private sealed class FonteQueTrava : IMyAnimeList
+    {
+        public string Nome => "Travada";
+
+        public async Task<IReadOnlyList<Obra>> ProcurarAsync(
+            TipoDeObra tipo, string busca, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+
+            return [];
         }
     }
 }
