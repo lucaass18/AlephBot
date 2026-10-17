@@ -21,6 +21,9 @@ logs/
 Config/.env
 !Config/.env.example
 
+# os globals do Postman guardam valores e nenhum teste os vigia: ficam na máquina
+Postman/globals/
+
 # o que o n8n grava na VPS (a lista de comandos, os backups) fica lá; do repo vêm só as pastas
 n8n/arquivos/**
 !n8n/arquivos/**/
