@@ -237,7 +237,24 @@ public static class Denia
         $"São {total}. Decorei todos contra a minha vontade. `/` ou `{prefixo}`, como preferir.");
 
     public static string HelpDica() =>
-        "`/help <comando>` se quiser um de perto.";
+        "Escolhe uma categoria no menu, ou `/help <comando>` pra ver um de perto.";
+
+    // A abertura da página de uma categoria.
+    public static string HelpCategoriaIntro(int quantos) =>
+        quantos == 1
+            ? "Um só, mas é esse."
+            : Pick(
+                $"{quantos} aqui. O menu troca de categoria.",
+                $"{quantos} nesta prateleira.",
+                $"{quantos} comandos. Escolhe outra ali embaixo quando quiser.");
+
+    public const string HelpMenuRótulo = "Escolhe uma categoria";
+    public const string HelpMenuCapa = "🧾 O índice";
+    public const string HelpMenuCapaDescrição = "Todas as categorias de uma vez";
+
+    // A descrição de uma opção do menu: a conta e os nomes, que o Help corta se passar de 100.
+    public static string HelpMenuDescrição(int quantos, IEnumerable<string> nomes) =>
+        $"{quantos} · {string.Join(", ", nomes)}";
 
     public static string HelpCategoria(CommandCategory categoria) => categoria switch
     {

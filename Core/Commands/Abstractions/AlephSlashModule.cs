@@ -37,6 +37,19 @@ public abstract class AlephSlashModule : ApplicationCommandModule<ApplicationCom
             }));
 
     
+    // Embed com componentes: quem tem menu (o /help) responde por aqui.
+    protected Task RespondAsync(
+        EmbedProperties embed,
+        IEnumerable<IMessageComponentProperties> componentes,
+        bool ephemeral = false) =>
+        Context.Interaction.SendResponseAsync(
+            InteractionCallback.Message(new InteractionMessageProperties
+            {
+                Embeds = [embed],
+                Components = componentes,
+                Flags = ephemeral ? MessageFlags.Ephemeral : null,
+            }));
+
     // A resposta no formato novo (container com capa grande); ele e embed não convivem.
     protected Task RespondAsync(ComponentContainerProperties cartão, AttachmentProperties? anexo = null) =>
         Context.Interaction.SendResponseAsync(
