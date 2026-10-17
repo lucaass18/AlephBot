@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
 
+using AlephBot.Threnodian.Rede;
+
 namespace AlephBot.Threnodian.MyAnimeList;
 
 // A API oficial do MyAnimeList: pede Client ID, e atende quando MAL_CLIENT_ID está no .env.
@@ -17,12 +19,9 @@ public sealed class MalApi : IMyAnimeList, IDisposable
     private const string CamposAnime = CamposComuns + ",num_episodes,rating,studios";
     private const string CamposManga = CamposComuns + ",num_volumes,num_chapters,authors{first_name,last_name}";
 
-    private readonly HttpClient _http = new()
-    {
-        BaseAddress = new Uri(Endereço),
-        // a cadeia tenta as fontes em fila num prazo só: fonte muda tem que sair logo do caminho
-        Timeout = TimeSpan.FromSeconds(8),
-    };
+    // a cadeia tenta as fontes em fila num prazo só: fonte muda tem que sair logo do caminho
+    private readonly HttpClient _http =
+        ClienteHttp.Novo(TimeSpan.FromSeconds(8), new Uri(Endereço));
 
     public MalApi(string clientId)
     {

@@ -53,7 +53,9 @@ public sealed class ObrasEmCache(
             buscas = buscas.Where(b => b.VistoEm >= limite);
         }
 
+        // a ficha só vai virar embed: rastrear a obra e o elenco inteiro é trabalho jogado fora
         var achada = await buscas
+            .AsNoTracking()
             .Include(b => b.Obra!)
             .ThenInclude(o => o.Personagens)
             .FirstOrDefaultAsync(cancellationToken);
@@ -72,6 +74,7 @@ public sealed class ObrasEmCache(
         var padrão = $"%{ParaLike(termo)}%";
 
         return await db.Obras
+            .AsNoTracking()
             .Where(o => o.Tipo == tipo && EF.Functions.Like(o.Procura, padrão))
             .OrderByDescending(o => o.VistoEm)
             .Include(o => o.Personagens)

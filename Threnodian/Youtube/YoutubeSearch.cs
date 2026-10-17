@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 
+using AlephBot.Threnodian.Rede;
+
 namespace AlephBot.Threnodian.Youtube;
 
 // Busca de playlist pelo nome: o plugin só procura vídeo, então pergunto à API da página.
@@ -25,7 +27,7 @@ public sealed class YoutubeSearch : IDisposable
         },
     };
 
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private readonly HttpClient _http = ClienteHttp.Novo(TimeSpan.FromSeconds(15));
 
     public YoutubeSearch()
     {
