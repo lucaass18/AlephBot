@@ -47,6 +47,54 @@ public class ObrasEmCacheTests
         Assert.Equal(esperado, ObrasEmCache.Normaliza(digitado));
     }
 
+    // O "não achei" é em memória: vale sem Postgres, que é quando o /ma mais precisa dele.
+    [Fact]
+    public void O_não_achei_vale_sem_banco()
+    {
+        var guarda = SemBanco();
+
+        Assert.False(guarda.JáDeuEmNada(TipoDeObra.Anime, "asdhjk"));
+
+        guarda.DeuEmNada(TipoDeObra.Anime, "asdhjk");
+
+        Assert.True(guarda.JáDeuEmNada(TipoDeObra.Anime, "asdhjk"));
+    }
+
+    // A chave passa pela mesma normalização da busca: "  Sakamoto Días " é "sakamoto dias".
+    [Fact]
+    public void O_não_achei_não_liga_pra_acento_nem_caixa()
+    {
+        var guarda = SemBanco();
+
+        guarda.DeuEmNada(TipoDeObra.Anime, "  Sakamoto Días  ");
+
+        Assert.True(guarda.JáDeuEmNada(TipoDeObra.Anime, "sakamoto dias"));
+    }
+
+    // Anime e mangá são catálogos diferentes: não achar num não diz nada sobre o outro.
+    [Fact]
+    public void O_não_achei_é_por_tipo()
+    {
+        var guarda = SemBanco();
+
+        guarda.DeuEmNada(TipoDeObra.Anime, "berserk");
+
+        Assert.False(guarda.JáDeuEmNada(TipoDeObra.Manga, "berserk"));
+    }
+
+    // Passado o minuto, a pergunta volta à fonte: obra que estreou hoje tem que aparecer hoje.
+    [Fact]
+    public void O_não_achei_vence()
+    {
+        var guarda = SemBanco();
+
+        guarda.DeuEmNada(TipoDeObra.Anime, "obra que acabou de sair");
+
+        var depois = DateTimeOffset.UtcNow + ObrasEmCache.ValidadeDoNada + TimeSpan.FromSeconds(1);
+
+        Assert.False(guarda.JáDeuEmNada(TipoDeObra.Anime, "obra que acabou de sair", depois));
+    }
+
     // O termo vira padrão de Like: o "%" e o "_" de quem digitou são texto, e não curinga.
     [Theory]
     [InlineData("naruto", "naruto")]

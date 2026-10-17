@@ -207,6 +207,12 @@ public interface IFichasGuardadas
 
     // Guarda a ficha que foi mostrada, ligada ao que a pessoa digitou.
     Task GuardarAsync(string busca, Obra obra, CancellationToken cancellationToken = default);
+
+    // A fonte disse agora há pouco que não conhece isto? Vale sem banco: a memória é do processo.
+    bool JáDeuEmNada(TipoDeObra tipo, string busca);
+
+    // Anota que a fonte não conhece isto. Vale por pouco: obra nova entra no catálogo a qualquer hora.
+    void DeuEmNada(TipoDeObra tipo, string busca);
 }
 
 // Quem sabe procurar anime e mangá. Quem atende é a FontesEmCadeia, montada no boot.

@@ -1,4 +1,5 @@
 using AlephBot.Core.Commands.Anime;
+using AlephBot.Threnodian.Dados;
 using AlephBot.Threnodian.MyAnimeList;
 using AlephBot.Threnodian.Translation;
 
@@ -99,6 +100,44 @@ public class CacheDoMaTests
         Assert.NotNull(embed);
         Assert.Equal(1, fonte.Chamadas);
         Assert.Null(guarda.Guardada);
+    }
+
+    // Não achar fica anotado, pra próxima busca igual não custar a cadeia de fontes de novo.
+    [Fact]
+    public async Task Não_achar_fica_anotado()
+    {
+        var guarda = new GuardaFalsa();
+
+        await ProcurarAsync(new FonteFalsa([]), guarda, "asdhjk");
+
+        Assert.Equal(["asdhjk"], guarda.DeramEmNada);
+    }
+
+    // Fonte caída não é "não existe": anotar isso esconderia a obra por um minuto à toa.
+    [Fact]
+    public async Task Fonte_caída_não_conta_como_não_achei()
+    {
+        var guarda = new GuardaFalsa();
+
+        await ProcurarAsync(new FonteFalsa(new HttpRequestException("caiu")), guarda);
+
+        Assert.Empty(guarda.DeramEmNada);
+    }
+
+    // A segunda busca igual nem chega à fonte: é o limite dela que isto poupa.
+    [Fact]
+    public async Task Busca_que_não_achou_não_pergunta_de_novo()
+    {
+        var fonte = new FonteFalsa([]);
+        var guarda = new ObrasEmCache(null, null, NullLogger<ObrasEmCache>.Instance);
+
+        await ProcurarAsync(fonte, guarda, "asdhjk");
+
+        var (embed, erro) = await ProcurarAsync(fonte, guarda, "asdhjk");
+
+        Assert.Null(embed);
+        Assert.NotNull(erro);
+        Assert.Equal(1, fonte.Chamadas);
     }
 
     private sealed class FonteFalsa : IMyAnimeList

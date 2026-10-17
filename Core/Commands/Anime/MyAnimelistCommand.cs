@@ -197,6 +197,11 @@ internal static class MyAnimelist
         if (await Guardada(guarda, tipo, busca, Validade, cancellationToken) is { } fresca)
             return (await FichaAsync(fresca, tradutor, quemPediu, cancellationToken), null);
 
+        // a fonte disse agora há pouco que não conhece isto: perguntar de novo gasta o limite dela,
+        // que é de todo mundo, e o erro de digitação sai mais rápido pra quem digitou
+        if (guarda.JáDeuEmNada(tipo, busca))
+            return (null, Denia.MalNãoAchei(tipo, busca));
+
         IReadOnlyList<Obra> resultados;
 
         try
@@ -222,7 +227,12 @@ internal static class MyAnimelist
         }
 
         if (Escolhe(resultados, busca) is not { } obra)
+        {
+            // fonte viva que não conhece a obra; queda não passa por aqui, e não vira "não existe"
+            guarda.DeuEmNada(tipo, busca);
+
             return (null, Denia.MalNãoAchei(tipo, busca));
+        }
 
         // a sinopse em português entra antes de guardar, pro MangaDex não ser incomodado de novo
         obra = await EmPortuguêsAsync(mangadex, obra, cancellationToken);

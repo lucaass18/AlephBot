@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 
@@ -14,7 +15,59 @@ public sealed class ObrasEmCache(
     MigracaoDoBanco? banco,
     ILogger<ObrasEmCache> logger) : IFichasGuardadas
 {
+    // Quanto tempo o "não achei" vale. Curto: obra que estreou hoje tem que aparecer hoje.
+    internal static readonly TimeSpan ValidadeDoNada = TimeSpan.FromSeconds(60);
+
+    // Quantos "não achei" eu guardo. A chave é texto digitado: sem teto, spam viraria vazamento.
+    private const int NadaNoMáximo = 500;
+
+    // As buscas que não acharam nada, e quando. Em memória de propósito: valendo um minuto, perder
+    // isto num restart não custa nada, e o banco não fica com o lixo que alguém digitou.
+    private readonly ConcurrentDictionary<(TipoDeObra Tipo, string Termo), DateTimeOffset> _nada = new();
+
     public bool Disponível => fábrica is not null && banco?.Pronto == true;
+
+    public bool JáDeuEmNada(TipoDeObra tipo, string busca) =>
+        JáDeuEmNada(tipo, busca, DateTimeOffset.UtcNow);
+
+    // O agora entra de fora pro teste provar que vence, sem ficar um minuto parado esperando.
+    internal bool JáDeuEmNada(TipoDeObra tipo, string busca, DateTimeOffset agora)
+    {
+        var chave = (tipo, Normaliza(busca));
+
+        if (!_nada.TryGetValue(chave, out var quando))
+            return false;
+
+        if (agora - quando < ValidadeDoNada)
+            return true;
+
+        _nada.TryRemove(chave, out _);
+
+        return false;
+    }
+
+    public void DeuEmNada(TipoDeObra tipo, string busca)
+    {
+        if (_nada.Count >= NadaNoMáximo)
+            TiraOsVencidos();
+
+        // cheio mesmo depois da limpeza: deixo de anotar, que é melhor do que crescer sem fim
+        if (_nada.Count >= NadaNoMáximo)
+            return;
+
+        _nada[(tipo, Normaliza(busca))] = DateTimeOffset.UtcNow;
+    }
+
+    private void TiraOsVencidos()
+    {
+        var limite = DateTimeOffset.UtcNow - ValidadeDoNada;
+
+        foreach (var (chave, quando) in _nada)
+        {
+            if (quando < limite)
+                _nada.TryRemove(chave, out _);
+        }
+    }
 
     public async Task<Obra?> AcharAsync(
         TipoDeObra tipo, string busca, TimeSpan? validade, CancellationToken cancellationToken = default)
