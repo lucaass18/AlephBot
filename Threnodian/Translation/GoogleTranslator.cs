@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using AlephBot.Threnodian.Rede;
+
 using Microsoft.Extensions.Logging;
 
 namespace AlephBot.Threnodian.Translation;
@@ -9,7 +11,7 @@ public sealed class GoogleTranslator : IDisposable
 {
     private const string Endereço = "https://clients5.google.com/translate_a/t?client=dict-chrome-ex";
 
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private readonly HttpClient _http = ClienteHttp.Novo(TimeSpan.FromSeconds(10));
     private readonly ILogger<GoogleTranslator> _logger;
 
     public GoogleTranslator(ILogger<GoogleTranslator> logger)

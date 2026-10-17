@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using AlephBot.Config;
+using AlephBot.Threnodian.Rede;
 
 namespace AlephBot.Threnodian.Youtube;
 
@@ -16,7 +17,7 @@ public sealed class LavalinkYoutube : IDisposable
 
     public LavalinkYoutube(AlephConfig config)
     {
-        _http = new HttpClient { BaseAddress = config.LavalinkUri, Timeout = Espera };
+        _http = ClienteHttp.Novo(Espera, config.LavalinkUri);
 
         // a senha vai crua no Authorization, sem esquema — é assim que o Lavalink espera
         _http.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", config.LavalinkPassword);

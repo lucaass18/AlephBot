@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
+using AlephBot.Threnodian.Rede;
+
 namespace AlephBot.Threnodian.MyAnimeList;
 
 // O AniList: catálogo aberto, reserva do /ma desde o fim do Jikan. Guarda o id da obra no MAL.
@@ -64,12 +66,9 @@ public sealed class AniList : IMyAnimeList, IDisposable
 
     private static readonly Regex ParágrafoDemais = new(@"\n{3,}", RegexOptions.Compiled);
 
-    private readonly HttpClient _http = new()
-    {
-        BaseAddress = new Uri(Endereço),
-        // a cadeia tenta as fontes em fila num prazo só: fonte muda tem que sair logo do caminho
-        Timeout = TimeSpan.FromSeconds(8),
-    };
+    // a cadeia tenta as fontes em fila num prazo só: fonte muda tem que sair logo do caminho
+    private readonly HttpClient _http =
+        ClienteHttp.Novo(TimeSpan.FromSeconds(8), new Uri(Endereço));
 
     public string Nome => "AniList";
 

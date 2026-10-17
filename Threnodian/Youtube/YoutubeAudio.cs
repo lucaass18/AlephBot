@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using AlephBot.Config;
+using AlephBot.Threnodian.Rede;
 
 using Lavalink4NET;
 using Lavalink4NET.Rest.Entities.Tracks;
@@ -40,7 +41,7 @@ public sealed partial class YoutubeAudio : IDisposable
             config.YoutubeAudioUri,
             (endereço, cancellationToken) => áudio.Tracks.LoadTrackAsync(
                 endereço, TrackSearchMode.None, cancellationToken: cancellationToken),
-            new HttpClient { Timeout = Espera },
+            ClienteHttp.Novo(Espera),
             logger)
     {
     }
