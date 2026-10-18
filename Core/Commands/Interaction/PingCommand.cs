@@ -1,5 +1,5 @@
 using AlephBot.Core.Commands.Abstractions;
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 using AlephBot.Core.Personality;
 using NetCord;
 using NetCord.Rest;

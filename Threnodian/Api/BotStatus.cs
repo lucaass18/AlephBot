@@ -2,10 +2,11 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using AlephBot.Config;
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Commands;
 using AlephBot.Threnodian.Activity;
 // apelido de propósito: aqui "AlephBot" acha o namespace raiz antes da classe
-using Bot = AlephBot.Threnodian.Inicialização.AlephBot;
+using Bot = AlephBot.Threnodian.Boot.AlephBot;
 
 using Lavalink4NET;
 using Lavalink4NET.Players;

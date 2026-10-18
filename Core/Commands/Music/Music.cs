@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Youtube;
 

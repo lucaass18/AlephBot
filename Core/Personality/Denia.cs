@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 using AlephBot.Threnodian.Emojis;
 using AlephBot.Threnodian.MyAnimeList;
 

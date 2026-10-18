@@ -114,7 +114,7 @@ public class TamanhoDoPrefixoTests
     [InlineData("!!ping", "!!", 2)]
     public void O_prefixo_certo_diz_onde_o_comando_começa(string conteúdo, string prefixo, int tamanho)
     {
-        Assert.Equal(tamanho, AlephBot.Threnodian.Inicialização.AlephBot.TamanhoDoPrefixo(conteúdo, prefixo));
+        Assert.Equal(tamanho, AlephBot.Threnodian.Boot.AlephBot.TamanhoDoPrefixo(conteúdo, prefixo));
     }
 
     [Theory]
@@ -124,7 +124,7 @@ public class TamanhoDoPrefixoTests
     [InlineData("?ping", "!")]
     public void Mensagem_que_não_começa_com_o_prefixo_não_é_comando(string conteúdo, string prefixo)
     {
-        Assert.True(AlephBot.Threnodian.Inicialização.AlephBot.TamanhoDoPrefixo(conteúdo, prefixo) < 0);
+        Assert.True(AlephBot.Threnodian.Boot.AlephBot.TamanhoDoPrefixo(conteúdo, prefixo) < 0);
     }
 
     [Theory]
@@ -132,13 +132,13 @@ public class TamanhoDoPrefixoTests
     [InlineData("Alephping")]
     public void A_caixa_do_prefixo_não_importa(string conteúdo)
     {
-        Assert.Equal(5, AlephBot.Threnodian.Inicialização.AlephBot.TamanhoDoPrefixo(conteúdo, "aleph"));
+        Assert.Equal(5, AlephBot.Threnodian.Boot.AlephBot.TamanhoDoPrefixo(conteúdo, "aleph"));
     }
 
     [Fact]
     public void O_negativo_é_o_que_o_NetCord_entende_como_não_é_pra_mim()
     {
         // o NetCord testa "< 0"; um 0 aqui faria a mensagem inteira virar comando
-        Assert.True(AlephBot.Threnodian.Inicialização.AlephBot.NãoÉComando < 0);
+        Assert.True(AlephBot.Threnodian.Boot.AlephBot.NãoÉComando < 0);
     }
 }

@@ -1,4 +1,4 @@
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 
 using NetCord;
 using NetCord.Rest;

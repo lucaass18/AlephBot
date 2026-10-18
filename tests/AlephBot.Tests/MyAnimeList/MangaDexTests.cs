@@ -1,6 +1,5 @@
 using System.Text.Json;
 
-using AlephBot.Threnodian.MangáDex;
 using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Tests.MyAnimeList;

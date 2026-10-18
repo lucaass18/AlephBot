@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 
+using AlephBot.Core.Commands.Registro;
+
 namespace AlephBot.Threnodian.Api;
 
 // O documento OpenAPI, montado das próprias rotas: dele saem a coleção do Postman e as

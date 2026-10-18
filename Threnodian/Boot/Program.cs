@@ -1,7 +1,7 @@
 using AlephBot.Config;
 using AlephBot.Core.Personality;
 
-namespace AlephBot.Threnodian.Inicialização;
+namespace AlephBot.Threnodian.Boot;
 
 public static class Program
 {

@@ -3,7 +3,7 @@ using System.Reflection;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.Commands;
 
-namespace AlephBot.Core.Commands;
+namespace AlephBot.Core.Commands.Registro;
 
 // Um problema encontrado num comando — some sozinho quando a classe é corrigida.
 public sealed record CommandProblem(string Command, string Message);

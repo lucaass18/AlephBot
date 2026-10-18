@@ -3,7 +3,7 @@ using System.Text.Json;
 using AlephBot.Threnodian.MyAnimeList;
 using AlephBot.Threnodian.Rede;
 
-namespace AlephBot.Threnodian.MangáDex;
+namespace AlephBot.Threnodian.MyAnimeList;
 
 // O MangaDex: catálogo aberto de mangá, sem chave. Reserva do /ma, e com sinopse em português.
 public sealed class MangaDex : IMyAnimeList, ISinopseEmPortuguês, IDisposable
