@@ -6,15 +6,26 @@ namespace AlephBot.Tests.Commands;
 // sem ninguém arrastar arquivo no Developer Portal.
 public class EmojisEmbutidosTests
 {
-    private static readonly string[] Esperados =
+    // Os ícones dos rótulos da ficha.
+    private static readonly string[] DaFicha =
     [
         "ma_autoria", "ma_elenco", "ma_estudio", "ma_formato", "ma_generos",
         "ma_nota", "ma_periodo", "ma_ranking", "ma_situacao",
     ];
 
+    // Os de reação, que a Denia usa na fala. Grandes demais pra rótulo, bons numa frase.
+    private static readonly string[] DaDenia =
+    [
+        "idol_jidan", "idol_laco", "idol_oshi", "idol_suki", "idol_varinha",
+        "pastel_abraco", "pastel_adora", "pastel_himitsu", "pastel_look5",
+        "pastel_look6", "pastel_segredo", "pastel_surta", "pastel_torce",
+    ];
+
+    private static readonly string[] Esperados = [.. DaFicha.Concat(DaDenia).Order(StringComparer.Ordinal)];
+
     // Se o csproj parar de embutir, isto quebra aqui e não calado na VPS.
     [Fact]
-    public void Os_nove_emoji_estão_no_assembly()
+    public void Os_dois_grupos_estão_no_assembly()
     {
         Assert.Equal(Esperados, EmojisEmbutidos.Nomes());
     }
@@ -57,9 +68,9 @@ public class EmojisEmbutidosTests
     [Fact]
     public void Falta_só_o_que_o_app_não_tem()
     {
-        var noApp = Esperados.Where(n => n != "ma_nota" && n != "ma_elenco").ToArray();
+        var noApp = Esperados.Where(n => n != "ma_nota" && n != "pastel_surta").ToArray();
 
-        Assert.Equal(["ma_elenco", "ma_nota"], EmojisEmbutidos.QuaisFaltam(noApp));
+        Assert.Equal(["ma_nota", "pastel_surta"], EmojisEmbutidos.QuaisFaltam(noApp));
     }
 
     // Emoji de outra origem no app não confunde a conta.

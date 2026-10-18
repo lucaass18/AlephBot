@@ -49,6 +49,7 @@
     <!-- os emoji da ficha vão dentro do dll: o bot sobe eles sozinho no primeiro boot -->
     <ItemGroup>
       <EmbeddedResource Include="Core\Commands\Anime\Emojis\*.png" />
+      <EmbeddedResource Include="Core\Personality\Emojis\*.png" />
     </ItemGroup>
 
     <ItemGroup>
