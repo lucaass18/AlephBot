@@ -17,8 +17,14 @@ public static class EmojisDaFicha
         Marcações.TryGetValue(nome, out var marcação) ? marcação : null;
 
     // O rótulo do campo: com o emoji na frente quando ele existe, só a palavra quando não.
-    public static string Rótulo(string nome, string palavra) =>
-        Marcação(nome) is { } marcação ? $"{marcação} {palavra}" : palavra;
+    public static string Rótulo(string nome, string palavra) => Antes(nome, palavra);
+
+    // O mesmo numa fala da Denia. Nome diferente só pra ler certo em cada lugar.
+    // Vale em descrição de embed e em valor de campo; título e rodapé mostrariam o texto cru.
+    public static string Fala(string nome, string frase) => Antes(nome, frase);
+
+    private static string Antes(string nome, string texto) =>
+        Marcação(nome) is { } marcação ? $"{marcação} {texto}" : texto;
 
     internal static void Guarda(string nome, string id, bool animado) =>
         Marcações[nome] = animado ? $"<a:{nome}:{id}>" : $"<:{nome}:{id}>";

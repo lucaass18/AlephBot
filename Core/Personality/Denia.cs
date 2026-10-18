@@ -654,9 +654,9 @@ public static class Denia
     public static string MalGênero(string nome) =>
         Gêneros.TryGetValue(nome, out var traduzido) ? traduzido : nome;
 
-    public static string MalSemSinopse() => Pick(
+    public static string MalSemSinopse() => EmojisDaFicha.Fala("popuko_oopsie", Pick(
         "Sem sinopse no MAL. Ou ninguém escreveu, ou não tem o que contar.",
-        "O MAL não tem sinopse pra esse. Vai ter que descobrir por conta própria.");
+        "O MAL não tem sinopse pra esse. Vai ter que descobrir por conta própria."));
 
     // Quando o tradutor não respondeu e a sinopse ficou como o MAL guarda: em inglês.
     public static string MalSinopseEmInglês() =>
@@ -689,23 +689,26 @@ public static class Denia
     {
         var coisa = tipo == TipoDeObra.Anime ? "anime" : "mangá";
 
-        return Pick(
+        return EmojisDaFicha.Fala("popuko_sob", Pick(
             $"Procurei `{busca}` e o MAL não devolveu {coisa} nenhum. Confere a grafia, ou tenta o título original em romaji.",
-            $"`{busca}`? Nenhum {coisa} com esse nome no MAL. Nem eu conheço, e olha que eu não durmo.");
+            $"`{busca}`? Nenhum {coisa} com esse nome no MAL. Nem eu conheço, e olha que eu não durmo."));
     }
 
-    public static string MalFora() => Pick(
+    public static string MalFora() => EmojisDaFicha.Fala("popuko_urgh", Pick(
         "O MyAnimeList não respondeu. Ele faz isso de vez em quando — tenta de novo daqui a pouco.",
-        "O MAL tá fora do ar, ou fingindo que tá. Tenta mais tarde.");
+        "O MAL tá fora do ar, ou fingindo que tá. Tenta mais tarde."));
 
-    public static string MalCredencialRecusada() =>
-        "O MyAnimeList recusou meu Client ID. Confere o `MAL_CLIENT_ID` no `.env` — ou apaga ele, que eu me viro pelo AniList.";
+    public static string MalCredencialRecusada() => EmojisDaFicha.Fala(
+        "popuko_wutyousay",
+        "O MyAnimeList recusou meu Client ID. Confere o `MAL_CLIENT_ID` no `.env` — ou apaga ele, que eu me viro pelo AniList.");
 
-    public static string MalMangáÉOutroComando(string prefixo, string busca) =>
-        $"Mangá agora tem comando próprio: `{prefixo}mg {busca}` — ou `/mg`, se preferir a barra.";
+    public static string MalMangáÉOutroComando(string prefixo, string busca) => EmojisDaFicha.Fala(
+        "popuko_pat",
+        $"Mangá agora tem comando próprio: `{prefixo}mg {busca}` — ou `/mg`, se preferir a barra.");
 
-    public static string MalBuscaCurta(int mínimo) =>
-        $"O MAL não procura por menos de {mínimo} letras. Escreve mais um pouco.";
+    public static string MalBuscaCurta(int mínimo) => EmojisDaFicha.Fala(
+        "kanna_uhh",
+        $"O MAL não procura por menos de {mínimo} letras. Escreve mais um pouco.");
 
     private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
 
