@@ -1,4 +1,5 @@
 using AlephBot.Config;
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Commands;
 using AlephBot.Core.Personality;
 

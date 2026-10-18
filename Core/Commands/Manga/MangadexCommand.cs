@@ -1,13 +1,13 @@
 using AlephBot.Core.Commands.Abstractions;
 using AlephBot.Core.Commands.Anime;
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 using AlephBot.Threnodian.MyAnimeList;
 using AlephBot.Threnodian.Translation;
 
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.Commands;
 
-namespace AlephBot.Core.Commands.Mangá;
+namespace AlephBot.Core.Commands.Manga;
 
 // /mg — a ficha do mangá. A busca é a mesma do /ma; o que muda é o MangaDex no caminho.
 public sealed class MangadexCommand : AlephSlashModule

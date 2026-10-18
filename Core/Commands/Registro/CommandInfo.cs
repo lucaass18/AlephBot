@@ -1,7 +1,7 @@
 using AlephBot.Core.Commands.Abstractions;
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 
-namespace AlephBot.Core.Commands;
+namespace AlephBot.Core.Commands.Registro;
 
 public sealed record CommandInfo(
     string Name,

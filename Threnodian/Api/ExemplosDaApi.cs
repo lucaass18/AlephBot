@@ -1,6 +1,6 @@
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 // apelido de propósito: aqui "AlephBot" acha o namespace raiz antes da classe
-using Bot = AlephBot.Threnodian.Inicialização.AlephBot;
+using Bot = AlephBot.Threnodian.Boot.AlephBot;
 
 namespace AlephBot.Threnodian.Api;
 

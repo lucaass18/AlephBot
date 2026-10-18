@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 using AlephBot.Config;
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Commands;
 using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Activity;
@@ -11,7 +12,6 @@ using AlephBot.Threnodian.Dados;
 using AlephBot.Threnodian.Diagnostics;
 using AlephBot.Threnodian.Emojis;
 using AlephBot.Threnodian.Handlers;
-using AlephBot.Threnodian.MangáDex;
 using AlephBot.Threnodian.MyAnimeList;
 using AlephBot.Threnodian.Players;
 using AlephBot.Threnodian.Translation;
@@ -45,7 +45,7 @@ using NetCord.Services.Commands;
 using NLog.Extensions.Logging;
 
 
-namespace AlephBot.Threnodian.Inicialização;
+namespace AlephBot.Threnodian.Boot;
 
 public sealed class AlephBot
 {

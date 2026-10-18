@@ -1,4 +1,4 @@
-namespace AlephBot.Core.Commands.Interface;
+namespace AlephBot.Core.Commands.Contratos;
 
 public interface ICommand
 {

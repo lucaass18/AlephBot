@@ -1,7 +1,8 @@
 using System.Runtime.CompilerServices;
 
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Commands;
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.Commands;

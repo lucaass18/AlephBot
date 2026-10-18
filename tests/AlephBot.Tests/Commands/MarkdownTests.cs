@@ -1,3 +1,4 @@
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Commands;
 
 namespace AlephBot.Tests.Commands;

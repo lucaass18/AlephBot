@@ -1,11 +1,11 @@
 using System.Reflection;
 
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace AlephBot.Core.Commands;
+namespace AlephBot.Core.Commands.Registro;
 
 // Descobre por reflection todo ICommand do assembly; comando novo entra sem registro.
 public sealed class CommandRegistry

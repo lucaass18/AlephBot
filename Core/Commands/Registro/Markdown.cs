@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace AlephBot.Core.Commands;
+namespace AlephBot.Core.Commands.Registro;
 
 // Texto de fora vem com `[`, `]` e `*`, e um colchete solto quebra o markdown do Discord.
 internal static class Markdown

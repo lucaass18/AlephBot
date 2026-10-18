@@ -1,8 +1,9 @@
 using System.Reflection;
 
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Commands;
 using AlephBot.Core.Commands.Anime;
-using AlephBot.Core.Commands.Mangá;
+using AlephBot.Core.Commands.Manga;
 using AlephBot.Core.Personality;
 
 using NetCord.Services.ApplicationCommands;

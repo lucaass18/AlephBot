@@ -1,6 +1,7 @@
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Commands;
 using AlephBot.Core.Commands.Interaction;
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
 
 namespace AlephBot.Tests.Commands;
 

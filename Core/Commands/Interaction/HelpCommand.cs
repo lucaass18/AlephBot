@@ -1,6 +1,7 @@
 using AlephBot.Config;
 using AlephBot.Core.Commands.Abstractions;
-using AlephBot.Core.Commands.Interface;
+using AlephBot.Core.Commands.Contratos;
+using AlephBot.Core.Commands.Registro;
 using AlephBot.Core.Personality;
 
 using NetCord;
