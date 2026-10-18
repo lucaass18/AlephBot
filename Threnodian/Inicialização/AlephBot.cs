@@ -9,6 +9,7 @@ using AlephBot.Threnodian.Activity;
 using AlephBot.Threnodian.Api;
 using AlephBot.Threnodian.Dados;
 using AlephBot.Threnodian.Diagnostics;
+using AlephBot.Threnodian.Emojis;
 using AlephBot.Threnodian.Handlers;
 using AlephBot.Threnodian.MangáDex;
 using AlephBot.Threnodian.MyAnimeList;
@@ -137,6 +138,9 @@ public sealed class AlephBot
 
         builder.Services.AddHostedService<BotActivityService>();
         builder.Services.AddHostedService<CommandAuditService>();
+
+        // os emoji do app, lidos uma vez no boot; sem eles o rótulo é só a palavra
+        builder.Services.AddHostedService<CarregadorDeEmojis>();
 
         ConfigureBanco(builder.Services);
         ConfigureMusic(builder.Services);
