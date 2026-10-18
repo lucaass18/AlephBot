@@ -19,9 +19,18 @@ public class EmojisEmbutidosTests
         "idol_jidan", "idol_laco", "idol_oshi", "idol_suki", "idol_varinha",
         "pastel_abraco", "pastel_adora", "pastel_himitsu", "pastel_look5",
         "pastel_look6", "pastel_segredo", "pastel_surta", "pastel_torce",
+        "popuko_aiyee", "popuko_angry", "popuko_aww", "popuko_cool", "popuko_heckyea",
+        "popuko_hiss", "popuko_interdasting", "popuko_nyeh", "popuko_oopsie",
+        "popuko_pat", "popuko_pekpek", "popuko_screenie", "popuko_shock", "popuko_sob",
+        "popuko_strongshy", "popuko_uguu", "popuko_urgh", "popuko_whale",
+        "popuko_wutyousay", "kanna_drink", "kanna_uhh", "catgirl_blanket",
     ];
 
-    private static readonly string[] Esperados = [.. DaFicha.Concat(DaDenia).Order(StringComparer.Ordinal)];
+    // Os animados. O tipo tem que sair gif, senão o Discord sobe o quadro parado.
+    private static readonly string[] Animados = ["catgirl_cry", "catgirl_mad", "catgirl_okay"];
+
+    private static readonly string[] Esperados =
+        [.. DaFicha.Concat(DaDenia).Concat(Animados).Order(StringComparer.Ordinal)];
 
     // Se o csproj parar de embutir, isto quebra aqui e não calado na VPS.
     [Fact]
@@ -31,18 +40,45 @@ public class EmojisEmbutidosTests
     }
 
     [Fact]
-    public void Cada_um_traz_png_de_verdade()
+    public void Cada_um_traz_imagem_de_verdade()
     {
         foreach (var nome in Esperados)
         {
-            var png = EmojisEmbutidos.Bytes(nome);
+            var imagem = EmojisEmbutidos.Bytes(nome);
 
-            Assert.NotNull(png);
-            Assert.Equal<byte[]>([0x89, 0x50, 0x4E, 0x47], png![..4]);
+            Assert.NotNull(imagem);
+
+            var tipo = EmojisEmbutidos.Tipo(imagem!);
+            byte[] assinatura = tipo == "image/gif" ? [(byte)'G', (byte)'I', (byte)'F'] : [0x89, 0x50, 0x4E, 0x47];
+
+            Assert.Equal(assinatura, imagem![..assinatura.Length]);
 
             // o Discord recusa acima de 256 KB
-            Assert.True(png.Length < 256 * 1024, $"{nome} tem {png.Length} bytes");
+            Assert.True(imagem.Length < 256 * 1024, $"{nome} tem {imagem.Length} bytes");
         }
+    }
+
+    // GIF entregue como png sobe parado, e isso só apareceria olhando o emoji no Discord.
+    [Fact]
+    public void Os_animados_saem_como_gif()
+    {
+        foreach (var nome in Animados)
+        {
+            var imagem = EmojisEmbutidos.Bytes(nome);
+
+            Assert.NotNull(imagem);
+            Assert.Equal("image/gif", EmojisEmbutidos.Tipo(imagem!));
+            Assert.StartsWith("data:image/gif;base64,", EmojisEmbutidos.ParaDataUri(imagem!));
+        }
+    }
+
+    [Fact]
+    public void Os_parados_saem_como_png()
+    {
+        var imagem = EmojisEmbutidos.Bytes("ma_nota");
+
+        Assert.NotNull(imagem);
+        Assert.Equal("image/png", EmojisEmbutidos.Tipo(imagem!));
     }
 
     [Fact]

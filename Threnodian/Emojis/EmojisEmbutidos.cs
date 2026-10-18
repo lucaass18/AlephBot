@@ -6,7 +6,8 @@ namespace AlephBot.Threnodian.Emojis;
 // que arrastar arquivo no Developer Portal — nem agora, nem num app novo amanhã.
 internal static class EmojisEmbutidos
 {
-    private const string Sufixo = ".png";
+    // GIF é emoji animado; o Discord aceita os dois.
+    private static readonly string[] Sufixos = [".png", ".gif"];
 
     // Vale o que estiver numa pasta Emojis: a da ficha e a da Denia. O recorte é a pasta, e não
     // um prefixo de nome, pra png que entre no assembly por outro motivo não virar emoji.
@@ -46,9 +47,15 @@ internal static class EmojisEmbutidos
         return memória.ToArray();
     }
 
-    // O que o Discord aceita no campo image: o png em data URI.
-    internal static string ParaDataUri(byte[] png) =>
-        "data:image/png;base64," + Convert.ToBase64String(png);
+    // O que o Discord aceita no campo image. O tipo sai dos primeiros bytes e não da extensão:
+    // GIF entregue como image/png sobe parado, e o erro só apareceria olhando o emoji.
+    internal static string ParaDataUri(byte[] imagem) =>
+        $"data:{Tipo(imagem)};base64,{Convert.ToBase64String(imagem)}";
+
+    internal static string Tipo(byte[] imagem) =>
+        imagem.Length >= 3 && imagem[0] == (byte)'G' && imagem[1] == (byte)'I' && imagem[2] == (byte)'F'
+            ? "image/gif"
+            : "image/png";
 
     // Quem ainda não está no app. É o que separa o primeiro boot dos outros todos.
     internal static IReadOnlyList<string> QuaisFaltam(IEnumerable<string> noApp) =>
@@ -56,11 +63,12 @@ internal static class EmojisEmbutidos
 
     private static string? Nome(string recurso)
     {
-        if (!recurso.EndsWith(Sufixo, StringComparison.OrdinalIgnoreCase)
-            || !recurso.Contains(Pasta, StringComparison.Ordinal))
+        var sufixo = Array.Find(Sufixos, s => recurso.EndsWith(s, StringComparison.OrdinalIgnoreCase));
+
+        if (sufixo is null || !recurso.Contains(Pasta, StringComparison.Ordinal))
             return null;
 
-        var semExtensão = recurso[..^Sufixo.Length];
+        var semExtensão = recurso[..^sufixo.Length];
         var ponto = semExtensão.LastIndexOf('.');
         var nome = ponto < 0 ? semExtensão : semExtensão[(ponto + 1)..];
 

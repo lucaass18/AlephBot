@@ -4,8 +4,12 @@ Emoji de reação, pra Denia usar dentro de uma frase. São o par da pasta
 `Core/Commands/Anime/Emojis/`, que é a dos ícones de rótulo da ficha — e as duas servem a
 coisas opostas.
 
-O bot sobe estes sozinho no boot, junto dos outros: qualquer `.png` numa pasta chamada
-`Emojis` entra, e o nome do arquivo vira o nome do emoji.
+O bot sobe estes sozinho no boot, junto dos outros: qualquer `.png` ou `.gif` numa pasta
+chamada `Emojis` entra, e o nome do arquivo vira o nome do emoji.
+
+Os três `catgirl_*` em GIF são animados. O tipo que vai pro Discord sai dos **primeiros bytes**
+da imagem, e não da extensão do arquivo — GIF entregue como `image/png` sobe parado, e isso só
+apareceria olhando o emoji já no servidor.
 
 ## Não servem como ícone de rótulo
 
@@ -26,6 +30,7 @@ Dois pacotes da comunidade do [emoji.gg](https://emoji.gg):
 |---|---|
 | `312234-red-idol-pack` | `idol_jidan`, `idol_laco`, `idol_oshi`, `idol_suki`, `idol_varinha` |
 | `825234-pastel-pack-v2` | `pastel_abraco`, `pastel_adora`, `pastel_himitsu`, `pastel_look5`, `pastel_look6`, `pastel_segredo`, `pastel_surta`, `pastel_torce` |
+| `1392-anime-emoji-sets` | os 19 `popuko_*`, `kanna_drink`, `kanna_uhh`, `catgirl_blanket`, e os animados `catgirl_cry`, `catgirl_mad`, `catgirl_okay` |
 
 Os nomes originais vinham com o id do emoji.gg na frente e hífen no meio
 (`196031-idolredjidan.png`), e o Discord só aceita letra, número e sublinhado — por isso foram
