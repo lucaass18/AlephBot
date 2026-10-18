@@ -1,17 +1,20 @@
 # Os emoji da ficha do /ma
 
-Estes PNGs **não entram no build**. O Discord é quem hospeda emoji customizado: o arquivo é
-subido uma vez como Application Emoji e o embed passa a referenciar `<:nome:id>`. Eles ficam
-aqui por procedência e licença, e para poder subir de novo sem refazer o trabalho.
+O Discord é quem hospeda emoji customizado: o arquivo é subido uma vez como Application Emoji
+e o embed passa a referenciar `<:nome:id>`.
 
-## Como subir
+## Ninguém sobe à mão
 
-Developer Portal → o app do AlephBot → aba **Emojis** → arrastar os nove arquivos. O nome do
-emoji tem que ser igual ao nome do arquivo, sem o `.png`, porque é por ele que o bot acha o id
-no boot. Pela API dá no mesmo: `POST /applications/{id}/emojis` com `{name, image}`, a imagem
-num data URI `data:image/png;base64,...`.
+Estes PNGs vão **embutidos no dll**. No boot o bot pergunta ao Discord quais emoji o app já
+tem, sobe os que faltam e só então monta o mapa de ids. No primeiro boot ele sobe os nove; nos
+seguintes não sobe nada, porque não falta nada. Trocar de app ou recriar o bot não dá trabalho
+novo: ele se abastece de novo sozinho.
 
-Faltando algum, o rótulo daquele campo sai só com a palavra. Nada quebra.
+O nome do arquivo, sem o `.png`, é o nome do emoji — é por ele que o bot acha o id depois.
+Renomear um arquivo aqui sem mexer no `Denia.cs` faz aquele rótulo cair na palavra sozinha.
+
+Falhando a subida (token sem permissão, Discord fora), o rótulo daquele campo sai só com a
+palavra. Nada quebra, e o log diz o que aconteceu.
 
 ## Quem é quem
 
