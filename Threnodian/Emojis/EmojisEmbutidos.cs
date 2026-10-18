@@ -8,8 +8,13 @@ internal static class EmojisEmbutidos
 {
     private const string Sufixo = ".png";
 
-    // Só os da ficha: o prefixo evita subir qualquer png que entre no assembly por outro motivo.
-    private const string Prefixo = "ma_";
+    // Vale o que estiver numa pasta Emojis: a da ficha e a da Denia. O recorte é a pasta, e não
+    // um prefixo de nome, pra png que entre no assembly por outro motivo não virar emoji.
+    private const string Pasta = ".Emojis.";
+
+    // O que o Discord aceita como nome: letra, número e sublinhado, de 2 a 32.
+    private static bool NomeVálido(string nome) =>
+        nome.Length is >= 2 and <= 32 && nome.All(c => char.IsAsciiLetterOrDigit(c) || c == '_');
 
     private static readonly Assembly Assembly = typeof(EmojisEmbutidos).GetTypeInfo().Assembly;
 
@@ -51,13 +56,14 @@ internal static class EmojisEmbutidos
 
     private static string? Nome(string recurso)
     {
-        if (!recurso.EndsWith(Sufixo, StringComparison.OrdinalIgnoreCase))
+        if (!recurso.EndsWith(Sufixo, StringComparison.OrdinalIgnoreCase)
+            || !recurso.Contains(Pasta, StringComparison.Ordinal))
             return null;
 
         var semExtensão = recurso[..^Sufixo.Length];
         var ponto = semExtensão.LastIndexOf('.');
         var nome = ponto < 0 ? semExtensão : semExtensão[(ponto + 1)..];
 
-        return nome.StartsWith(Prefixo, StringComparison.Ordinal) ? nome : null;
+        return NomeVálido(nome) ? nome : null;
     }
 }
