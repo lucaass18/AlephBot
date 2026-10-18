@@ -10,6 +10,9 @@ using NetCord.Rest;
 namespace AlephBot.Tests.MyAnimeList;
 
 // O que o embed do /ma passa a mostrar: o elenco, e a idade do dado quando ele é velho.
+// Na mesma coleção dos emoji porque lê os rótulos, e o mapa deles é do processo inteiro:
+// em paralelo, um teste mexendo no mapa mudaria o nome do campo que este aqui procura.
+[Collection("emoji")]
 public class FichaDoMaTests
 {
     private static readonly GoogleTranslator Tradutor = new(NullLogger<GoogleTranslator>.Instance);

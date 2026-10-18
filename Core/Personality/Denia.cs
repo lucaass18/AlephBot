@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 
 using AlephBot.Core.Commands.Interface;
+using AlephBot.Threnodian.Emojis;
 using AlephBot.Threnodian.MyAnimeList;
 
 namespace AlephBot.Core.Personality;
@@ -519,22 +520,25 @@ public static class Denia
     public static string MalTítulo(TipoDeObra tipo, string título) =>
         $"{(tipo == TipoDeObra.Anime ? "📺" : "📖")} {título}";
 
-    // Os rótulos vão sem emoji: oito pictogramas de oito famílias brigavam entre si, e o
-    // Discord já põe nome de campo em negrito. O do título fica, que ali ele diz o tipo da obra.
-    public const string MalCampoNota = "Nota";
-    public const string MalCampoRanking = "Ranking";
-    public const string MalCampoSituação = "Situação";
-    public const string MalCampoGêneros = "Gêneros";
-    public const string MalCampoElenco = "Elenco";
+    // Os rótulos levam o emoji do próprio app, de uma família só. Sem eles subidos, sai a
+    // palavra sozinha — que é o que o Discord já mostra em negrito. O do título fica como está,
+    // que ali o pictograma diz o tipo da obra em vez de enfeitar.
+    public static string MalCampoNota => EmojisDaFicha.Rótulo("ma_nota", "Nota");
+    public static string MalCampoRanking => EmojisDaFicha.Rótulo("ma_ranking", "Ranking");
+    public static string MalCampoSituação => EmojisDaFicha.Rótulo("ma_situacao", "Situação");
+    public static string MalCampoGêneros => EmojisDaFicha.Rótulo("ma_generos", "Gêneros");
+    public static string MalCampoElenco => EmojisDaFicha.Rótulo("ma_elenco", "Elenco");
 
-    // Sem o emoji, anime e mangá dizem a mesma palavra aqui; o tipo some da assinatura.
-    public const string MalCampoFormato = "Formato";
+    // Anime e mangá dizem a mesma palavra aqui; o tipo não muda nada.
+    public static string MalCampoFormato => EmojisDaFicha.Rótulo("ma_formato", "Formato");
 
     public static string MalCampoPeríodo(TipoDeObra tipo) =>
-        tipo == TipoDeObra.Anime ? "Exibição" : "Publicação";
+        EmojisDaFicha.Rótulo("ma_periodo", tipo == TipoDeObra.Anime ? "Exibição" : "Publicação");
 
     public static string MalCampoAutoria(TipoDeObra tipo) =>
-        tipo == TipoDeObra.Anime ? "Estúdio" : "Autoria";
+        tipo == TipoDeObra.Anime
+            ? EmojisDaFicha.Rótulo("ma_estudio", "Estúdio")
+            : EmojisDaFicha.Rótulo("ma_autoria", "Autoria");
 
     // Os outros nomes da obra, na linha de cima da sinopse. Eles já vêm em negrito.
     public static string MalTambémConhecida(string nomes) =>
