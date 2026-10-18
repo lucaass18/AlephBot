@@ -46,6 +46,11 @@
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     </ItemGroup>
 
+    <!-- os emoji da ficha vão dentro do dll: o bot sobe eles sozinho no primeiro boot -->
+    <ItemGroup>
+      <EmbeddedResource Include="Core\Commands\Anime\Emojis\*.png" />
+    </ItemGroup>
+
     <ItemGroup>
       <None Update="nlog.config">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
