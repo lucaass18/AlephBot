@@ -31,6 +31,11 @@ Dois pacotes da comunidade do [emoji.gg](https://emoji.gg):
 | `312234-red-idol-pack` | `idol_jidan`, `idol_laco`, `idol_oshi`, `idol_suki`, `idol_varinha` |
 | `825234-pastel-pack-v2` | `pastel_abraco`, `pastel_adora`, `pastel_himitsu`, `pastel_look5`, `pastel_look6`, `pastel_segredo`, `pastel_surta`, `pastel_torce` |
 | `1392-anime-emoji-sets` | os 19 `popuko_*`, `kanna_drink`, `kanna_uhh`, `catgirl_blanket`, e os animados `catgirl_cry`, `catgirl_mad`, `catgirl_okay` |
+| `9364-animal-onesies` | os `onesie_*` e `kitty_*`, mais `catgirl_espia` e `catgirl_aconchego`; dez deles animados |
+
+Um deles, o `onesie_pepepanda`, vinha com extensão `.png` e era **WebP** por dentro. O Discord
+aceita PNG, JPEG e GIF, então foi convertido de verdade. Vale desconfiar: o teste confere a
+assinatura dos bytes de todos, justamente porque extensão mente.
 
 Os nomes originais vinham com o id do emoji.gg na frente e hífen no meio
 (`196031-idolredjidan.png`), e o Discord só aceita letra, número e sublinhado — por isso foram
