@@ -50,6 +50,7 @@
     <ItemGroup>
       <EmbeddedResource Include="Core\Commands\Anime\Emojis\*.png" />
       <EmbeddedResource Include="Core\Personality\Emojis\*.png" />
+      <EmbeddedResource Include="Core\Personality\Emojis\*.gif" />
     </ItemGroup>
 
     <ItemGroup>
