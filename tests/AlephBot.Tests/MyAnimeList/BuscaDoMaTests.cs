@@ -10,6 +10,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace AlephBot.Tests.MyAnimeList;
 
 // Título de isekai vem com subtítulo colado e "~" no lugar do ":"; o /ma tenta sem ele.
+// Na coleção dos emoji porque compara igualdade exata com uma fala da Denia, e as falas
+// consultam o mapa de emoji — que é do processo inteiro. Em paralelo, os dois lados da
+// comparação pegariam o mapa em momentos diferentes.
+[Collection("emoji")]
 public class BuscaDoMaTests
 {
     private const string Inteiro =
