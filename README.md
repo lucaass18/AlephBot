@@ -246,8 +246,9 @@ A pasta `Postman/` tem a coleção e o environment desta API, prontos pro *Impor
 | `AlephBot.postman_environment.json` | `baseUrl`, o endereço, e `apiKey`, a sua `API_KEY`. Ela fica vazia aqui, e um teste da suíte existe só pra ela nunca sair cheia |
 
 Importe os dois, escolha o environment **AlephBot** e preencha a `apiKey`. O `baseUrl` já vem
-em `http://127.0.0.1:8080`, que é o que o túnel SSH entrega; pra falar com a VPS pelo Funnel,
-troque pelo endereço `.ts.net`. Se preferir montar a coleção você mesmo, o Postman importa o
+em `https://aleph.tailc38add.ts.net`, a VPS pelo Funnel — é o único que o Postman da web alcança,
+porque o Cloud Agent dele recusa endereço local. Pelo túnel SSH, troque por `http://127.0.0.1:8080`
+e use o Desktop Agent ou o app instalado. Se preferir montar a coleção você mesmo, o Postman importa o
 `/api/v1/openapi.json` direto.
 
 A coleção não envelhece sozinha: um teste da suíte confere, a cada `dotnet test`, que toda rota
