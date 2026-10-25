@@ -393,10 +393,13 @@ services:
       API_DOMAIN: ${API_DOMAIN:-}
 
     # a 80 só serve pro desafio do Let's Encrypt e pra mandar quem chega por http pro https
+    #
+    # PROXY_BIND é o IP interno da VPS (na AWS, o 172.31.x da instância): o tailscaled já
+    # escuta na 80 e na 443 do IP dele, pro Funnel, e o 0.0.0.0 de fábrica esbarra nisso
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "${PROXY_BIND:-0.0.0.0}:80:80"
+      - "${PROXY_BIND:-0.0.0.0}:443:443"
+      - "${PROXY_BIND:-0.0.0.0}:443:443/udp"
 
     volumes:
       - ./Caddy/Caddyfile:/etc/caddy/Caddyfile:ro

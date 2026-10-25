@@ -259,7 +259,15 @@ Pra ligar, na VPS:
    ```
 
    O `COMPOSE_PROFILES` faz o `docker compose up` subir o Caddy junto, sem precisar lembrar do
-   `--profile`.
+   `--profile`. Com o Funnel ligado, o `tailscaled` já ocupa a 80 e a 443 do IP do Tailscale, e o
+   Caddy em `0.0.0.0` falha com `address already in use`. Prenda ele no IP interno da instância
+   — o IP elástico da AWS chega nele:
+
+   ```bash
+   echo "PROXY_BIND=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4 \
+     -H "X-aws-ec2-metadata-token: $(curl -s -X PUT http://169.254.169.254/latest/api/token \
+     -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')")" >> .env
+   ```
 3. `docker compose up -d`, e confira:
 
    ```bash
