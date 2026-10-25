@@ -3,7 +3,9 @@ using System.Net.WebSockets;
 using AlephBot.Core.Commands.Music;
 
 using Lavalink4NET.Players.Queued;
+using Lavalink4NET.Protocol.Models;
 using Lavalink4NET.Rest.Entities.Tracks;
+using Lavalink4NET.Tracks;
 
 namespace AlephBot.Tests.Commands;
 
@@ -121,6 +123,119 @@ public class MusicTests
     {
         Assert.Equal(TrackSearchMode.None, Music.ModoDeBusca("https://www.youtube.com/watch?v=x"));
         Assert.Equal(TrackSearchMode.YouTube, Music.ModoDeBusca("never gonna give you up"));
+    }
+
+    // ---- reserva no SoundCloud -------------------------------------------------
+
+    private static readonly LavalinkTrack DoSoundCloud = new()
+    {
+        Title = "Never Gonna Give You Up",
+        Identifier = "sc-1",
+        Author = "Rick Astley",
+        SourceName = "soundcloud",
+    };
+
+    private static readonly TrackLoadResult QuebradoNoYouTube =
+        TrackLoadResult.CreateError(new TrackException(ExceptionSeverity.Suspicious, "This video requires login", null));
+
+    // Responde por modo de busca e anota a ordem em que eles foram pedidos.
+    private static Func<TrackSearchMode, CancellationToken, ValueTask<TrackLoadResult>> Lavalink(
+        List<TrackSearchMode> pedidos, TrackLoadResult youtube, TrackLoadResult soundcloud) =>
+        (modo, _) =>
+        {
+            pedidos.Add(modo);
+            return ValueTask.FromResult(modo == TrackSearchMode.SoundCloud ? soundcloud : youtube);
+        };
+
+    [Fact]
+    public async Task Nome_que_o_YouTube_não_acha_vai_pro_SoundCloud()
+    {
+        List<TrackSearchMode> pedidos = [];
+
+        var (resultado, erro) = await Music.BuscarAsync(
+            Lavalink(pedidos, TrackLoadResult.CreateEmpty(), TrackLoadResult.CreateSearch([DoSoundCloud])),
+            "never gonna give you up");
+
+        Assert.Null(erro);
+        Assert.Equal("soundcloud", resultado.Track!.SourceName);
+        Assert.Equal([TrackSearchMode.YouTube, TrackSearchMode.SoundCloud], pedidos);
+    }
+
+    [Fact]
+    public async Task Nome_que_o_YouTube_recusa_vai_pro_SoundCloud()
+    {
+        List<TrackSearchMode> pedidos = [];
+
+        var (resultado, erro) = await Music.BuscarAsync(
+            Lavalink(pedidos, QuebradoNoYouTube, TrackLoadResult.CreateSearch([DoSoundCloud])),
+            "never gonna give you up");
+
+        Assert.Null(erro);
+        Assert.Equal("sc-1", resultado.Track!.Identifier);
+    }
+
+    [Fact]
+    public async Task Sem_nada_no_SoundCloud_vale_o_erro_do_YouTube()
+    {
+        List<TrackSearchMode> pedidos = [];
+
+        var (_, erro) = await Music.BuscarAsync(
+            Lavalink(pedidos, QuebradoNoYouTube, TrackLoadResult.CreateEmpty()),
+            "never gonna give you up");
+
+        Assert.Contains("This video requires login", erro);
+    }
+
+    [Fact]
+    public async Task Sem_nada_nos_dois_vale_o_que_o_YouTube_disse()
+    {
+        List<TrackSearchMode> pedidos = [];
+
+        var (resultado, _) = await Music.BuscarAsync(
+            Lavalink(pedidos, TrackLoadResult.CreateEmpty(), TrackLoadResult.CreateEmpty()),
+            "never gonna give you up");
+
+        Assert.False(resultado.HasMatches);
+        Assert.Equal([TrackSearchMode.YouTube, TrackSearchMode.SoundCloud], pedidos);
+    }
+
+    [Fact]
+    public async Task Se_o_YouTube_acha_o_SoundCloud_nem_é_chamado()
+    {
+        List<TrackSearchMode> pedidos = [];
+        var doYouTube = DoSoundCloud with { Identifier = "yt-1", SourceName = "youtube" };
+
+        var (resultado, _) = await Music.BuscarAsync(
+            Lavalink(pedidos, TrackLoadResult.CreateSearch([doYouTube]), TrackLoadResult.CreateSearch([DoSoundCloud])),
+            "never gonna give you up");
+
+        Assert.Equal("yt-1", resultado.Track!.Identifier);
+        Assert.Equal([TrackSearchMode.YouTube], pedidos);
+    }
+
+    [Fact]
+    public async Task Link_não_tem_reserva()
+    {
+        List<TrackSearchMode> pedidos = [];
+
+        var (_, erro) = await Music.BuscarAsync(
+            Lavalink(pedidos, QuebradoNoYouTube, TrackLoadResult.CreateSearch([DoSoundCloud])),
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+
+        Assert.NotNull(erro);
+        Assert.Equal([TrackSearchMode.None], pedidos);
+    }
+
+    [Fact]
+    public async Task Servidor_fora_na_reserva_não_esconde_o_que_o_YouTube_disse()
+    {
+        var (_, erro) = await Music.BuscarAsync(
+            (modo, _) => modo == TrackSearchMode.SoundCloud
+                ? throw new HttpRequestException("connection refused")
+                : ValueTask.FromResult(QuebradoNoYouTube),
+            "never gonna give you up");
+
+        Assert.Contains("This video requires login", erro);
     }
 
     // ---- erros ---------------------------------------------------------------

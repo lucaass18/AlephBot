@@ -257,16 +257,34 @@ internal static class Music
         if (await EsperarServidorAsync(áudio, cancellationToken) is { } fora)
             return (default, fora);
 
+        return await BuscarAsync(
+            (modo, cancelar) => áudio.Tracks.LoadTracksAsync(busca, modo, cancellationToken: cancelar),
+            busca,
+            cancellationToken);
+    }
+
+    // A busca em si, separada do Lavalink pra dar pra testar a reserva sem servidor nenhum.
+    internal static async Task<(TrackLoadResult Resultado, string? Erro)> BuscarAsync(
+        Func<TrackSearchMode, CancellationToken, ValueTask<TrackLoadResult>> carregar,
+        string busca,
+        CancellationToken cancellationToken = default)
+    {
         TrackLoadResult resultado;
 
         try
         {
-            resultado = await áudio.Tracks.LoadTracksAsync(
-                busca, ModoDeBusca(busca), cancellationToken: cancellationToken);
+            resultado = await carregar(ModoDeBusca(busca), cancellationToken);
         }
         catch (Exception ex) when (ÉServidorFora(ex))
         {
             return (default, Denia.MúsicaServidorFora());
+        }
+
+        // nome que o YouTube não achou, ou que ele recusou, ainda tem a chance do SoundCloud
+        if (PedeReserva(busca, resultado)
+            && await NoSoundCloudAsync(carregar, cancellationToken) is { HasMatches: true } reserva)
+        {
+            return (reserva, null);
         }
 
         if (resultado.IsFailed)
@@ -276,6 +294,26 @@ internal static class Music
         }
 
         return (resultado, null);
+    }
+
+    // Só busca por nome tem reserva: link é de uma fonte só, e outra fonte tocaria outra coisa.
+    internal static bool PedeReserva(string busca, TrackLoadResult resultado) =>
+        !ÉLink(busca) && (resultado.IsFailed || !resultado.HasMatches);
+
+    // A reserva não tem erro próprio: falhando, vale o que o YouTube já tinha dito.
+    private static async Task<TrackLoadResult?> NoSoundCloudAsync(
+        Func<TrackSearchMode, CancellationToken, ValueTask<TrackLoadResult>> carregar,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var reserva = await carregar(TrackSearchMode.SoundCloud, cancellationToken);
+            return reserva.IsFailed ? null : reserva;
+        }
+        catch (Exception ex) when (ÉServidorFora(ex))
+        {
+            return null;
+        }
     }
 
     // A espera que começou antes de alguém precisar dela. Se o comando desistir no caminho — o
