@@ -887,6 +887,9 @@ public static class Denia
     public static string ApiChaveErrada() =>
         "Essa chave não abre nada aqui.";
 
+    public static string ApiDocumentoFechado(string header, string entrar) =>
+        $"O documento não é pra qualquer um. Manda a chave no header {header}, ou entra por {entrar}.";
+
     public static string ApiPedidosDemais(int segundos) =>
         $"Devagar: é pedido demais pra um minuto só. Volta em {segundos} s.";
 

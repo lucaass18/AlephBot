@@ -47,10 +47,19 @@ public class VersionamentoTests(ApiFixture fixture) : IClassFixture<ApiFixture>
     }
 
     [Fact]
-    public async Task A_raiz_entrega_o_documento_da_versão_atual()
+    public async Task A_raiz_leva_pra_tela_de_entrar()
     {
-        // a porta da frente: 302 porque, quando nascer a v2, é pra ela que a raiz vai levar
         var (status, _, headers) = await _api.GetComHeadersAsync("/");
+
+        Assert.Equal(302, status);
+        Assert.Equal("/api/docs", headers.Location.ToString());
+    }
+
+    [Fact]
+    public async Task De_dentro_a_tela_de_entrar_passa_direto_pro_documento_da_versão_atual()
+    {
+        // 302 porque, quando nascer a v2, é pra ela que a entrada vai levar
+        var (status, _, headers) = await _api.GetComHeadersAsync("/api/docs");
 
         Assert.Equal(302, status);
         Assert.Equal("/api/v1/openapi.json", headers.Location.ToString());

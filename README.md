@@ -219,11 +219,14 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 > sudo tailscale funnel --bg http://127.0.0.1:8080
 > ```
 >
-> A raiz do endereço leva pro documento da API, e o resto responde nos caminhos dele. O que
-> chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
+> A raiz do endereço leva pra tela de entrar (`/api/docs`), e o resto responde nos caminhos dele.
+> O que chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
 >
-> - `health` e `status` são abertos — é o que monitor de uptime e página de status chamam —,
->   e o documento também: ele descreve a API, não entrega dado nenhum do bot;
+> - `health` e `status` são abertos — é o que monitor de uptime e página de status chamam;
+> - o documento (`/api/v1/openapi.json`) só abre pra quem entrou com a `API_KEY` em `/api/docs`
+>   — fica um biscoito de 30 dias, que morre quando o contêiner é recriado; `/api/docs/sair`
+>   apaga ele — ou pra quem manda a chave no header `X-Api-Key`. Navegador sem isso vai pra tela
+>   de entrar; programa leva **401**;
 > - `stats` e `commands` pedem a `API_KEY` no header `X-Api-Key`; sem ela, ou com ela errada,
 >   **401**, e a tentativa fica no log com o IP de quem tentou;
 > - 60 pedidos por minuto por IP ([limite de pedidos](#limite-de-pedidos)) — passou disso,

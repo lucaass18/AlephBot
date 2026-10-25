@@ -216,8 +216,10 @@ public static partial class ApiDocs
         app.MapGet("/api/openapi.json", () => Results.Redirect(atual, permanent: true))
             .ExcludeFromDescription();
 
-        // a raiz é a porta da frente: não há página pra abrir, então ela entrega o documento
-        app.MapGet("/", () => Results.Redirect(atual))
+        LoginDoDocumento.Map(app);
+
+        // a raiz é a porta da frente: leva pra tela de entrar, e quem já pode ler passa direto
+        app.MapGet("/", () => Results.Redirect(LoginDoDocumento.Entrar))
             .ExcludeFromDescription();
     }
 }

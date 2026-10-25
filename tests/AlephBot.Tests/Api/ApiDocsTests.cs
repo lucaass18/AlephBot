@@ -155,7 +155,11 @@ public class ApiDocsTests(ApiFixture fixture) : IClassFixture<ApiFixture>
         var (_, corpo) = await _api.GetAsync(
             "/api/v1/openapi.json",
             host: "aleph.tailc38add.ts.net",
-            headers: [PeloFunnel, ("X-Forwarded-Proto", "https"), ("X-Forwarded-For", "203.0.113.9")]);
+            headers:
+            [
+                PeloFunnel, ("X-Forwarded-Proto", "https"), ("X-Forwarded-For", "203.0.113.9"),
+                ("X-Api-Key", ApiDeTeste.ChaveDaApi),
+            ]);
 
         Assert.Equal("https://aleph.tailc38add.ts.net", (string?)JsonNode.Parse(corpo)!["servers"]![0]!["url"]);
     }

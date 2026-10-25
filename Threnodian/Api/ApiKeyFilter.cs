@@ -31,19 +31,26 @@ public sealed class ApiKeyFilter : IEndpointFilter
         if (enviada.Length == 0)
             return Recusa(Denia.ApiSemChave(Header));
 
-        if (!CryptographicOperations.FixedTimeEquals(Hash(enviada), _esperada))
-        {
-            // pedido sem chave é varredura; chave errada é alguém tentando, e isso eu anoto
-            _logger.LogWarning(
-                "Chave errada na API: {Método} {Caminho} vindo de {Ip}",
-                context.HttpContext.Request.Method,
-                context.HttpContext.Request.Path,
-                context.HttpContext.Connection.RemoteIpAddress);
-
+        if (!Confere(context.HttpContext, enviada))
             return Recusa(Denia.ApiChaveErrada());
-        }
 
         return next(context);
+    }
+
+    // Se a chave é a da API. Vale também pra tela de entrar do documento.
+    public bool Confere(HttpContext http, string enviada)
+    {
+        if (CryptographicOperations.FixedTimeEquals(Hash(enviada), _esperada))
+            return true;
+
+        // pedido sem chave é varredura; chave errada é alguém tentando, e isso eu anoto
+        _logger.LogWarning(
+            "Chave errada na API: {Método} {Caminho} vindo de {Ip}",
+            http.Request.Method,
+            http.Request.Path,
+            http.Connection.RemoteIpAddress);
+
+        return false;
     }
 
     private static ValueTask<object?> Recusa(string motivo) =>

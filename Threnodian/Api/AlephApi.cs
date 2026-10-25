@@ -70,6 +70,9 @@ public static class AlephApi
 
         ConfiguraOCors(builder.Services, api);
 
+        // assina o biscoito do documento; a chave fica no processo, e contêiner novo pede entrada
+        builder.Services.AddDataProtection();
+
         builder.Services.AddSingleton(api);
         builder.Services.AddSingleton<ApiKeyFilter>();
         builder.Services.AddSingleton<BotStatus>();
@@ -137,6 +140,7 @@ public static class AlephApi
         app.UseCors(Cors);
 
         LimiteDePedidos.Use(app);
+        LoginDoDocumento.Use(app);
 
         // o 429 vale pra toda rota, e o documento conta isso em cada uma
         var v1 = app.NewVersionedApi("AlephBot")
