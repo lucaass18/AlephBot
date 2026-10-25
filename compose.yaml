@@ -368,6 +368,54 @@ services:
         limits:
           memory: 384M
 
+  # O HTTPS na frente da API, com certificado do Let's Encrypt: a porta de fora que não depende
+  # do Tailscale. Fora do `up` pelo profile — liga com COMPOSE_PROFILES=proxy no .env da raiz,
+  # junto do API_DOMAIN, e as portas 80 e 443 abertas no security group da AWS
+  caddy:
+    image: caddy:2.10.2-alpine
+    container_name: alephbot-caddy
+
+    profiles:
+      - proxy
+
+    networks:
+      - interna
+
+    restart: unless-stopped
+
+    depends_on:
+      - alephbot
+
+    environment:
+      TZ: America/Sao_Paulo
+      # sem `:?` de propósito: o compose resolve a variável até com o profile desligado, e aí
+      # quem não usa o proxy não subiria nada. Vazio, o Caddy recusa o Caddyfile e diz por quê
+      API_DOMAIN: ${API_DOMAIN:-}
+
+    # a 80 só serve pro desafio do Let's Encrypt e pra mandar quem chega por http pro https
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+    volumes:
+      - ./Caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # o certificado e a conta do Let's Encrypt: sem isto, cada recreate pede outro e esbarra
+      # no limite de emissões
+      - caddy-data:/data
+      - caddy-config:/config
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
   # O teste de fumaça do pós-deploy: o Newman roda a coleção do Postman contra a API no ar.
   # Fora do `up` pelo profile — roda com `docker compose --profile testes run --rm newman`
   newman:
@@ -409,3 +457,5 @@ volumes:
   aleph-db:
   lavalink-plugins:
   n8n-data:
+  caddy-data:
+  caddy-config:

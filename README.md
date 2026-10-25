@@ -49,7 +49,7 @@ O aviso some sozinho alguns segundos depois, pra não virar bagunça nova no can
 
 | | Comando | O que faz |
 |:--:|:--|:--|
-| ▶️ | **`/play`** <sub>· `p` · `tocar`</sub> | Toca uma faixa ou põe na fila |
+| ▶️ | **`/play`** <sub>· `p` · `tocar`</sub> | Toca uma faixa ou põe na fila. Nome procura no YouTube; se ele não acha ou recusa, tenta no SoundCloud. Link toca de onde veio (YouTube, SoundCloud, Bandcamp, Twitch, Vimeo) |
 | 📚 | **`/playlist add`** <sub>· `pl add`</sub> | Acha uma playlist do YouTube pelo nome (ou link) e põe inteira na fila |
 | ⏭️ | **`/skip`** <sub>· `s` · `pular` · `next`</sub> | Pula a faixa atual |
 | ⏸️ | **`/pause`** <sub>· `pausar`</sub> | Pausa a reprodução |
@@ -202,8 +202,8 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 > [!IMPORTANT]
 > Fora do Docker a API só escuta em `localhost`. No compose ela é publicada no `127.0.0.1` da
 > máquina — o HTTP leva a chave em texto puro, então pra abrir pra fora o certo é um proxy com
-> HTTPS na frente (Caddy, nginx). `API_BIND=0.0.0.0` no `.env` da raiz abre direto, e o Docker
-> publica por cima do firewall (`ufw`): abre mesmo.
+> HTTPS na frente: o compose já traz o [Caddy](#https-com-o-caddy). `API_BIND=0.0.0.0` no `.env`
+> da raiz abre direto, e o Docker publica por cima do firewall (`ufw`): abre mesmo.
 
 > [!TIP]
 > Pra ver de casa a API de um VPS não precisa abrir porta nenhuma: um túnel SSH traz ela até
@@ -235,6 +235,41 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 >
 > De dentro (a sua rede, o Tailscale, o túnel SSH) nada disso pesa — fica só o limite de pedidos,
 > dez vezes maior.
+
+### HTTPS com o Caddy
+
+Pra não depender só do Funnel, o compose traz o [Caddy](https://caddyserver.com) como proxy
+HTTPS na frente da API. Ele tira o certificado do Let's Encrypt sozinho e renova antes de vencer.
+A configuração mora em `Caddy/Caddyfile`.
+
+Precisa de um nome que aponte pro IP público da VPS. Sem domínio próprio, o
+[sslip.io](https://sslip.io) resolve: `54-12-34-56.sslip.io` já aponta pro `54.12.34.56`, sem
+cadastro. Fixe um **Elastic IP** na instância antes, senão o IP muda num stop/start e o nome muda
+junto.
+
+Pra ligar, na VPS:
+
+1. No security group da instância, libere a entrada **TCP 80** e **TCP 443** (e **UDP 443**, pro
+   HTTP/3) de `0.0.0.0/0`. A 80 é por onde o Let's Encrypt confere o domínio.
+2. No `.env` da raiz, com o IP da VPS no lugar dos números:
+
+   ```bash
+   echo "API_DOMAIN=$(curl -s https://checkip.amazonaws.com | tr . -).sslip.io" >> .env
+   echo "COMPOSE_PROFILES=proxy" >> .env
+   ```
+
+   O `COMPOSE_PROFILES` faz o `docker compose up` subir o Caddy junto, sem precisar lembrar do
+   `--profile`.
+3. `docker compose up -d`, e confira:
+
+   ```bash
+   docker compose logs caddy | grep -i "certificate obtained"
+   curl https://$(grep ^API_DOMAIN= .env | cut -d= -f2)/api/v1/health
+   ```
+
+Quem chega pelo Caddy é tratado como quem chega pelo Funnel: o Caddy conta o IP de verdade no
+`X-Forwarded-For`, e a API passa a ver um IP de fora — com a tela de entrar no documento, a chave
+nas rotas que pedem e o limite de 60 pedidos por minuto. O Funnel continua funcionando ao lado.
 
 ### Postman
 

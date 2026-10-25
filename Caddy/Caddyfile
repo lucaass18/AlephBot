@@ -1,0 +1,16 @@
+# O HTTPS na frente da API, sem depender do Tailscale. O nome vem do API_DOMAIN do .env da
+# raiz; sem domínio próprio, o sslip.io serve: 54-12-34-56.sslip.io aponta pro 54.12.34.56.
+# O certificado sai sozinho do Let's Encrypt e é renovado antes de vencer.
+{$API_DOMAIN} {
+	# o Caddy põe o IP de quem chamou no X-Forwarded-For e ignora o que vier de fora nele;
+	# a API confia no header porque o Caddy fala com ela de dentro da rede do compose
+	reverse_proxy alephbot:8080
+
+	# HTTPS por um ano: depois da primeira visita o navegador nem tenta o http://
+	header Strict-Transport-Security "max-age=31536000"
+
+	log {
+		output stdout
+		format console
+	}
+}
