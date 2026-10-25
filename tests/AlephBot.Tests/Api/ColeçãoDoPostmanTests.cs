@@ -21,10 +21,14 @@ public class ColeçãoDoPostmanTests(ApiFixture fixture) : IClassFixture<ApiFixt
 
     private static JsonNode Ambiente() => Arquivo("AlephBot.postman_environment.json");
 
+    // as pastas com o que o documento não descreve: ele mesmo, a tela de entrar e os endereços de antes
+    private static readonly string[] ForaDoDocumento = ["Documento", "Endereços de antes"];
+
     // "GET /api/v1/health" por pedido, no mesmo formato em que o documento nomeia as rotas
-    private static List<string> Pedidos() =>
+    private static List<string> Pedidos(bool foraDoDocumento = false) =>
     [
         .. Coleção()["item"]!.AsArray()
+            .Where(pasta => ForaDoDocumento.Contains((string?)pasta!["name"]) == foraDoDocumento)
             .SelectMany(pasta => pasta!["item"]!.AsArray())
             .Select(pedido => pedido!["request"]!)
             .Select(pedido => $"{(string?)pedido["method"]} "
@@ -59,6 +63,29 @@ public class ColeçãoDoPostmanTests(ApiFixture fixture) : IClassFixture<ApiFixt
 
         foreach (var pedido in Pedidos())
             Assert.Contains(pedido, documento);
+    }
+
+    [Fact]
+    public async Task O_que_fica_fora_do_documento_existe_na_API()
+    {
+        var pedidos = Pedidos(foraDoDocumento: true);
+        Assert.NotEmpty(pedidos);
+
+        foreach (var pedido in pedidos)
+        {
+            var (método, caminho) = (pedido.Split(' ')[0], pedido.Split(' ')[1]);
+
+            var resposta = (await _api.Servidor.SendAsync(http =>
+            {
+                http.Request.Method = método;
+                http.Request.Path = caminho;
+                http.Connection.RemoteIpAddress = System.Net.IPAddress.Loopback;
+            })).Response;
+
+            Assert.True(
+                resposta.StatusCode is not (404 or 405),
+                $"{pedido} respondeu {resposta.StatusCode}");
+        }
     }
 
     [Fact]

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1e9b07c-0001-4001-8001-0a1e9b07c001",
     "name": "AlephBot API v1",
-    "description": "O estado do AlephBot, os números dele e os comandos que ele sabe. Só leitura: nada daqui muda o bot.\n\n`health` e `status` são abertos. `stats` e `commands` pedem a `API_KEY` do `Config/.env` no header `X-Api-Key` — sem ela, ou com ela errada, **401**.\n\nO endereço mora em `{{baseUrl}}` e a chave em `{{apiKey}}`: as duas saem do environment `AlephBot`. De fora são 60 pedidos por minuto por IP; na rede do bot, 600. Toda resposta conta a cota em `X-RateLimit-Limit` e o que sobra em `X-RateLimit-Remaining`.\n\nEsta coleção é conferida contra o `/api/v1/openapi.json` a cada `dotnet test`: rota que nascer na API sem entrar aqui quebra a suíte.",
+    "description": "O estado do AlephBot, os números dele e os comandos que ele sabe. Só leitura: nada daqui muda o bot.\n\n`health` e `status` são abertos. `stats` e `commands` pedem a `API_KEY` do `Config/.env` no header `X-Api-Key` — sem ela, ou com ela errada, **401**.\n\nO endereço mora em `{{baseUrl}}` e a chave em `{{apiKey}}`: as duas saem do environment `AlephBot`. De fora são 60 pedidos por minuto por IP; na rede do bot, 600. Toda resposta conta a cota em `X-RateLimit-Limit` e o que sobra em `X-RateLimit-Remaining`.\n\nEsta coleção é conferida contra o `/api/v1/openapi.json` a cada `dotnet test`: rota que nascer na API sem entrar aqui quebra a suíte. As pastas `Documento` e `Endereços de antes` ficam fora do documento, e a suíte confere que cada rota delas existe na API.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -220,6 +220,305 @@
                   "pm.test('o erro vem em problem+json, com o motivo', () => {",
                   "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json');",
                   "  pm.expect(pm.response.json()).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Documento",
+      "description": "O documento OpenAPI e a tela de entrar dele. Ficam fora do próprio documento: de dentro abrem direto; de fora pedem a `API_KEY`, no header ou pela tela.",
+      "item": [
+        {
+          "name": "O documento OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openapi.json",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openapi.json"]
+            },
+            "description": "O OpenAPI 3.1 da v1, montado das próprias rotas. De fora pede a chave no header `X-Api-Key`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 com a chave', () => pm.response.to.have.status(200));",
+                  "",
+                  "const documento = pm.response.json();",
+                  "",
+                  "pm.test('é um OpenAPI 3.1 com as rotas', () => {",
+                  "  pm.expect(documento.openapi).to.match(/^3\\.1/);",
+                  "  pm.expect(documento.paths).to.have.property('/api/v1/health');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A tela de entrar",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/docs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "docs"]
+            },
+            "description": "De fora, a tela que pede a `API_KEY`. De dentro, ou com o biscoito de quem já entrou, leva direto pro documento."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200: a tela, ou o documento pra quem já pode ler', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Entrar com a chave",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "chave", "value": "{{apiKey}}", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/docs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "docs"]
+            },
+            "description": "O que o formulário da tela manda. Com a chave certa deixa o biscoito `aleph_docs` (30 dias) e leva pro documento; com ela errada, 401."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('entrou e caiu no documento', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.have.property('openapi');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sair",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/docs/sair",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "docs", "sair"]
+            },
+            "description": "Apaga o biscoito e volta pra tela de entrar."
+          },
+          "protocolProfileBehavior": { "followRedirects": false },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('302 pra tela de entrar', () => {",
+                  "  pm.response.to.have.status(302);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.eql('/api/docs');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A raiz",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "A porta da frente: leva pra tela de entrar."
+          },
+          "protocolProfileBehavior": { "followRedirects": false },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('302 pra tela de entrar', () => {",
+                  "  pm.response.to.have.status(302);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.eql('/api/docs');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Endereços de antes",
+      "description": "Os caminhos de antes da versão, que seguem de pé: o `/api/health` responde onde estava, e o resto manda pra v1. Aqui o Postman não segue o redirecionamento, pra conferir pra onde ele aponta.",
+      "item": [
+        {
+          "name": "Health de antes",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Responde no lugar de sempre, pros monitores que já chamavam ele."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200, sem mandar pra outro lugar', () => pm.response.to.have.status(200));",
+                  "pm.test('o mesmo corpo do health da v1', () => pm.expect(pm.response.json()).to.have.property('status'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Status de antes",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "status"]
+            },
+            "description": "308 pro `/api/v1/status`."
+          },
+          "protocolProfileBehavior": { "followRedirects": false },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('308 pra v1', () => {",
+                  "  pm.response.to.have.status(308);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.eql('/api/v1/status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stats de antes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stats"]
+            },
+            "description": "308 pro `/api/v1/stats`, que pede a chave."
+          },
+          "protocolProfileBehavior": { "followRedirects": false },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('308 pra v1', () => {",
+                  "  pm.response.to.have.status(308);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.eql('/api/v1/stats');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commands de antes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/commands",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "commands"]
+            },
+            "description": "308 pro `/api/v1/commands`, que pede a chave."
+          },
+          "protocolProfileBehavior": { "followRedirects": false },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('308 pra v1', () => {",
+                  "  pm.response.to.have.status(308);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.eql('/api/v1/commands');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Documento de antes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/openapi.json",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "openapi.json"]
+            },
+            "description": "301 pro `/api/v1/openapi.json`: o documento de cada versão não muda de lugar."
+          },
+          "protocolProfileBehavior": { "followRedirects": false },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('301 pro documento da v1', () => {",
+                  "  pm.response.to.have.status(301);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.eql('/api/v1/openapi.json');",
                   "});"
                 ]
               }

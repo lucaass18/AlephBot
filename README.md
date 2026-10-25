@@ -242,7 +242,7 @@ A pasta `Postman/` tem a coleção e o environment desta API, prontos pro *Impor
 
 | Arquivo | O que é |
 |:--|:--|
-| `AlephBot.postman_collection.json` | As cinco rotas em dois grupos (`Status` e `Bot`), cada uma com um teste do que a resposta tem que trazer, mais uma chamada de propósito sem chave, que espera **401** |
+| `AlephBot.postman_collection.json` | As cinco rotas em dois grupos (`Status` e `Bot`), cada uma com um teste do que a resposta tem que trazer, mais uma chamada de propósito sem chave, que espera **401**. Mais duas pastas com o que o documento não descreve: `Documento` (o `openapi.json`, a tela de entrar, o sair e a raiz) e `Endereços de antes` (`/api/health` e os redirecionamentos pra v1) |
 | `AlephBot.postman_environment.json` | `baseUrl`, o endereço, e `apiKey`, a sua `API_KEY`. Ela fica vazia aqui, e um teste da suíte existe só pra ela nunca sair cheia |
 
 Importe os dois, escolha o environment **AlephBot** e preencha a `apiKey`. O `baseUrl` já vem
@@ -251,7 +251,8 @@ troque pelo endereço `.ts.net`. Se preferir montar a coleção você mesmo, o P
 `/api/v1/openapi.json` direto.
 
 A coleção não envelhece sozinha: um teste da suíte confere, a cada `dotnet test`, que toda rota
-do documento tem pedido nela e que ela não inventa rota que a API não tem.
+do documento tem pedido nela e que ela não inventa rota que a API não tem — as das pastas de fora
+do documento, conferidas direto na API.
 
 #### Teste de fumaça depois do deploy
 
