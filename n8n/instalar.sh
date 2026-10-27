@@ -13,6 +13,29 @@ set -eu
 SOZINHOS="AlephSaude000001 AlephComandos001 AlephPainel00001 AlephBackup00001"
 ESPERADOS=4
 
+# A credencial do Postgres que o backup e o painel usam (id AlephPostgres001). Os fluxos só
+# guardam o id dela; sem isso o "Lê o banco" falha com "Credential ... does not exist". A senha
+# vem do POSTGRES_PASSWORD do .env da raiz, o mesmo que o compose entrega ao Postgres, e passa
+# pro contêiner por variável — não fica em arquivo nenhum na VPS
+senha=$(grep '^POSTGRES_PASSWORD=' .env 2>/dev/null | tail -1 | cut -d= -f2- | sed 's/^["'\'']//; s/["'\'']$//')
+senha=${senha:-${POSTGRES_PASSWORD:-}}
+
+if [ -z "$senha" ]; then
+  echo "FALHOU: sem POSTGRES_PASSWORD no .env da raiz, não dá pra criar a credencial do banco."
+  exit 1
+fi
+
+docker compose exec -T -e PG_SENHA="$senha" n8n node -e '
+  const credencial = [{
+    id: "AlephPostgres001",
+    name: "Aleph Postgres",
+    type: "postgres",
+    data: { host: "postgres", port: 5432, database: "aleph", user: "aleph", password: process.env.PG_SENHA, ssl: "disable" },
+  }];
+  require("fs").writeFileSync("/tmp/credencial.json", JSON.stringify(credencial));
+'
+docker compose exec -T n8n sh -c 'n8n import:credentials --input=/tmp/credencial.json; status=$?; rm -f /tmp/credencial.json; exit $status'
+
 docker compose exec -T n8n n8n import:workflow --separate --input=/fluxos
 
 for id in $SOZINHOS; do
