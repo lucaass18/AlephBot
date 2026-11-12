@@ -33,3 +33,6 @@ n8n/arquivos/**
 # o Python do yt-audio compila ao rodar os testes; nada disso entra no repo
 __pycache__/
 *.pyc
+
+# a documentação fica só na máquina
+docs/
