@@ -12,7 +12,7 @@
 [![Discord](https://img.shields.io/badge/Discord-6d4aff?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/developers/applications)
 [![Docker](https://img.shields.io/badge/Docker-5b3ecf?style=for-the-badge&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 
-[![AlephBot v1.0.0](https://img.shields.io/badge/AlephBot-v1.0.0-af87ff?style=flat-square)](AlephBot.csproj)
+[![AlephBot v1.0.0](https://img.shields.io/badge/AlephBot-v1.0.0-af87ff?style=flat-square)](src/AlephBot/AlephBot.csproj)
 [![NetCord](https://img.shields.io/badge/NetCord-1.0.0--beta.19-af87ff?style=flat-square)](https://netcord.dev)
 [![Lavalink](https://img.shields.io/badge/Lavalink-4.2.2-af87ff?style=flat-square)](https://lavalink.dev)
 [![License](https://img.shields.io/badge/license-MIT-af87ff?style=flat-square)](LICENSE)
@@ -605,8 +605,8 @@ docker run --rm -p 8001:8001 -e OVERRIDE_PLAYER_VARIANT=IAS ghcr.io/kikkia/yt-ci
 # o Lavalink em outro, com o application.yml deste repositório ao lado do jar
 java -jar Lavalink.jar
 
-# e o bot num terceiro
-dotnet run
+# e o bot num terceiro, da raiz do repositório
+dotnet run --project src/AlephBot
 ```
 
 Fora do compose o `YOUTUBE_AUDIO_URI` fica vazio, e o YouTube toca só pelo plugin.
@@ -631,10 +631,6 @@ quebra, o teste, a mensagem do `Assert` e a linha:
 dotnet run --file tests/relatorio.cs
 dotnet run --file tests/relatorio.cs -- --filter-class AlephBot.Tests.Commands.MuteCommandTests
 ```
-
-> [!IMPORTANT]
-> É `--file` mesmo: na raiz mora o `AlephBot.csproj`, e sem a opção o `dotnet run` sobe o bot em
-> vez do relatório.
 
 No VPS, sem .NET instalado, o SDK vem do Docker — e o `-t` é o que traz as cores:
 
@@ -664,21 +660,25 @@ quebrar, `docker compose build yt-audio` falha e a imagem nem sai.
 ## Estrutura
 
 ```
-Config/           Carregamento do .env e o objeto de configuração
-Core/
-  Commands/       Um arquivo por comando, agrupados por categoria
-  Personality/    Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
-Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
-  Inicialização/  O Main e a montagem do host: quem acende tudo
-  Api/            A API HTTP: rotas, a chave, o documento OpenAPI e o que ela lê do bot
-  Youtube/        Login (o token guardado e entregue ao Lavalink), a busca de playlist e o
-                  áudio pelo yt-audio
-  Players/        A foto de cada player e a volta depois de um restart
-Lavalink/         application.yml do servidor de áudio
-YtAudio/          O yt-audio: o áudio do YouTube sem conta, pelo yt-dlp (Python)
-n8n/              A automação com a API: os fluxos, o script que instala e a pasta onde eles gravam
-Postman/          A coleção e o environment da API, pro Postman e pro Newman do compose
-tests/            Testes de unidade (xUnit): a config, os parsers, os comandos e a API em memória
+src/AlephBot/       O bot (C#): o AlephBot.csproj e o nlog.config moram aqui
+  Config/           Carregamento do .env e o objeto de configuração
+  Core/
+    Commands/       Um arquivo por comando, agrupados por categoria
+    Personality/    Todo texto que o usuário lê — mudar o tom do bot é mexer só aqui
+  Threnodian/       Bootstrap: host, DI, logging, gateway e os serviços de fundo
+    Boot/           O Main e a montagem do host: quem acende tudo
+    Api/            A API HTTP: rotas, a chave, o documento OpenAPI e o que ela lê do bot
+    Dados/          O Postgres: as tabelas, as migrações e quem fala com cada uma
+    Youtube/        Login (o token guardado e entregue ao Lavalink), a busca de playlist e o
+                    áudio pelo yt-audio
+    Players/        A foto de cada player e a volta depois de um restart
+Config/             O .env do bot e o .env.example de onde ele sai — arquivo, não código
+Caddy/              O Caddyfile do HTTPS na frente da API
+Lavalink/           application.yml do servidor de áudio
+YtAudio/            O yt-audio: o áudio do YouTube sem conta, pelo yt-dlp (Python)
+n8n/                A automação com a API: os fluxos, o script que instala e a pasta onde eles gravam
+Postman/            A coleção e o environment da API, pro Postman e pro Newman do compose
+tests/              Testes de unidade (xUnit): a config, os parsers, os comandos e a API em memória
 ```
 
 > [!TIP]

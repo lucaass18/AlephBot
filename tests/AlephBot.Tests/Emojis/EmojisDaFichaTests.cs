@@ -2,7 +2,7 @@ using AlephBot.Core.Personality;
 using AlephBot.Threnodian.Emojis;
 using AlephBot.Threnodian.MyAnimeList;
 
-namespace AlephBot.Tests.Commands;
+namespace AlephBot.Tests.Emojis;
 
 // Os rótulos da ficha com o emoji do app. O mapa é do processo, então cada teste limpa o que pôs.
 [Collection("emoji")]

@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\AlephBot.csproj" />
+      <ProjectReference Include="..\..\src\AlephBot\AlephBot.csproj" />
     </ItemGroup>
 
     <ItemGroup>

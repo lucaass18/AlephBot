@@ -1,6 +1,6 @@
 using AlephBot.Threnodian.Emojis;
 
-namespace AlephBot.Tests.Commands;
+namespace AlephBot.Tests.Emojis;
 
 // Os PNGs e GIFs que viajam dentro do dll. É com eles que o bot se vira sozinho no primeiro
 // boot, sem ninguém arrastar arquivo no Developer Portal.

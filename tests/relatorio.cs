@@ -1,4 +1,4 @@
-#:project ../AlephBot.csproj
+#:project ../src/AlephBot/AlephBot.csproj
 #:property PublishAot=false
 
 // Roda os testes e mostra o resultado na paleta do bot. O que vier depois do "--" vai pro dotnet

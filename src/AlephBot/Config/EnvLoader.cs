@@ -93,14 +93,15 @@ public static class EnvLoader
         return File.Exists(fileName) ? Path.GetFullPath(fileName) : null;
     }
 
-    // Sobe a árvore procurando a pasta que contém o .csproj.
+    // Sobe a árvore procurando a raiz do repositório: a pasta do .sln. O .csproj não serve mais de
+    // marco — ele mora em src/AlephBot, e o Config/.env que o compose lê é o da raiz.
     private static string? FindProjectRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
 
         while (dir is not null)
         {
-            if (dir.EnumerateFiles("*.csproj").Any())
+            if (dir.EnumerateFiles("*.sln").Any())
                 return dir.FullName;
 
             dir = dir.Parent;

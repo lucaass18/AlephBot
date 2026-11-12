@@ -11,9 +11,10 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["AlephBot.csproj", "./"]
+# o bot mora em src/AlephBot; aqui dentro ele fica direto no /src, e o resto do repositorio nem entra
+COPY ["src/AlephBot/AlephBot.csproj", "./"]
 RUN dotnet restore "AlephBot.csproj"
-COPY . .
+COPY src/AlephBot/ .
 WORKDIR "/src/"
 RUN dotnet build "./AlephBot.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
