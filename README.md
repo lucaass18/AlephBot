@@ -201,8 +201,8 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 
 > [!IMPORTANT]
 > Fora do Docker a API só escuta em `localhost`. No compose ela é publicada no `127.0.0.1` da
-> máquina — o HTTP leva a chave em texto puro, então pra abrir pra fora o certo é um proxy com
-> HTTPS na frente: o compose já traz o [Caddy](#https-com-o-caddy). `API_BIND=0.0.0.0` no `.env`
+> máquina — o HTTP leva a chave em texto puro, então pra abrir pra fora o certo é HTTPS na
+> frente: é o que o Tailscale Funnel faz, logo abaixo. `API_BIND=0.0.0.0` no `.env`
 > da raiz abre direto, e o Docker publica por cima do firewall (`ufw`): abre mesmo.
 
 > [!TIP]
@@ -219,7 +219,9 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 > sudo tailscale funnel --bg http://127.0.0.1:8080
 > ```
 >
-> A raiz do endereço leva pra tela de entrar (`/api/docs`), e o resto responde nos caminhos dele.
+> O endereço público da API é **<https://aleph.tailc38add.ts.net/api/docs>**: a raiz
+> (`https://aleph.tailc38add.ts.net`) leva pra essa tela de entrar, e o resto responde nos
+> caminhos dele.
 > O que chega pelo Funnel vem marcado pelo Tailscale, e quem vem de fora passa por camadas:
 >
 > - `health` e `status` são abertos — é o que monitor de uptime e página de status chamam;
@@ -235,49 +237,6 @@ curl -H "X-Api-Key: $API_KEY" http://localhost:8080/api/v1/commands
 >
 > De dentro (a sua rede, o Tailscale, o túnel SSH) nada disso pesa — fica só o limite de pedidos,
 > dez vezes maior.
-
-### HTTPS com o Caddy
-
-Pra não depender só do Funnel, o compose traz o [Caddy](https://caddyserver.com) como proxy
-HTTPS na frente da API. Ele tira o certificado do Let's Encrypt sozinho e renova antes de vencer.
-A configuração mora em `Caddy/Caddyfile`.
-
-Precisa de um nome que aponte pro IP público da VPS. Sem domínio próprio, o
-[sslip.io](https://sslip.io) resolve: `54-12-34-56.sslip.io` já aponta pro `54.12.34.56`, sem
-cadastro. Fixe um **Elastic IP** na instância antes, senão o IP muda num stop/start e o nome muda
-junto.
-
-Pra ligar, na VPS:
-
-1. No security group da instância, libere a entrada **TCP 80** e **TCP 443** (e **UDP 443**, pro
-   HTTP/3) de `0.0.0.0/0`. A 80 é por onde o Let's Encrypt confere o domínio.
-2. No `.env` da raiz, com o IP da VPS no lugar dos números:
-
-   ```bash
-   echo "API_DOMAIN=$(curl -s https://checkip.amazonaws.com | tr . -).sslip.io" >> .env
-   echo "COMPOSE_PROFILES=proxy" >> .env
-   ```
-
-   O `COMPOSE_PROFILES` faz o `docker compose up` subir o Caddy junto, sem precisar lembrar do
-   `--profile`. Com o Funnel ligado, o `tailscaled` já ocupa a 80 e a 443 do IP do Tailscale, e o
-   Caddy em `0.0.0.0` falha com `address already in use`. Prenda ele no IP interno da instância
-   — o IP elástico da AWS chega nele:
-
-   ```bash
-   echo "PROXY_BIND=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4 \
-     -H "X-aws-ec2-metadata-token: $(curl -s -X PUT http://169.254.169.254/latest/api/token \
-     -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')")" >> .env
-   ```
-3. `docker compose up -d`, e confira:
-
-   ```bash
-   docker compose logs caddy | grep -i "certificate obtained"
-   curl https://$(grep ^API_DOMAIN= .env | cut -d= -f2)/api/v1/health
-   ```
-
-Quem chega pelo Caddy é tratado como quem chega pelo Funnel: o Caddy conta o IP de verdade no
-`X-Forwarded-For`, e a API passa a ver um IP de fora — com a tela de entrar no documento, a chave
-nas rotas que pedem e o limite de 60 pedidos por minuto. O Funnel continua funcionando ao lado.
 
 ### Postman
 
@@ -673,7 +632,6 @@ src/AlephBot/       O bot (C#): o AlephBot.csproj e o nlog.config moram aqui
                     áudio pelo yt-audio
     Players/        A foto de cada player e a volta depois de um restart
 Config/             O .env do bot e o .env.example de onde ele sai — arquivo, não código
-Caddy/              O Caddyfile do HTTPS na frente da API
 Lavalink/           application.yml do servidor de áudio
 YtAudio/            O yt-audio: o áudio do YouTube sem conta, pelo yt-dlp (Python)
 n8n/                A automação com a API: os fluxos, o script que instala e a pasta onde eles gravam
