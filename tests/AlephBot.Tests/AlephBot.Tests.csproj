@@ -10,7 +10,28 @@
         <OutputType>Exe</OutputType>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+
     </PropertyGroup>
+
+    <!-- todo dotnet test deixa o relatório (.trx e .html) na TestResults da raiz; o tests/relatorio.cs
+         escolhe a própria pasta e desliga isso com -p:RelatorioNaRaiz=false -->
+    <PropertyGroup Condition="'$(RelatorioNaRaiz)' != 'false'">
+        <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --results-directory "$(MSBuildThisFileDirectory)..\..\TestResults" --report-xunit-trx --report-xunit-html</TestingPlatformCommandLineArguments>
+    </PropertyGroup>
+
+    <!-- antes de cada build (o dotnet test e o tests/relatorio.cs passam por ele), apaga da TestResults
+         da raiz os relatórios com mais de 1 hora -->
+    <Target Name="ApagaRelatoriosVelhos" BeforeTargets="Build">
+        <ItemGroup>
+            <_Relatorio Include="$(MSBuildThisFileDirectory)..\..\TestResults\**\*" />
+        </ItemGroup>
+        <!-- com a pasta vazia não sobra data pra ler, e a conta abaixo quebraria o build -->
+        <ItemGroup Condition="'@(_Relatorio)' != ''">
+            <_RelatorioVelho Include="@(_Relatorio)"
+                             Condition="$([System.DateTime]::Now.Subtract($([System.DateTime]::Parse('%(_Relatorio.ModifiedTime)'))).TotalHours) &gt; 1" />
+        </ItemGroup>
+        <Delete Files="@(_RelatorioVelho)" ContinueOnError="true" />
+    </Target>
 
     <ItemGroup>
       <PackageReference Include="JsonSchema.Net" Version="9.4.0" />

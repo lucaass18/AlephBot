@@ -36,7 +36,7 @@ Console.WriteLine();
 
 var (código, saída) = await Script.RodarAsync(raiz, "dotnet",
 [
-    "test", "--project", Path.Combine("tests", "AlephBot.Tests"),
+    "test", "--project", Path.Combine("tests", "AlephBot.Tests"), "-p:RelatorioNaRaiz=false",
     "--results-directory", resultados,
     "--report-xunit-xml", "--report-xunit-xml-filename", "resultado.xml",
     "--progress", "off", "--no-ansi",
@@ -102,9 +102,59 @@ Console.WriteLine(
     $"{cinza}{segundos.ToString("0.0", CultureInfo.GetCultureInfo("pt-BR"))} s{fim}");
 
 Console.WriteLine($"  {cinza}{(falharam > 0 ? Denia.TestesFalharam(falharam, testes.Count) : Denia.TestesPassaram(testes.Count))}{fim}");
+
+var txt = BlocoDeNotas();
+Console.WriteLine($"  {apagado}{Path.GetRelativePath(raiz, txt)}{fim}");
 Console.WriteLine();
 
 return falharam > 0 ? 1 : 0;
+
+// O mesmo relatório, sem cor e com todo teste pelo nome, num .txt na TestResults da raiz.
+string BlocoDeNotas()
+{
+    var agora = DateTime.Now;
+    var texto = new StringBuilder();
+
+    texto.AppendLine($"AlephBot · relatório dos testes · {agora:dd/MM/yyyy HH:mm:ss}");
+    texto.AppendLine(
+        $"{passaram} passaram · {falharam} falharam · {ignorados} ignorados · " +
+        $"{segundos.ToString("0.0", CultureInfo.GetCultureInfo("pt-BR"))} s");
+
+    foreach (var pasta in testes.GroupBy(t => t.Pasta).OrderBy(g => g.Key, StringComparer.Ordinal))
+    {
+        texto.AppendLine();
+        texto.AppendLine($"=== {pasta.Key} ({pasta.Count()})");
+
+        foreach (var classe in pasta.GroupBy(t => t.Classe).OrderBy(g => g.Key, StringComparer.Ordinal))
+        {
+            texto.AppendLine();
+            texto.AppendLine($"  {classe.Key} ({classe.Count(t => t.Passou)}/{classe.Count()})");
+
+            foreach (var teste in classe.OrderBy(t => t.NomeLegível, StringComparer.Ordinal))
+            {
+                var símbolo = teste.Falhou ? "✘" : teste.Ignorado ? "○" : "✔";
+                texto.AppendLine($"    {símbolo} {teste.NomeLegível}");
+
+                if (!teste.Falhou)
+                    continue;
+
+                foreach (var linha in teste.Mensagem.Split('\n').Select(l => l.TrimEnd()).Where(l => l.Length > 0))
+                    texto.AppendLine($"        {linha}");
+
+                if (teste.Onde is { } onde)
+                    texto.AppendLine($"        em {onde}");
+            }
+        }
+    }
+
+    var pastaDosResultados = Path.Combine(raiz, "TestResults");
+    Directory.CreateDirectory(pastaDosResultados);
+
+    var arquivo = Path.Combine(pastaDosResultados, $"relatorio_{agora:yyyy-MM-dd_HH-mm-ss}.txt");
+    File.WriteAllText(arquivo, texto.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+    return arquivo;
+}
 
 void Linha(string nome, List<Teste> grupo, int recuo, string corDoNome, string corDaConta, bool éPasta = false)
 {
