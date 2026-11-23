@@ -19,6 +19,16 @@
         <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --results-directory "$(MSBuildThisFileDirectory)..\..\TestResults" --report-xunit-trx --report-xunit-html</TestingPlatformCommandLineArguments>
     </PropertyGroup>
 
+    <!-- e um relatorio_*.txt na mesma pasta (RelatorioTxt.cs); sem a pasta a extensão fica desligada -->
+    <ItemGroup Condition="'$(RelatorioNaRaiz)' != 'false'">
+        <AssemblyMetadata Include="RelatorioTxtPasta" Value="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\TestResults'))" />
+    </ItemGroup>
+    <ItemGroup>
+        <TestingPlatformBuilderHook Include="7C2E9A41-5B3D-4F8E-9A6C-1D2B3E4F5A60"
+                                    DisplayName="RelatorioTxt"
+                                    TypeFullName="AlephBot.Tests.RelatorioTxtHook" />
+    </ItemGroup>
+
     <!-- antes de cada build (o dotnet test e o tests/relatorio.cs passam por ele), apaga da TestResults
          da raiz os relatórios com mais de 1 hora -->
     <Target Name="ApagaRelatoriosVelhos" BeforeTargets="Build">
